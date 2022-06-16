@@ -17,19 +17,28 @@
     <div class="shadow" v-show="static_params.shadow" @click="hidden_shadow"></div>
     <!-- 左边栏——历史版本 -->
     <div class="nav_layout">
+      <!-- 标题 -->
       <span class="center" style="font-size: 20px;">历史版本</span>
-      <div class="column_center" style="overflow: hidden;">
+      <!-- 选项卡 -->
+      <div class="tabs_layout">
+        <el-tabs v-model="static_params.tabs_selected" @tab-click="model_select(static_params.tabs_selected)"
+          tab-position="left">
+          <el-tab-pane v-for="ver,index in history_list" :label="ver.profile.version" :name="index+''"></el-tab-pane>
+        </el-tabs>
+        <span class="add_new_version center" @click="new_ver_model">+ 新增版本</span>
+      </div>
+      <!-- <div class="column_center" style="overflow: hidden;">
         <span class="version_text flex_shrink" v-for="ver,index in history_list"
           @click="model_select(index)">{{ver.profile.version}}</span>
         <span class="flex_shrink" style="color: #1E90FF;font-size: 16px;cursor: pointer;" @click="new_ver_model">+
           新增版本</span>
-      </div>
+      </div> -->
     </div>
     <!-- 按钮和表格 -->
     <div class="main">
       <!-- 功能按钮 -->
       <div class="buttons_layout">
-        <el-button type="primary" round @click="add_protocol">添加标准功能</el-button>
+        <el-button type="primary" round @click="add_protocol">添加自定义功能</el-button>
       </div>
       <!-- 自定义表格 -->
       <!-- <div class="table">
@@ -60,11 +69,17 @@
           <span>{{data.type}}</span>
           <span>名称：{{data.data.name}}</span>
           <span>
-            <el-button type="text" size="mini" @click.stop="edit_protocol(data)">
+            <el-button v-if="history_list[history_selected].profile.published==='0'" type="text" size="mini"
+              @click.stop="edit_protocol(data)">
               编辑
             </el-button>
-            <el-button type="text" size="mini" @click.stop="delete_protocol(data)">
+            <el-button v-if="history_list[history_selected].profile.published==='0'" type="text" size="mini"
+              @click.stop="delete_protocol(data)">
               删除
+            </el-button>
+            <el-button v-if="history_list[history_selected].profile.published==='1'" type="text" size="mini"
+              @click.stop="check_protocol(data)">
+              查看
             </el-button>
           </span>
         </span>
@@ -135,9 +150,10 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="输出参数">
-              <el-select v-model="static_params.setting.event.outputData" placeholder="请选择属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="static_params.setting.event.outputData" value-key="propertyId" placeholder="请选择属性"
+                multiple clearable>
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
           </template>
@@ -155,100 +171,117 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item label="输入参数">
-              <el-select v-model="static_params.setting.server.inputData" placeholder="请选择输入属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="static_params.setting.server.inputData" value-key="propertyId" placeholder="请选择输入属性"
+                multiple clearable>
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="输出参数">
-              <el-select v-model="static_params.setting.server.outputData" placeholder="请选择输出属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="static_params.setting.server.outputData" value-key="propertyId" placeholder="请选择输出属性"
+                multiple clearable>
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
           </template>
         </template>
 
-        <!-- 编辑 -->
-        <template v-if="static_params.add_edit=='edit'">
+        <!-- 编辑和查看 -->
+        <template v-if="static_params.add_edit=='edit'||static_params.add_edit=='check'">
           <el-form-item :label="`${single_setting.type}名称`" prop="name">
-            <el-input v-model="single_setting.name"></el-input>
+            <el-input v-model="single_setting.name" :disabled="static_params.add_edit=='check'"></el-input>
           </el-form-item>
           <el-form-item :label="`${single_setting.type}标识`" prop="identifier">
-            <el-input v-model="single_setting.identifier"></el-input>
+            <el-input v-model="single_setting.identifier" :disabled="static_params.add_edit=='check'"></el-input>
           </el-form-item>
           <!-- 属性独有 -->
           <template v-if="single_setting.type=='属性'">
             <el-form-item label="数据类型" prop="dataType">
-              <el-select v-model="single_setting.dataType" placeholder="请选择类型">
+              <el-select v-model="single_setting.dataType" placeholder="请选择类型"
+                :disabled="static_params.add_edit=='check'">
                 <el-option v-for="item in static_params.type_options" :key="item.value" :label="item.name"
                   :value="item.value"></el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="取值范围" v-show="single_setting.dataType!='struct'&&single_setting.dataType!='date'">
               <div style="display: flex;">
-                <el-input v-model="single_setting.min" placeholder="最小值"></el-input>
+                <el-input v-model="single_setting.min" placeholder="最小值" :disabled="static_params.add_edit=='check'">
+                </el-input>
                 ~
-                <el-input v-model="single_setting.max" placeholder="最大值"></el-input>
+                <el-input v-model="single_setting.max" placeholder="最大值" :disabled="static_params.add_edit=='check'">
+                </el-input>
               </div>
             </el-form-item>
             <el-form-item label="步长" v-show="single_setting.dataType!='struct'&&single_setting.dataType!='date'">
-              <el-input v-model="single_setting.step" placeholder="请输入步长"></el-input>
+              <el-input v-model="single_setting.step" placeholder="请输入步长" :disabled="static_params.add_edit=='check'">
+              </el-input>
             </el-form-item>
             <el-form-item label="单位" v-show="single_setting.dataType!='struct'&&single_setting.dataType!='date'">
-              <el-select v-model="single_setting.unit" placeholder="请选择单位">
+              <el-select v-model="single_setting.unit" placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
                 <el-option v-for="item in static_params.unit_options" :key="item.value" :label="item.value"
                   :value="item.value"></el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="元素个数" v-show="single_setting.dataType=='array'" prop="size">
-              <el-input v-model="single_setting.size" placeholder="请输入元素个数"></el-input>
+              <el-input v-model="single_setting.size" placeholder="请输入元素个数" :disabled="static_params.add_edit=='check'">
+              </el-input>
             </el-form-item>
           </template>
           <!-- 事件独有 -->
           <template v-if="single_setting.type=='事件'">
             <el-form-item label="事件类型" prop="dataType">
-              <el-radio-group v-model="single_setting.dataType">
+              <el-radio-group v-model="single_setting.dataType" :disabled="static_params.add_edit=='check'">
                 <el-radio v-for="item in static_params.event_type_options" :label="item.value">{{item.name}}</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="输出参数">
-              <el-select v-model="single_setting.outputData" placeholder="请选择属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="single_setting.outputData" value-key="propertyId" placeholder="请选择属性" multiple
+                clearable :disabled="static_params.add_edit=='check'">
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
           </template>
           <!-- 服务独有 -->
           <template v-if="single_setting.type=='服务'">
             <el-form-item label="调用方式" prop="dataType">
-              <el-radio-group v-model="single_setting.dataType">
+              <el-radio-group v-model="single_setting.dataType" :disabled="static_params.add_edit=='check'">
                 <el-radio v-for="item in static_params.server_type_options" :label="item.value">{{item.name}}</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="输入参数">
-              <el-select v-model="single_setting.inputData" placeholder="请选择输入属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="single_setting.inputData" value-key="propertyId" placeholder="请选择输入属性" multiple
+                clearable :disabled="static_params.add_edit=='check'">
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="输出参数">
-              <el-select v-model="single_setting.outputData" placeholder="请选择输出属性" multiple clearable>
-                <el-option v-for="item in history_list[history_selected].properties" :key="item.propertyId"
-                  :label="item.name" :value="item"></el-option>
+              <el-select v-model="single_setting.outputData" value-key="propertyId" placeholder="请选择输出属性" multiple
+                clearable :disabled="static_params.add_edit=='check'">
+                <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
+                </el-option>
               </el-select>
             </el-form-item>
           </template>
         </template>
+
         <!-- 按钮 -->
         <el-form-item class="button_layout">
           <el-button v-if="single_setting.type=='属性'&& static_params.add_edit=='edit'&&!static_params.add_child"
             @click="add_child_property">新增子属性</el-button>
-          <el-button type="primary" @click="submit_form">保存</el-button>
+          <el-button type="primary" @click="submit_form" :disabled="static_params.add_edit=='check'">保存</el-button>
           <el-button @click="hidden_shadow">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
+    <!-- 临时 发布物模型按钮 用绝对定位先弄个死的 -->
+    <template v-if="!static_params.first_load">
+      <el-card class="footer" v-if="history_list[history_selected].profile.published==='0'">
+        <el-button type="primary" size="small" @click="publish_model">发布上线</el-button>
+      </el-card>
+    </template>
   </div>
 
   <script src="./module/vue.js"></script>

@@ -6,6 +6,7 @@ let protocol_properties = `${url}api-device/protocol/properties`;
 let protocol_property = `${url}api-device/protocol/property`;
 let protocol_event = `${url}api-device/protocol/event`;
 let protocol_service = `${url}api-device/protocol/service`;
+let protocol_publish = `${url}api-device/protocol/publish`;
 
 new Vue({
 	el: '#index',
@@ -79,10 +80,12 @@ new Vue({
 						{ pattern: /^\d+$/, message: '只能输入大于0的整数', trigger: 'blur' },
 					],
 				},
+				tabs_selected: '', //标签页选中
+				first_load: true, //第一次加载时隐藏卡片 不然会报错
 			},
 			//历史版本列表
 			history_list: [],
-			history_selected: -1, //记录选择的是历史版本中的哪一个
+			history_selected: '', //记录选择的是历史版本中的哪一个
 			//物模型属性等列表——表格用
 			// protocol_list: [],
 			protocol_tree: [],
@@ -125,6 +128,8 @@ new Vue({
 				console.log('历史版本', res);
 				this.history_list = res.data.data.data;
 				this.model_select(index);
+				// 加载完毕后再显示底部卡片
+				this.static_params.first_load = false;
 			});
 		},
 		// 选择查看版本
@@ -132,7 +137,7 @@ new Vue({
 			this.protocol_list = [];
 			this.protocol_tree = [];
 			// 保留当前点击的历史版本索引
-			this.history_selected = index;
+			this.history_selected = Number(index);
 			// 需要保存物模型ID
 			this.model_id = this.history_list[index].modelId;
 			// 事件集合
@@ -265,18 +270,8 @@ new Vue({
 				center: true,
 			})
 				.then(() => {
-					let new_ver = {
-						events: [],
-						properties: [],
-						services: [],
-						modelId: this.id,
-						schema: '',
-						profile: {
-							productId: this.id,
-						},
-					};
-					this.request('post', protocol_newVersion, this.token, new_ver, () => {
-						this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, this.res_history_model(this.history_list.length - 1));
+					this.request('post', protocol_newVersion, this.token, this.history_list[0], () => {
+						this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, this.res_history_model(0));
 					});
 				})
 				.catch(() => {
@@ -336,6 +331,11 @@ new Vue({
 											obj.dataType.specs.item.properties.splice(cursor[count], 1);
 										}
 										break;
+									default:
+										this.request('delete', `${protocol_property}/${obj.propertyId}`, this.token, () => {
+											this.res_history_model(this.history_selected);
+										});
+										return;
 								}
 							};
 							delete_index(this.history_list[this.history_selected].properties[cursor[count]]);
@@ -362,6 +362,21 @@ new Vue({
 				.catch(() => {
 					this.$message.info('已取消操作');
 				});
+		},
+		// 已发布后查看物模型
+		check_protocol(row_data) {
+			console.log(row_data);
+			this.static_params.add_edit = 'check';
+			for (let key in this.single_setting) {
+				if (row_data[key] != undefined) {
+					this.single_setting[key] = row_data[key];
+				} else if (row_data.data[key] != undefined) {
+					this.single_setting[key] = row_data.data[key];
+				}
+			}
+			this.static_params.form_show = true;
+			this.shadow_target = 'form_show';
+			this.static_params.shadow = true;
 		},
 		// 添加标准功能按钮
 		add_protocol() {
@@ -540,12 +555,12 @@ new Vue({
 									e.name = this.single_setting.name;
 									e.dataType.type = this.single_setting.dataType;
 									if (this.single_setting.dataType != 'struct' && this.single_setting.dataType != 'date') {
-										e.specs.min = this.single_setting.min;
-										e.specs.max = this.single_setting.max;
-										e.specs.step = this.single_setting.step;
-										e.specs.unitName = this.single_setting.unit.split(' / ')[0];
-										e.specs.unit = this.single_setting.unit.split(' / ')[1];
-										e.specs.size = this.single_setting.size;
+										e.dataType.specs.min = this.single_setting.min;
+										e.dataType.specs.max = this.single_setting.max;
+										e.dataType.specs.step = this.single_setting.step;
+										e.dataType.specs.unitName = this.single_setting.unit.split(' / ')[0];
+										e.dataType.specs.unit = this.single_setting.unit.split(' / ')[1];
+										e.dataType.specs.size = this.single_setting.size;
 									} else {
 										e.specs = {};
 									}
@@ -603,9 +618,11 @@ new Vue({
 					}
 				});
 				// 添加子属性时看看是否超出数组大小限制
-				if (this.single_setting.dataType == 'array' && dom.dataType.specs.item.properties.length + 1 > dom.dataType.specs.size) {
-					this.$alert('数组长度超限', '提示', { confirmButtonText: '确定' });
-					return;
+				if (dom.dataType.specs.item != null) {
+					if (this.single_setting.dataType == 'array' && dom.dataType.specs.item.properties.length + 1 > dom.dataType.specs.size) {
+						this.$alert('数组长度超限', '提示', { confirmButtonText: '确定' });
+						return;
+					}
 				}
 				// 记录上一级所选的数据类型 因为不同类型添加方式不同
 				this.parent_type_select = this.single_setting.dataType;
@@ -645,6 +662,12 @@ new Vue({
 			} else if (this.static_params.add_edit == 'edit') {
 				return this.single_setting;
 			}
+		},
+		// 发布物模型
+		publish_model() {
+			this.request('get', `${protocol_publish}/${this.model_id}`, this.token, () => {
+				this.res_history_model(this.history_selected);
+			});
 		},
 	},
 });
