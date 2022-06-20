@@ -22,11 +22,11 @@
 	display: grid;
 	grid-template-columns: 150px auto;
 	.nav_layout {
+		height: 90%;
 		display: grid;
 		grid-template-rows: 80px auto;
-		overflow: hidden;
 		.tabs_layout {
-			overflow-x: hidden;
+			overflow: hidden;
 			&:hover {
 				overflow-y: auto;
 			}
@@ -52,6 +52,7 @@
 	.main {
 		display: grid;
 		grid-template-rows: 80px auto;
+		overflow: hidden;
 		.buttons_layout {
 			display: flex;
 			align-items: center;
@@ -110,10 +111,17 @@
 		display: flex;
 		align-items: center;
 		padding-left: 16px;
+		z-index: 100;
 	}
 }
 .tree_row_layout {
 	width: 500px;
 	display: grid;
 	grid-template-columns: 100px auto 100px;
+}
+.verify_text {
+	color: red;
+	font-size: 12px;
+	position: relative;
+	top: -8px;
 }

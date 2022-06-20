@@ -97,6 +97,20 @@ new Vue({
 				},
 				tabs_selected: '', //标签页选中
 				first_load: true, //第一次加载时隐藏卡片 不然会报错
+				// 自定义验证 提示框显示
+				rules: {
+					textLength: {
+						message: '',
+						show: false,
+					},
+					size: {
+						message: '',
+						show: false,
+					},
+					struct: {
+						show: false,
+					},
+				},
 			},
 			//历史版本列表
 			history_list: [],
@@ -148,7 +162,8 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		this.res_history_model(0);
+		this.static_params.tabs_selected = '0';
+		this.res_history_model(this.static_params.tabs_selected);
 	},
 	methods: {
 		// 页面加载时历史版本
@@ -362,15 +377,16 @@ new Vue({
 		},
 		// 新建物模型
 		new_ver_model() {
-			this.$confirm('确认新建物模型版本？', '提示', {
+			this.$confirm('确认以当前所选物模型版本新建物模型？', '提示', {
 				confirmButtonText: '确定',
 				cancelButtonText: '取消',
 				type: 'info',
 				center: true,
 			})
 				.then(() => {
-					this.request('post', protocol_newVersion, this.token, this.history_list[0], () => {
-						this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, this.res_history_model(0));
+					this.request('post', protocol_newVersion, this.token, this.history_list[this.history_selected], () => {
+						this.static_params.tabs_selected = '0';
+						this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, this.res_history_model(this.static_params.tabs_selected));
 					});
 				})
 				.catch(() => {
@@ -390,11 +406,13 @@ new Vue({
 					this.single_setting[key] = row_data.data[key];
 				}
 			}
+			this.struct_array = [];
 			// 结构体数组单独替换显示
 			if (row_data.dataType == 'struct' || row_data.data.itemType == 'struct') {
 				let index = 0;
 				row_data.data.struct_array.forEach((e) => {
 					let temp = {
+						id: e.propertyId,
 						index: index,
 						identifier: e.identifier,
 						name: e.name,
@@ -474,19 +492,22 @@ new Vue({
 
 							let property_id = this.history_list[this.history_selected].properties[row_data.parent_index].propertyId;
 							this.request('delete', `${protocol_property}/${property_id}`, this.token, () => {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 							});
 							break;
 						case '事件':
 							let event_id = this.history_list[this.history_selected].events[row_data.parent_index].eventId;
 							this.request('delete', `${protocol_event}/${this.model_id}/${event_id}`, this.token, () => {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 							});
 							break;
 						case '服务':
 							let server_id = this.history_list[this.history_selected].services[row_data.parent_index].serviceId;
 							this.request('delete', `${protocol_service}/${this.model_id}/${server_id}`, this.token, () => {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 							});
 							break;
 					}
@@ -506,10 +527,12 @@ new Vue({
 					this.single_setting[key] = row_data.data[key];
 				}
 			}
+			this.struct_array = [];
 			if (row_data.dataType == 'struct' || row_data.data.itemType == 'struct') {
 				// 查看的时候不需要索引 因为不会操作数据
 				row_data.data.struct_array.forEach((e) => {
 					let temp = {
+						id: e.propertyId,
 						identifier: e.identifier,
 						name: e.name,
 						dataType: e.dataType.type,
@@ -536,9 +559,10 @@ new Vue({
 		},
 		// 编辑子属性
 		edit_child_json(row_data) {
-			this.static_params.add_edit_json == 'edit';
+			console.log(row_data);
+			this.static_params.add_edit_json = 'edit';
 			for (let key in row_data) {
-				// 里面多了一个不需要展示的索引属性
+				// 里面多了一个不需要展示的索引属性以及id
 				this.add_child_template[key] = row_data[key];
 			}
 			this.static_params.add_child = true;
@@ -635,10 +659,14 @@ new Vue({
 								break;
 							case 'struct':
 								dataType.properties = [];
-								this.struct_array.forEach((e) => {
-									let temp = this.format_params(e);
-									dataType.properties.push(temp);
-								});
+								if (this.form_verify(this.struct_array, 'struct')) {
+									for (let i of this.struct_array) {
+										let temp = this.format_params(i);
+										dataType.properties.push(temp);
+									}
+								} else {
+									return;
+								}
 								break;
 							case 'array':
 								dataType.specs = {
@@ -647,10 +675,14 @@ new Vue({
 								};
 								if (property.itemType == 'struct') {
 									dataType.specs.item.properties = [];
-									this.struct_array.forEach((e) => {
-										let temp = this.format_params(e);
-										dataType.specs.item.properties.push(temp);
-									});
+									if (this.form_verify(this.struct_array, 'struct')) {
+										for (let i of this.struct_array) {
+											let temp = this.format_params(i);
+											dataType.specs.item.properties.push(temp);
+										}
+									} else {
+										return;
+									}
 								}
 								break;
 							default:
@@ -675,7 +707,8 @@ new Vue({
 						};
 						this.request('post', protocol_properties, this.token, temp, () => {
 							if (last_res == '属性') {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 								this.hidden_shadow();
 							}
 						});
@@ -695,7 +728,8 @@ new Vue({
 						};
 						this.request('post', protocol_event, this.token, temp, () => {
 							if (last_res == '事件') {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 								this.hidden_shadow();
 							}
 						});
@@ -716,7 +750,8 @@ new Vue({
 						};
 						this.request('post', protocol_service, this.token, temp, () => {
 							if (last_res == '服务') {
-								this.res_history_model(this.history_selected);
+								this.static_params.tabs_selected = `${this.history_selected}`;
+								this.res_history_model(this.static_params.tabs_selected);
 								this.hidden_shadow();
 							}
 						});
@@ -819,7 +854,7 @@ new Vue({
 				// }
 				// }
 				//#endregion
-
+				console.log(this.struct_array);
 				let temp;
 				switch (this.single_setting.type) {
 					case '属性':
@@ -837,10 +872,14 @@ new Vue({
 								break;
 							case 'struct':
 								temp.dataType.properties = [];
-								this.struct_array.forEach((e) => {
-									let temp = this.format_params(e);
-									temp.dataType.properties.push(temp);
-								});
+								if (this.form_verify(this.struct_array, 'struct')) {
+									for (let i of this.struct_array) {
+										let element = this.format_params(i);
+										temp.dataType.properties.push(element);
+									}
+								} else {
+									return;
+								}
 								break;
 							case 'array':
 								temp.dataType.specs = {
@@ -849,10 +888,14 @@ new Vue({
 								};
 								if (this.single_setting.itemType == 'struct') {
 									temp.dataType.specs.item.properties = [];
-									this.struct_array.forEach((e) => {
-										let temp = this.format_params(e);
-										temp.dataType.specs.item.properties.push(temp);
-									});
+									if (this.form_verify(this.struct_array, 'struct')) {
+										for (let i of this.struct_array) {
+											let element = this.format_params(i);
+											temp.dataType.specs.item.properties.push(element);
+										}
+									} else {
+										return;
+									}
 								}
 								break;
 							default:
@@ -866,7 +909,8 @@ new Vue({
 								break;
 						}
 						this.request('put', protocol_property, this.token, temp, () => {
-							this.res_history_model(this.history_selected);
+							this.static_params.tabs_selected = `${this.history_selected}`;
+							this.res_history_model(this.static_params.tabs_selected);
 							this.hidden_shadow();
 						});
 						break;
@@ -877,7 +921,8 @@ new Vue({
 						temp.type = this.single_setting.dataType;
 						temp.outputData = this.single_setting.outputData;
 						this.request('put', `${protocol_event}/${this.model_id}`, this.token, temp, () => {
-							this.res_history_model(this.history_selected);
+							this.static_params.tabs_selected = `${this.history_selected}`;
+							this.res_history_model(this.static_params.tabs_selected);
 							this.hidden_shadow();
 						});
 						break;
@@ -889,7 +934,8 @@ new Vue({
 						temp.inputData = this.single_setting.inputData;
 						temp.outputData = this.single_setting.outputData;
 						this.request('put', `${protocol_service}/${this.model_id}`, this.token, temp, () => {
-							this.res_history_model(this.history_selected);
+							this.static_params.tabs_selected = `${this.history_selected}`;
+							this.res_history_model(this.static_params.tabs_selected);
 							this.hidden_shadow();
 						});
 						break;
@@ -918,10 +964,13 @@ new Vue({
 					break;
 			}
 			let temp = {
-				identifier: e.identifier,
-				name: e.name,
+				identifier: obj.identifier,
+				name: obj.name,
 				dataType: dataType,
 			};
+			if (obj.id != null) {
+				temp.propertyId = obj.id;
+			}
 			return temp;
 		},
 		// 增加子属性
@@ -964,7 +1013,7 @@ new Vue({
 			// }
 			//#endregion
 
-			this.static_params.add_edit_json == 'add';
+			this.static_params.add_edit_json = 'add';
 			this.clean_object(this.add_child_template);
 			this.static_params.add_child = true;
 			this.shadow_second_target = 'add_child';
@@ -988,7 +1037,8 @@ new Vue({
 		// 发布物模型
 		publish_model() {
 			this.request('get', `${protocol_publish}/${this.model_id}`, this.token, () => {
-				this.res_history_model(this.history_selected);
+				this.static_params.tabs_selected = `${this.history_selected}`;
+				this.res_history_model(this.static_params.tabs_selected);
 			});
 		},
 		// 子参数添加到struct_array
@@ -1016,10 +1066,55 @@ new Vue({
 				temp.index = this.struct_array.length;
 				this.struct_array.push(temp);
 			} else if (this.static_params.add_edit_json == 'edit') {
+				temp.id = this.add_child_template.id;
 				temp.index = this.add_child_template.index;
 				this.struct_array[this.add_child_template.index] = temp;
 			}
+			this.static_params.rules.struct.show = false;
 			this.hidden_shadow_second();
+		},
+		// 表单手动验证
+		form_verify(value, flag) {
+			let reg;
+			switch (flag) {
+				case 'textLength':
+					reg = /^\d+$/;
+					if (!reg.test(value)) {
+						this.static_params.rules.textLength.show = true;
+						this.static_params.rules.textLength.message = '数据长度不能为空';
+						this.$refs.textLength.$refs.input.style.borderColor = 'red';
+						this.$refs.textLength.$refs.input.placeholder = '';
+					} else {
+						this.static_params.rules.textLength.show = false;
+						this.$refs.textLength.$refs.input.style.borderColor = '';
+					}
+					break;
+				case 'size':
+					reg = /^\d+$/;
+					if (!reg.test(value)) {
+						this.static_params.rules.size.show = true;
+						this.static_params.rules.size.message = '元素个数不能为空';
+						this.$refs.size.$refs.input.style.borderColor = 'red';
+						this.$refs.size.$refs.input.placeholder = '';
+					} else {
+						let reg = /^\d{1,3}$/;
+						if (!reg.test(value)) {
+							this.static_params.rules.size.message = '只能输入3位以内的数字';
+						} else {
+							this.static_params.rules.size.show = false;
+							this.$refs.size.$refs.input.style.borderColor = '';
+						}
+					}
+					break;
+				case 'struct':
+					if (value.length > 0) {
+						return true;
+					} else {
+						this.static_params.rules.struct.show = true;
+						return false;
+					}
+					break;
+			}
 		},
 	},
 });

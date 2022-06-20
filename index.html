@@ -42,22 +42,25 @@
         <el-button type="primary" round @click="add_protocol">添加自定义功能</el-button>
       </div>
       <!-- 表格 -->
-      <el-table :data="protocol_list" border style="width: 500px;">
-        <el-table-column prop="type" label="功能类型" width="150"></el-table-column>
-        <el-table-column prop="name" label="功能名称" width="200"></el-table-column>
-        <el-table-column prop="identifier" label="标识符" width="150"></el-table-column>
-        <el-table-column prop="dataType" label="数据类型" width="150"></el-table-column>
-        <el-table-column label="操作" width="100">
-          <template slot-scope="scope">
-            <el-button v-if="history_list[history_selected].profile.published==='0'" @click="edit_protocol(scope.row)"
-              type="text" size="small">编辑</el-button>
-            <el-button v-if="history_list[history_selected].profile.published==='0'" @click="delete_protocol(scope.row)"
-              type="text" size="small">删除</el-button>
-            <el-button v-if="history_list[history_selected].profile.published==='1'" @click="check_protocol(scope.row)"
-              type="text" size="small">查看</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div style="padding:0 10px;overflow: auto;">
+        <el-table :data="protocol_list" border>
+          <el-table-column prop="type" label="功能类型" width="150"></el-table-column>
+          <el-table-column prop="name" label="功能名称"></el-table-column>
+          <el-table-column prop="identifier" label="标识符"></el-table-column>
+          <el-table-column prop="dataType" label="数据类型"></el-table-column>
+          <el-table-column label="操作" width="100" fixed="right">
+            <template slot-scope="scope">
+              <el-button v-if="history_list[history_selected].profile.published==='0'" @click="edit_protocol(scope.row)"
+                type="text" size="small">编辑</el-button>
+              <el-button v-if="history_list[history_selected].profile.published==='0'"
+                @click="delete_protocol(scope.row)" type="text" size="small">删除</el-button>
+              <el-button v-if="history_list[history_selected].profile.published==='1'"
+                @click="check_protocol(scope.row)" type="text" size="small">查看</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
       <!-- node是控件节点 data是自己封装的数据 -->
       <!-- <el-tree :data="protocol_tree" node-key="id" :props="tree_props">
         <span class="tree_row_layout" slot-scope="{ node, data }">
@@ -147,6 +150,7 @@
                       @click="check_child_json(item)">查看</span>
                   </div>
                 </div>
+                <div class="verify_text" v-show="static_params.rules.struct.show">struct不能为空</div>
                 <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property">+
                   新增参数</span>
               </el-form-item>
@@ -176,6 +180,7 @@
                         @click="check_child_json(item)">查看</span>
                     </div>
                   </div>
+                  <div class="verify_text" v-show="static_params.rules.struct.show">struct不能为空</div>
                   <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property">+
                     新增参数</span>
                 </el-form-item>
@@ -275,8 +280,11 @@
             </template>
             <template v-if="single_setting.dataType=='text'">
               <el-form-item label="数据长度" prop="textLength">
-                <el-input v-model="single_setting.textLength" placeholder="请输入数据长度"
+                <el-input v-model="single_setting.textLength"
+                  @blur="form_verify(single_setting.textLength,'textLength')" ref="textLength" placeholder="请输入数据长度"
                   :disabled="static_params.add_edit=='check'"></el-input>
+                <span class="verify_text"
+                  v-show="static_params.rules.textLength.show">{{static_params.rules.textLength.message}}</span>
               </el-form-item>
             </template>
             <template v-if="single_setting.dataType=='struct'">
@@ -294,6 +302,7 @@
                       @click="check_child_json(item)">查看</span>
                   </div>
                 </div>
+                <div class="verify_text" v-show="static_params.rules.struct.show">struct不能为空</div>
                 <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property"
                   v-show="static_params.add_edit!='check'">+
                   新增参数</span>
@@ -307,7 +316,7 @@
                 </el-radio-group>
               </el-form-item>
               <el-form-item label="元素个数" prop="size">
-                <el-input v-model="single_setting.size" placeholder="请输入元素个数"
+                <el-input v-model="single_setting.size" ref="size" placeholder="请输入元素个数"
                   :disabled="static_params.add_edit=='check'"></el-input>
               </el-form-item>
               <template v-if="single_setting.itemType=='struct'">
@@ -325,6 +334,7 @@
                         @click="check_child_json(item)">查看</span>
                     </div>
                   </div>
+                  <div class="verify_text" v-show="static_params.rules.struct.show">struct不能为空</div>
                   <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property"
                     v-show="static_params.add_edit!='check'">+
                     新增参数</span>
