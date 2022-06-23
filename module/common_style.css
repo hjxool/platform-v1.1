@@ -10,13 +10,13 @@ body {
 ::-webkit-scrollbar {
 	height: 5px;
 	width: 4px;
-	background: rgba(9, 37, 92, 0.78);
+	background: rgba(255, 255, 255, 0.78);
 	border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb {
 	width: 150px;
 	height: 150px;
-	background: #0e52d4;
+	background: rgba(192, 192, 192, 0.7);
 	border-radius: 3px;
 }
 ::-webkit-scrollbar-corner {
