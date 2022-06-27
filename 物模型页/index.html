@@ -49,7 +49,7 @@
     <!-- 透明包裹层 设定固定大小 滚动显示 页面居中 -->
     <div class="custom_center" v-for="card,index in form_list">
       <!-- 遮罩 -->
-      <div class="shadow"></div>
+      <!-- <div class="shadow"></div> -->
       <div class="card_layout">
         <!-- 编辑及新建卡片 -->
         <el-card style="z-index: 990;overflow: auto;max-height: 100%;" shadow="hover">
@@ -91,17 +91,26 @@
               <template v-if="card.dataType=='int'||card.dataType=='float'||card.dataType=='double'">
                 <el-form-item label="取值范围" size="medium">
                   <div style="display: flex;width: 200px;">
-                    <el-input v-model="card.min" placeholder="最小值" :disabled="static_params.add_edit=='check'">
-                    </el-input>
+                    <div>
+                      <el-input v-model="card.min" placeholder="最小值" :disabled="static_params.add_edit=='check'"
+                        @blur="form_verify(card.min,'min',card.max)" ref="min">
+                      </el-input>
+                      <div class="verify_text" v-show="rules.min.show">{{rules.min.message}}</div>
+                    </div>
                     ~
-                    <el-input v-model="card.max" placeholder="最大值" :disabled="static_params.add_edit=='check'">
-                    </el-input>
+                    <div>
+                      <el-input v-model="card.max" placeholder="最大值" :disabled="static_params.add_edit=='check'"
+                        @blur="form_verify(card.max,'max',card.min)" ref="max">
+                      </el-input>
+                      <div class="verify_text" v-show="rules.max.show">{{rules.max.message}}</div>
+                    </div>
                   </div>
                 </el-form-item>
                 <el-form-item label="步长" size="medium">
                   <el-input class="form_input" v-model="card.step" placeholder="请输入步长"
-                    :disabled="static_params.add_edit=='check'">
+                    :disabled="static_params.add_edit=='check'" @blur="form_verify(card.step,'step')" ref="step">
                   </el-input>
+                  <div class="verify_text" v-show="rules.step.show">{{rules.step.message}}</div>
                 </el-form-item>
                 <el-form-item label="单位" size="medium">
                   <el-select style="width: 150px;" v-model="card.unit" placeholder="请选择单位"
@@ -274,6 +283,7 @@
     </template>
   </div>
 
+  <script src="../../运维人员部署请修改我.js"></script>
   <script src="../module/vue.js"></script>
   <script src="../module/element-ui.js"></script>
   <script src="../module/axios.min.js"></script>

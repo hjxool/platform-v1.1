@@ -1,4 +1,6 @@
-let url = 'http://192.168.30.200:9201/';
+// let url = 'http://192.168.30.200:9201/';
+// let url = 'http://182.150.116.22:13001/';
+let url = `${我是接口地址}/`;
 let protocol_list = `${url}api-device/protocol/list`;
 let protocol_view = `${url}api-device/protocol/view/`;
 let protocol_newVersion = `${url}api-device/protocol/newVersion`;
@@ -85,6 +87,9 @@ new Vue({
 				identifier: { show: false, message: '' },
 				textLength: { show: false, message: '' },
 				size: { show: false, message: '' },
+				min: { show: false, message: '' },
+				max: { show: false, message: '' },
+				step: { show: false, message: '' },
 			},
 		};
 	},
@@ -492,20 +497,29 @@ new Vue({
 			}
 		},
 		// 表单手动验证
-		form_verify(value, flag) {
+		form_verify(value, flag, compare) {
 			let reg;
 			switch (flag) {
 				case 'name':
-					reg = /^[A-Za-z0-9]+$/;
+					reg = /^[\u4E00-\u9FA5A-Za-z0-9_]+$/;
 					break;
 				case 'identifier':
-					reg = /^[A-Za-z0-9]+$/;
+					reg = /^\w+$/;
 					break;
 				case 'textLength':
 					reg = /^\d+$/;
 					break;
 				case 'size':
 					reg = /^\d+$/;
+					break;
+				case 'min':
+					reg = /^\d*$/;
+					break;
+				case 'max':
+					reg = /^\d*$/;
+					break;
+				case 'step':
+					reg = /^\d*$/;
 					break;
 			}
 			if (!reg.test(value)) {
@@ -523,6 +537,15 @@ new Vue({
 					case 'size':
 						this.rules[flag].message = '不能为空且只能输入数字';
 						break;
+					case 'min':
+						this.rules[flag].message = '只能输入数字';
+						break;
+					case 'max':
+						this.rules[flag].message = '只能输入数字';
+						break;
+					case 'step':
+						this.rules[flag].message = '只能输入数字';
+						break;
 				}
 				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = 'red';
 				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.placeholder = '';
@@ -533,6 +556,18 @@ new Vue({
 						reg = /^\d{1,3}$/;
 						if (!reg.test(value)) {
 							this.rules[flag].message = '只能输入3位以内的数字';
+							return false;
+						}
+						break;
+					case 'min':
+						if (Number(value) > Number(compare)) {
+							this.rules[flag].message = '不能大于最大值';
+							return false;
+						}
+						break;
+					case 'max':
+						if (Number(value) < Number(compare)) {
+							this.rules[flag].message = '不能小于最小值';
 							return false;
 						}
 						break;
@@ -547,7 +582,11 @@ new Vue({
 			let result = [];
 			result.push(this.form_verify(obj.name, 'name'));
 			result.push(this.form_verify(obj.identifier, 'identifier'));
-
+			if (obj.dataType == 'int' || obj.dataType == 'float' || obj.dataType == 'double') {
+				result.push(this.form_verify(obj.min, 'min', obj.max));
+				result.push(this.form_verify(obj.max, 'max', obj.min));
+				result.push(this.form_verify(obj.step, 'step'));
+			}
 			if (obj.dataType == 'text') {
 				result.push(this.form_verify(obj.textLength, 'textLength'));
 			}
