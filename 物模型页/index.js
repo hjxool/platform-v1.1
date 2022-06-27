@@ -9,6 +9,7 @@ let protocol_service = `${url}api-device/protocol/service`;
 let protocol_publish = `${url}api-device/protocol/publish`;
 let protocol_units = `${url}api-device/protocol/units`;
 
+Vue.config.productionTip = false;
 new Vue({
 	el: '#index',
 	mixins: [common_functions],
@@ -49,22 +50,6 @@ new Vue({
 				// 单位种类
 				unit_options: [],
 				add_edit: '', //新建和编辑取值方式不同
-				// 表单验证规则
-				form_rules: {
-					name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
-					identifier: [{ required: true, message: '请输入标识', trigger: 'blur' }],
-					dataType: [{ required: true }],
-					itemType: [{ required: true }],
-					size: [
-						{ required: true, message: '请输入数组长度', trigger: 'blur' },
-						{ pattern: /^\d{1,3}$/, message: '只能输入3位以内的数字', trigger: 'blur' },
-					],
-					textLength: [
-						{ required: true, message: '请输入数据长度', trigger: 'blur' },
-						{ pattern: /^\d+$/, message: '只能输入数字', trigger: 'blur' },
-					],
-					struct_array: [{ required: true }],
-				},
 				first_load: true, //第一次加载时隐藏卡片 不然会报错
 			},
 			//历史版本列表
@@ -96,6 +81,8 @@ new Vue({
 			child_count_list: [],
 			// 自定义表单验证
 			rules: {
+				name: { show: false, message: '' },
+				identifier: { show: false, message: '' },
 				textLength: { show: false, message: '' },
 				size: { show: false, message: '' },
 			},
@@ -164,10 +151,12 @@ new Vue({
 		res_history_model(index) {
 			this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, (res) => {
 				console.log('历史版本', res);
-				this.history_list = res.data.data.data;
-				this.model_select(index);
-				// 加载完毕后再显示底部卡片
-				this.static_params.first_load = false;
+				if (res.data.data.data != null) {
+					this.history_list = res.data.data.data;
+					this.model_select(index);
+					// 加载完毕后再显示底部卡片
+					this.static_params.first_load = false;
+				}
 			});
 		},
 		// 选择查看版本
@@ -506,224 +495,231 @@ new Vue({
 		form_verify(value, flag) {
 			let reg;
 			switch (flag) {
+				case 'name':
+					reg = /^[A-Za-z0-9]+$/;
+					break;
+				case 'identifier':
+					reg = /^[A-Za-z0-9]+$/;
+					break;
 				case 'textLength':
 					reg = /^\d+$/;
-					if (!reg.test(value)) {
-						this.rules.textLength.show = true;
-						this.rules.textLength.message = '只能输入数字';
-						this.$refs.textLength[this.$refs.textLength.length - 1].$refs.input.style.borderColor = 'red';
-						this.$refs.textLength[this.$refs.textLength.length - 1].$refs.input.placeholder = '';
-						return false;
-					} else {
-						this.rules.textLength.show = false;
-						this.$refs.textLength[this.$refs.textLength.length - 1].$refs.input.style.borderColor = '';
-						return true;
-					}
 					break;
 				case 'size':
 					reg = /^\d+$/;
-					if (!reg.test(value)) {
-						this.rules.size.show = true;
-						this.rules.size.message = '元素个数不能为空';
-						this.$refs.size[this.$refs.size.length - 1].$refs.input.style.borderColor = 'red';
-						this.$refs.size[this.$refs.size.length - 1].$refs.input.placeholder = '';
-						return false;
-					} else {
-						let reg = /^\d{1,3}$/;
-						if (!reg.test(value)) {
-							this.rules.size.message = '只能输入3位以内的数字';
-							return false;
-						} else {
-							this.rules.size.show = false;
-							this.$refs.size[this.$refs.size.length - 1].$refs.input.style.borderColor = '';
-							return true;
-						}
-					}
 					break;
+			}
+			if (!reg.test(value)) {
+				this.rules[flag].show = true;
+				switch (flag) {
+					case 'name':
+						this.rules[flag].message = '不能为空或者输入特殊字符';
+						break;
+					case 'identifier':
+						this.rules[flag].message = '不能为空或者输入特殊字符';
+						break;
+					case 'textLength':
+						this.rules[flag].message = '只能输入数字';
+						break;
+					case 'size':
+						this.rules[flag].message = '不能为空且只能输入数字';
+						break;
+				}
+				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = 'red';
+				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.placeholder = '';
+				return false;
+			} else {
+				switch (flag) {
+					case 'size':
+						reg = /^\d{1,3}$/;
+						if (!reg.test(value)) {
+							this.rules[flag].message = '只能输入3位以内的数字';
+							return false;
+						}
+						break;
+				}
+				this.rules[flag].show = false;
+				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = '';
+				return true;
 			}
 		},
 		// 提交表单
 		submit_form(obj, index) {
-			this.$refs.card_verify[index].validate((result) => {
-				if (result) {
-					if (obj.dataType == 'text') {
-						if (!this.form_verify(obj.textLength, 'textLength')) {
-							return;
-						}
-					}
-					if (obj.dataType == 'struct' || obj.itemType == 'struct') {
-						if (obj.struct_array.length == 0) {
-							return;
-						}
-					}
-					if (obj.dataType == 'array') {
-						if (!this.form_verify(obj.size, 'size')) {
-							return;
-						}
-					}
-					this.form_verify(obj.struct_array);
-					if (this.child_count_list[this.child_count_list.length - 1] > 0) {
-						let temp = this.format_params(obj);
-						this.form_list[index - 1].struct_array.push(temp);
-						this.form_list.pop();
-						this.child_count_list[this.child_count_list.length - 1]--;
-					} else {
-						if (this.static_params.add_edit === 'add') {
-							let temp;
-							switch (obj.type) {
-								case '属性':
-									let property = this.format_params(obj);
-									temp = {
-										modelId: this.model_id,
-										properties: [property],
-									};
-									this.request('post', protocol_properties, this.token, temp, () => {
-										this.res_history_model(this.history_selected);
-										this.form_list = [];
-									});
-									break;
-								case '事件':
-									temp = {
-										modelId: this.model_id,
-										events: [
-											{
-												identifier: obj.identifier,
-												name: obj.name,
-												type: obj.dataType,
-												outputData: obj.outputData,
-											},
-										],
-									};
-									this.request('post', protocol_event, this.token, temp, () => {
-										this.res_history_model(this.history_selected);
-										this.form_list = [];
-									});
-									break;
-								case '服务':
-									temp = {
-										modelId: this.model_id,
-										services: [
-											{
-												identifier: obj.identifier,
-												name: obj.name,
-												method: obj.dataType,
-												inputData: obj.inputData,
-												outputData: obj.outputData,
-											},
-										],
-									};
-									this.request('post', protocol_service, this.token, temp, () => {
-										this.res_history_model(this.history_selected);
-										this.form_list = [];
-									});
-									break;
-							}
-						} else {
-							switch (obj.type) {
-								case '属性':
-									let array;
-									if (this.form_list.length > 1) {
-										array = this.form_list[index - 1].struct_array;
-									} else {
-										array = this.history_list[this.history_selected].properties;
-									}
-									let property;
-									array.forEach((e) => {
-										if (e.propertyId == obj.id) {
-											e.name = obj.name;
-											e.identifier = obj.identifier;
-											e.dataType.type = obj.dataType;
-											switch (obj.dataType) {
-												case 'text':
-													// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
-													// 而且本来specs里就没有什么固定内容
-													e.dataType.specs = { length: obj.textLength };
-													break;
-												case 'date':
-													break;
-												case 'struct':
-													if (e.dataType.specs != null) {
-														if (e.dataType.specs.item != null) {
-															e.dataType.specs.item.properties = [];
-														}
-													}
-													e.dataType.properties = [];
-													for (let i of obj.struct_array) {
-														e.dataType.properties.push(i);
-													}
-													break;
-												case 'array':
-													e.dataType.properties = [];
-													e.dataType.specs = {
-														size: obj.size,
-														item: { type: obj.itemType },
-													};
-													if (obj.itemType == 'struct') {
-														e.dataType.specs.item.properties = [];
-														for (let i of obj.struct_array) {
-															e.dataType.specs.item.properties.push(i);
-														}
-													}
-													break;
-												default:
-													e.dataType.specs = {
-														min: obj.min == '' ? null : obj.min,
-														max: obj.max == '' ? null : obj.max,
-														step: obj.step == '' ? null : obj.step,
-														unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
-														unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
-													};
-													break;
-											}
-											property = e;
-										}
-									});
-									if (this.form_list.length > 1) {
-										this.form_list.pop();
-									} else {
-										this.request('put', protocol_property, this.token, property, () => {
-											this.res_history_model(this.history_selected);
-											this.form_list.pop();
-										});
-									}
-									break;
-								case '事件':
-									this.history_list[this.history_selected].events.forEach((e) => {
-										if (e.eventId == obj.id) {
-											e.identifier = obj.identifier;
-											e.name = obj.name;
-											e.type = obj.dataType;
-											e.outputData = obj.outputData;
-											this.request('put', `${protocol_event}/${this.model_id}`, this.token, e, () => {
-												this.res_history_model(this.history_selected);
-												this.form_list.pop();
-											});
-										}
-									});
-									break;
-								case '服务':
-									this.history_list[this.history_selected].services.forEach((e) => {
-										if (e.serviceId == obj.id) {
-											e.identifier = obj.identifier;
-											e.name = obj.name;
-											e.type = obj.dataType;
-											e.inputData = obj.inputData;
-											e.outputData = obj.outputData;
-											this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
-												this.res_history_model(this.history_selected);
-												this.form_list.pop();
-											});
-										}
-									});
-									break;
-							}
-						}
-						this.child_count_list.pop();
+			let result = [];
+			result.push(this.form_verify(obj.name, 'name'));
+			result.push(this.form_verify(obj.identifier, 'identifier'));
+
+			if (obj.dataType == 'text') {
+				result.push(this.form_verify(obj.textLength, 'textLength'));
+			}
+			if (obj.dataType == 'struct' || obj.itemType == 'struct') {
+				result.push(obj.struct_array.length > 0);
+			}
+			if (obj.dataType == 'array') {
+				result.push(this.form_verify(obj.size, 'size'));
+			}
+			for (let value of result) {
+				if (!value) {
+					return;
+				}
+			}
+			if (this.child_count_list[this.child_count_list.length - 1] > 0) {
+				let temp = this.format_params(obj);
+				this.form_list[index - 1].struct_array.push(temp);
+				this.form_list.pop();
+				this.child_count_list[this.child_count_list.length - 1]--;
+			} else {
+				if (this.static_params.add_edit === 'add') {
+					let temp;
+					switch (obj.type) {
+						case '属性':
+							let property = this.format_params(obj);
+							temp = {
+								modelId: this.model_id,
+								properties: [property],
+							};
+							this.request('post', protocol_properties, this.token, temp, () => {
+								this.res_history_model(this.history_selected);
+								this.form_list = [];
+							});
+							break;
+						case '事件':
+							temp = {
+								modelId: this.model_id,
+								events: [
+									{
+										identifier: obj.identifier,
+										name: obj.name,
+										type: obj.dataType,
+										outputData: obj.outputData,
+									},
+								],
+							};
+							this.request('post', protocol_event, this.token, temp, () => {
+								this.res_history_model(this.history_selected);
+								this.form_list = [];
+							});
+							break;
+						case '服务':
+							temp = {
+								modelId: this.model_id,
+								services: [
+									{
+										identifier: obj.identifier,
+										name: obj.name,
+										method: obj.dataType,
+										inputData: obj.inputData,
+										outputData: obj.outputData,
+									},
+								],
+							};
+							this.request('post', protocol_service, this.token, temp, () => {
+								this.res_history_model(this.history_selected);
+								this.form_list = [];
+							});
+							break;
 					}
 				} else {
-					return false;
+					switch (obj.type) {
+						case '属性':
+							let array;
+							if (this.form_list.length > 1) {
+								array = this.form_list[index - 1].struct_array;
+							} else {
+								array = this.history_list[this.history_selected].properties;
+							}
+							let property;
+							array.forEach((e) => {
+								if (e.propertyId == obj.id) {
+									e.name = obj.name;
+									e.identifier = obj.identifier;
+									e.dataType.type = obj.dataType;
+									switch (obj.dataType) {
+										case 'text':
+											// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
+											// 而且本来specs里就没有什么固定内容
+											e.dataType.specs = { length: obj.textLength };
+											break;
+										case 'date':
+											break;
+										case 'struct':
+											if (e.dataType.specs != null) {
+												if (e.dataType.specs.item != null) {
+													e.dataType.specs.item.properties = [];
+												}
+											}
+											e.dataType.properties = [];
+											for (let i of obj.struct_array) {
+												e.dataType.properties.push(i);
+											}
+											break;
+										case 'array':
+											e.dataType.properties = [];
+											e.dataType.specs = {
+												size: obj.size,
+												item: { type: obj.itemType },
+											};
+											if (obj.itemType == 'struct') {
+												e.dataType.specs.item.properties = [];
+												for (let i of obj.struct_array) {
+													e.dataType.specs.item.properties.push(i);
+												}
+											}
+											break;
+										default:
+											e.dataType.specs = {
+												min: obj.min == '' ? null : obj.min,
+												max: obj.max == '' ? null : obj.max,
+												step: obj.step == '' ? null : obj.step,
+												unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+												unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+											};
+											break;
+									}
+									property = e;
+								}
+							});
+							if (this.form_list.length > 1) {
+								this.form_list.pop();
+							} else {
+								this.request('put', protocol_property, this.token, property, () => {
+									this.res_history_model(this.history_selected);
+									this.form_list.pop();
+								});
+							}
+							break;
+						case '事件':
+							this.history_list[this.history_selected].events.forEach((e) => {
+								if (e.eventId == obj.id) {
+									e.identifier = obj.identifier;
+									e.name = obj.name;
+									e.type = obj.dataType;
+									e.outputData = obj.outputData;
+									this.request('put', `${protocol_event}/${this.model_id}`, this.token, e, () => {
+										this.res_history_model(this.history_selected);
+										this.form_list.pop();
+									});
+								}
+							});
+							break;
+						case '服务':
+							this.history_list[this.history_selected].services.forEach((e) => {
+								if (e.serviceId == obj.id) {
+									e.identifier = obj.identifier;
+									e.name = obj.name;
+									e.type = obj.dataType;
+									e.inputData = obj.inputData;
+									e.outputData = obj.outputData;
+									this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
+										this.res_history_model(this.history_selected);
+										this.form_list.pop();
+									});
+								}
+							});
+							break;
+					}
 				}
-			});
+				this.child_count_list.pop();
+			}
 		},
 		// 根据传入的数据构造可发送的参数格式
 		format_params(obj) {
@@ -792,6 +788,9 @@ new Vue({
 					obj.itemType = 'int';
 				}
 			}
+			for (let key in this.rules) {
+				this.rules[key].show = false;
+			}
 		},
 		// 增加子属性
 		add_child_property() {
@@ -804,6 +803,9 @@ new Vue({
 			temp.type = '属性';
 			temp.dataType = 'int';
 			this.form_list.push(temp);
+			for (let key in this.rules) {
+				this.rules[key].show = false;
+			}
 		},
 		// 发布物模型
 		publish_model() {
@@ -846,10 +848,15 @@ new Vue({
 		get_unit() {
 			this.request('get', protocol_units, this.token, (res) => {
 				for (let [key, array] of Object.entries(res.data.data)) {
+					let temp = {
+						label: key,
+						options: [],
+					};
 					for (let item of array) {
 						let unit = { value: `${item.name} / ${item.symbol}` };
-						this.static_params.unit_options.push(unit);
+						temp.options.push(unit);
 					}
+					this.static_params.unit_options.push(temp);
 				}
 			});
 		},
@@ -871,10 +878,16 @@ new Vue({
 					obj.dataType = 'async';
 					break;
 			}
+			for (let key in this.rules) {
+				this.rules[key].show = false;
+			}
 		},
 		// 点击取消时删除卡片数组最后一个
 		del_form() {
 			this.form_list.pop();
+			for (let key in this.rules) {
+				this.rules[key].show = false;
+			}
 		},
 	},
 });

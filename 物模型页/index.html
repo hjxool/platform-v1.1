@@ -15,16 +15,16 @@
   <div id="index" v-cloak>
     <!-- 按钮选项栏 -->
     <div class="nav_layout">
-      <el-button type="primary" round @click="add_protocol">添加自定义功能</el-button>
+      <el-button type="primary" round @click="add_protocol" :disabled="history_list.length == 0">添加自定义功能</el-button>
       <div class="history_layout">
         <span style="margin-right: 20px;">历史版本</span>
-        <el-select style="width:200px;" v-model="history_selected" placeholder="请选择版本"
-          @change="model_select(history_selected)">
+        <el-select style="width:200px;" v-model="history_selected" placeholder="无历史版本"
+          @change="model_select(history_selected)" :disabled="history_list.length == 0">
           <el-option v-for="ver,index in history_list" :key="index" :label="ver.profile.version" :value="index">
           </el-option>
         </el-select>
       </div>
-      <el-button @click="new_ver_model">新增版本</el-button>
+      <el-button @click="new_ver_model" :disabled="history_list.length == 0">新增版本</el-button>
     </div>
     <!-- 表格栏 -->
     <div style="padding:0 10px;overflow: auto;">
@@ -53,10 +53,10 @@
       <div class="card_layout">
         <!-- 编辑及新建卡片 -->
         <el-card style="z-index: 990;overflow: auto;max-height: 100%;" shadow="hover">
-          <el-form label-position="top" :rules="static_params.form_rules" :model="card" ref="card_verify">
-
+          <el-form label-width="80px">
+            <!-- label-position="top" :rules="static_params.form_rules" :model="card" -->
             <!-- 选择属性、事件、服务 -->
-            <el-form-item label="物模型设置" v-if="static_params.add_edit=='add'&&index==0">
+            <el-form-item v-if="static_params.add_edit=='add'&&index==0">
               <el-radio-group v-model="card.type" size="small" @change="clean_form(card)">
                 <el-radio-button label="属性">属性</el-radio-button>
                 <el-radio-button label="事件">事件</el-radio-button>
@@ -65,24 +65,32 @@
             </el-form-item>
             <!-- 属性设置 -->
             <template v-if="card.type=='属性'">
-              <el-form-item label="属性名称" prop="name">
-                <el-input v-model="card.name" placeholder="请输入属性名称" :disabled="static_params.add_edit=='check'">
+              <el-form-item label="属性名称" size="medium">
+                <el-input class="form_input" v-model="card.name" placeholder="请输入属性名称"
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')" ref="name">
                 </el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
-              <el-form-item label="属性标识" prop="identifier">
-                <el-input v-model="card.identifier" placeholder="请输入您的标识符" :disabled="static_params.add_edit=='check'">
+              <el-form-item label="属性标识" size="medium">
+                <el-input class="form_input" v-model="card.identifier" placeholder="请输入您的标识符"
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.identifier,'identifier')"
+                  ref="identifier">
                 </el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
               </el-form-item>
-              <el-form-item label="数据类型" prop="dataType">
-                <el-select v-model="card.dataType" placeholder="请选择数据类型" @change="format_type_data(card)"
-                  :disabled="static_params.add_edit=='check'">
+              <el-form-item label="数据类型" size="medium">
+                <el-select style="width: 80px;" v-model="card.dataType" placeholder="请选择数据类型"
+                  @change="format_type_data(card)" :disabled="static_params.add_edit=='check'">
                   <el-option v-for="item in static_params.type_options" :key="item.value" :label="item.name"
                     :value="item.value"></el-option>
                 </el-select>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
               </el-form-item>
               <template v-if="card.dataType=='int'||card.dataType=='float'||card.dataType=='double'">
-                <el-form-item label="取值范围">
-                  <div style="display: flex;">
+                <el-form-item label="取值范围" size="medium">
+                  <div style="display: flex;width: 200px;">
                     <el-input v-model="card.min" placeholder="最小值" :disabled="static_params.add_edit=='check'">
                     </el-input>
                     ~
@@ -90,27 +98,35 @@
                     </el-input>
                   </div>
                 </el-form-item>
-                <el-form-item label="步长">
-                  <el-input v-model="card.step" placeholder="请输入步长" :disabled="static_params.add_edit=='check'">
+                <el-form-item label="步长" size="medium">
+                  <el-input class="form_input" v-model="card.step" placeholder="请输入步长"
+                    :disabled="static_params.add_edit=='check'">
                   </el-input>
                 </el-form-item>
-                <el-form-item label="单位">
-                  <el-select v-model="card.unit" placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
-                    <el-option v-for="item in static_params.unit_options" :key="item.value" :label="item.value"
-                      :value="item.value"></el-option>
+                <el-form-item label="单位" size="medium">
+                  <el-select style="width: 150px;" v-model="card.unit" placeholder="请选择单位"
+                    :disabled="static_params.add_edit=='check'">
+                    <el-option-group v-for="group in static_params.unit_options" :key="group.label"
+                      :label="group.label">
+                      <el-option v-for="item in group.options" :key="item.value" :label="item.value"
+                        :value="item.value">
+                      </el-option>
+                    </el-option-group>
                   </el-select>
                 </el-form-item>
               </template>
               <template v-if="card.dataType=='text'">
-                <el-form-item label="数据长度" prop="textLength">
-                  <el-input v-model="card.textLength" @blur="form_verify(card.textLength,'textLength')" ref="textLength"
-                    placeholder="请输入数据长度" :disabled="static_params.add_edit=='check'">
+                <el-form-item label="数据长度" size="medium">
+                  <el-input class="form_input" v-model="card.textLength"
+                    @blur="form_verify(card.textLength,'textLength')" ref="textLength" placeholder="请输入数据长度"
+                    :disabled="static_params.add_edit=='check'">
                   </el-input>
-                  <span class="verify_text" v-show="rules.textLength.show">{{rules.textLength.message}}</span>
+                  <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                  <div class="verify_text" v-show="rules.textLength.show">{{rules.textLength.message}}</div>
                 </el-form-item>
               </template>
               <template v-if="card.dataType=='struct'">
-                <el-form-item label="JSON对象" prop="struct_array">
+                <el-form-item label="JSON对象" size="medium">
                   <div class="struct_array_layout" v-for="item,struct_index in card.struct_array">
                     <span style="font-size: 12px;color: #555;">参数名称： {{item.name}}</span>
                     <div>
@@ -124,26 +140,30 @@
                         @click="check_child_json(item)">查看</span>
                     </div>
                   </div>
-                  <div class="verify_text" v-if="card.struct_array.length==0">不能为空</div>
                   <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property">+
                     新增参数</span>
+                  <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                  <div class="verify_text" v-if="card.struct_array.length==0">不能为空</div>
                 </el-form-item>
               </template>
               <template v-if="card.dataType=='array'">
-                <el-form-item label="元素类型" prop="itemType">
-                  <el-radio-group v-model="card.itemType" :disabled="static_params.add_edit=='check'">
-                    <el-radio v-for="item in static_params.array_type_options" :label="item.value">{{item.name}}
-                    </el-radio>
-                  </el-radio-group>
+                <el-form-item label="元素类型" size="medium">
+                  <el-select style="width: 80px;" v-model="card.itemType" :disabled="static_params.add_edit=='check'"
+                    placeholder="请选择元素类型">
+                    <el-option v-for="item in static_params.array_type_options" :key="item.value" :label="item.name"
+                      :value="item.value"></el-option>
+                  </el-select>
+                  <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 </el-form-item>
-                <el-form-item label="元素个数" prop="size">
-                  <el-input v-model="card.size" @blur="form_verify(card.size,'size')" ref="size" placeholder="请输入元素个数"
-                    :disabled="static_params.add_edit=='check'">
+                <el-form-item label="元素个数" size="medium">
+                  <el-input class="form_input" v-model="card.size" @blur="form_verify(card.size,'size')" ref="size"
+                    placeholder="请输入元素个数" :disabled="static_params.add_edit=='check'">
                   </el-input>
-                  <span class="verify_text" v-show="rules.size.show">{{rules.size.message}}</span>
+                  <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                  <div class="verify_text" v-show="rules.size.show">{{rules.size.message}}</div>
                 </el-form-item>
                 <template v-if="card.itemType=='struct'">
-                  <el-form-item label="JSON对象" prop="struct_array">
+                  <el-form-item label="JSON对象" size="medium">
                     <div class="struct_array_layout" v-for="item,struct_index in card.struct_array">
                       <span style="font-size: 12px;color: #555;">参数名称： {{item.name}}</span>
                       <div>
@@ -157,30 +177,40 @@
                           @click="check_child_json(item)">查看</span>
                       </div>
                     </div>
-                    <div class="verify_text" v-if="card.struct_array.length==0">不能为空</div>
                     <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_child_property">+
                       新增参数</span>
+                    <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                    <div class="verify_text" v-if="card.struct_array.length==0">不能为空</div>
                   </el-form-item>
                 </template>
               </template>
             </template>
             <!-- 事件设置 -->
             <template v-if="card.type=='事件'">
-              <el-form-item label="事件名称" prop="name">
-                <el-input v-model="card.name" :disabled="static_params.add_edit=='check'"></el-input>
+              <el-form-item label="事件名称" size="medium">
+                <el-input class="form_input" v-model="card.name" :disabled="static_params.add_edit=='check'"
+                  @blur="form_verify(card.name,'name')" ref="name"></el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
-              <el-form-item label="事件标识" prop="identifier">
-                <el-input v-model="card.identifier" :disabled="static_params.add_edit=='check'"></el-input>
+              <el-form-item label="事件标识" size="medium">
+                <el-input class="form_input" v-model="card.identifier" :disabled="static_params.add_edit=='check'"
+                  @blur="form_verify(card.identifier,'identifier')" ref="identifier">
+                </el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
               </el-form-item>
-              <el-form-item label="事件类型" prop="dataType">
-                <el-radio-group v-model="card.dataType" :disabled="static_params.add_edit=='check'">
-                  <el-radio v-for="item in static_params.event_type_options" :label="item.value">{{item.name}}
-                  </el-radio>
-                </el-radio-group>
+              <el-form-item label="事件类型" size="medium">
+                <el-select style="width: 80px;" v-model="card.dataType" :disabled="static_params.add_edit=='check'"
+                  placeholder="请选择事件类型">
+                  <el-option v-for="item in static_params.event_type_options" :key="item.value" :label="item.name"
+                    :value="item.value"></el-option>
+                </el-select>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
               </el-form-item>
-              <el-form-item label="输出参数">
-                <el-select v-model="card.outputData" :disabled="static_params.add_edit=='check'" value-key="propertyId"
-                  placeholder="请选择属性" multiple clearable>
+              <el-form-item label="输出参数" size="medium">
+                <el-select style="width: 200px;" v-model="card.outputData" :disabled="static_params.add_edit=='check'"
+                  value-key="propertyId" placeholder="请选择属性" multiple clearable>
                   <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
                   </el-option>
                 </el-select>
@@ -188,28 +218,37 @@
             </template>
             <!-- 服务设置 -->
             <template v-if="card.type=='服务'">
-              <el-form-item label="服务名称" prop="name">
-                <el-input v-model="card.name" :disabled="static_params.add_edit=='check'"></el-input>
+              <el-form-item label="服务名称" size="medium">
+                <el-input class="form_input" v-model="card.name" :disabled="static_params.add_edit=='check'"
+                  @blur="form_verify(card.name,'name')" ref="name"></el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
-              <el-form-item label="服务标识" prop="identifier">
-                <el-input v-model="card.identifier" :disabled="static_params.add_edit=='check'"></el-input>
+              <el-form-item label="服务标识" size="medium">
+                <el-input class="form_input" v-model="card.identifier" :disabled="static_params.add_edit=='check'"
+                  @blur="form_verify(card.identifier,'identifier')" ref="identifier">
+                </el-input>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
               </el-form-item>
-              <el-form-item label="调用方式" prop="dataType">
-                <el-radio-group v-model="card.dataType" :disabled="static_params.add_edit=='check'">
-                  <el-radio v-for="item in static_params.server_type_options" :label="item.value">{{item.name}}
-                  </el-radio>
-                </el-radio-group>
+              <el-form-item label="调用方式" size="medium">
+                <el-select style="width: 150px;" v-model="card.dataType" :disabled="static_params.add_edit=='check'"
+                  placeholder="请选择调用方式">
+                  <el-option v-for="item in static_params.server_type_options" :key="item.value" :label="item.name"
+                    :value="item.value"></el-option>
+                </el-select>
+                <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
               </el-form-item>
-              <el-form-item label="输入参数">
-                <el-select v-model="card.inputData" :disabled="static_params.add_edit=='check'" value-key="propertyId"
-                  placeholder="请选择输入属性" multiple clearable>
+              <el-form-item label="输入参数" size="medium">
+                <el-select style="width: 200px;" v-model="card.inputData" :disabled="static_params.add_edit=='check'"
+                  value-key="propertyId" placeholder="请选择输入属性" multiple clearable>
                   <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
                   </el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item label="输出参数">
-                <el-select v-model="card.outputData" :disabled="static_params.add_edit=='check'" value-key="propertyId"
-                  placeholder="请选择输出属性" multiple clearable>
+              <el-form-item label="输出参数" size="medium">
+                <el-select style="width: 200px;" v-model="card.outputData" :disabled="static_params.add_edit=='check'"
+                  value-key="propertyId" placeholder="请选择输出属性" multiple clearable>
                   <el-option v-for="item in history_list[history_selected].properties" :label="item.name" :value="item">
                   </el-option>
                 </el-select>
