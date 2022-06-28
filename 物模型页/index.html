@@ -48,11 +48,9 @@
 
     <!-- 透明包裹层 设定固定大小 滚动显示 页面居中 -->
     <div class="custom_center" v-for="card,index in form_list">
-      <!-- 遮罩 -->
-      <!-- <div class="shadow"></div> -->
       <div class="card_layout">
         <!-- 编辑及新建卡片 -->
-        <el-card style="z-index: 990;overflow: auto;max-height: 100%;" shadow="hover">
+        <el-card style="z-index: 990;overflow: auto;max-height: 100%;" shadow="hover" v-loading="static_params.loading">
           <el-form label-width="80px">
             <!-- label-position="top" :rules="static_params.form_rules" :model="card" -->
             <!-- 选择属性、事件、服务 -->
@@ -113,15 +111,25 @@
                   <div class="verify_text" v-show="rules.step.show">{{rules.step.message}}</div>
                 </el-form-item>
                 <el-form-item label="单位" size="medium">
-                  <el-select style="width: 150px;" v-model="card.unit" placeholder="请选择单位"
-                    :disabled="static_params.add_edit=='check'">
-                    <el-option-group v-for="group in static_params.unit_options" :key="group.label"
-                      :label="group.label">
-                      <el-option v-for="item in group.options" :key="item.value" :label="item.value"
-                        :value="item.value">
-                      </el-option>
-                    </el-option-group>
-                  </el-select>
+                  <div style="display: flex;">
+                    <el-select style="width: 150px;margin-right: 10px;" v-model="card.unit" @change="ban_unit_button"
+                      placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
+                      <el-option-group v-for="group in static_params.unit_options" :key="group.label"
+                        :label="group.label">
+                        <el-option v-for="item in group.options" :key="item.value" :label="item.value"
+                          :value="item.value">
+                        </el-option>
+                      </el-option-group>
+                    </el-select>
+                    <el-button @click="add_unit" :disabled="static_params.add_edit=='check'" size="mini">新增
+                    </el-button>
+                    <el-button @click="edit_unit"
+                      :disabled="static_params.add_edit=='check'||static_params.unit_button_ban" size="mini">更新
+                    </el-button>
+                    <el-button @click="del_unit"
+                      :disabled="static_params.add_edit=='check'||static_params.unit_button_ban" size="mini"
+                      type="danger">删除</el-button>
+                  </div>
                 </el-form-item>
               </template>
               <template v-if="card.dataType=='text'">
@@ -273,6 +281,53 @@
           </el-form>
         </el-card>
       </div>
+    </div>
+    <!-- 新增属性弹窗 -->
+    <div class="custom_center" v-show="static_params.unit_set_show">
+      <el-card style="width: 480px;" shadow="hover" v-loading="static_params.loading">
+        <el-form label-width="80px">
+          <el-form-item label="单位名称" size="medium">
+            <el-input class="form_input" v-model="static_params.unit_paramas.unit_name" placeholder="请输入单位名称"
+              @blur="form_verify(static_params.unit_paramas.unit_name,'unit_name',static_params.unit_paramas.name_old)"
+              ref="unit_name">
+            </el-input>
+            <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+            <div class="verify_text" v-show="rules.unit_name.show">{{rules.unit_name.message}}</div>
+          </el-form-item>
+          <el-form-item label="单位符号" size="medium">
+            <el-input class="form_input" v-model="static_params.unit_paramas.symbol" placeholder="请输入单位符号"
+              @blur="form_verify(static_params.unit_paramas.symbol,'symbol')" ref="symbol">
+            </el-input>
+            <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+            <div class="verify_text" v-show="rules.symbol.show">{{rules.symbol.message}}</div>
+          </el-form-item>
+          <el-form-item label="单位类型" size="medium">
+            <el-select style="width: 120px;" v-model="static_params.unit_paramas.type" placeholder="请选择类型">
+              <el-option v-for="item,index in static_params.unit_type_options" :key="item" :label="item" :value="index">
+              </el-option>
+            </el-select>
+            <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+          </el-form-item>
+          <el-form-item label="类型名称" size="medium" v-show="static_params.unit_paramas.type==0">
+            <el-input class="form_input" v-model="static_params.unit_paramas.typeName" placeholder="请输入类型名称"
+              @blur="form_verify(static_params.unit_paramas.typeName,'typeName',static_params.unit_paramas.typeName_old)"
+              ref="typeName">
+            </el-input>
+            <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+            <div class="verify_text" v-show="rules.typeName.show">{{rules.typeName.message}}</div>
+          </el-form-item>
+          <el-form-item label="备注" size="medium">
+            <el-input class="form_input" v-model="static_params.unit_paramas.remarks" type="textarea"
+              :autosize="{ minRows: 1, maxRows: 4}" placeholder="请输入内容">
+            </el-input>
+          </el-form-item>
+          <el-form-item class="button_layout">
+            <el-button type="primary" @click="unit_submit">保存
+            </el-button>
+            <el-button @click="unit_cancel">取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
     </div>
 
     <!-- 临时 发布物模型按钮 用绝对定位先弄个死的 -->

@@ -10,6 +10,8 @@ let protocol_event = `${url}api-device/protocol/event`;
 let protocol_service = `${url}api-device/protocol/service`;
 let protocol_publish = `${url}api-device/protocol/publish`;
 let protocol_units = `${url}api-device/protocol/units`;
+let protocol_unit_add = `${url}api-device/protocol/unit`;
+let protocol_unit_delete = `${url}api-device/protocol/delete`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -20,6 +22,7 @@ new Vue({
 			id: '',
 			token: '',
 			static_params: {
+				loading: false, //请求未返回时加载遮罩
 				// 数据类型种类
 				type_options: [
 					{ value: 'int', name: 'int' },
@@ -53,6 +56,18 @@ new Vue({
 				unit_options: [],
 				add_edit: '', //新建和编辑取值方式不同
 				first_load: true, //第一次加载时隐藏卡片 不然会报错
+				unit_set_show: false, //属性单位配置弹窗显示
+				unit_add_edit: '', //区分单位编辑和新增
+				unit_button_ban: true, //禁用单位相关按钮
+				// 属性单位表单
+				unit_paramas: {
+					unit_name: '',
+					symbol: '',
+					type: 0,
+					typeName: '',
+					remarks: '',
+				},
+				unit_type_options: [],
 			},
 			//历史版本列表
 			history_list: [],
@@ -90,6 +105,9 @@ new Vue({
 				min: { show: false, message: '' },
 				max: { show: false, message: '' },
 				step: { show: false, message: '' },
+				unit_name: { show: false, message: '' },
+				symbol: { show: false, message: '' },
+				typeName: { show: false, message: '' },
 			},
 		};
 	},
@@ -521,6 +539,12 @@ new Vue({
 				case 'step':
 					reg = /^\d*$/;
 					break;
+				case 'unit_name':
+					reg = /^[\u4E00-\u9FA5A-Za-z0-9_]+$/;
+					break;
+				default:
+					reg = /^.{1,}$/;
+					break;
 			}
 			if (!reg.test(value)) {
 				this.rules[flag].show = true;
@@ -546,11 +570,22 @@ new Vue({
 					case 'step':
 						this.rules[flag].message = '只能输入数字';
 						break;
+					case 'unit_name':
+						this.rules[flag].message = '不能为空或者输入特殊字符';
+						// this.$refs[flag].$refs.input.style.borderColor = 'red';
+						// this.$refs[flag].$refs.input.placeholder = '';
+						break;
+					default:
+						this.rules[flag].message = '不能为空';
+						// this.$refs[flag].$refs.input.style.borderColor = 'red';
+						// this.$refs[flag].$refs.input.placeholder = '';
+						break;
 				}
-				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = 'red';
-				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.placeholder = '';
+				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = 'red';
+				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.placeholder = '';
 				return false;
 			} else {
+				this.rules[flag].show = true;
 				switch (flag) {
 					case 'size':
 						reg = /^\d{1,3}$/;
@@ -571,9 +606,27 @@ new Vue({
 							return false;
 						}
 						break;
+					case 'unit_name':
+						for (let obj of this.static_params.unit_options) {
+							for (let item of obj.options) {
+								if (value == item.name && value != compare) {
+									this.rules[flag].message = '跟已有单位重名';
+									return false;
+								}
+							}
+						}
+						break;
+					case 'typeName':
+						for (let obj of this.static_params.unit_options) {
+							if (value == obj.label && value != compare) {
+								this.rules[flag].message = '跟已有类型重名';
+								return false;
+							}
+						}
+						break;
 				}
 				this.rules[flag].show = false;
-				this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = '';
+				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = '';
 				return true;
 			}
 		},
@@ -827,9 +880,7 @@ new Vue({
 					obj.itemType = 'int';
 				}
 			}
-			for (let key in this.rules) {
-				this.rules[key].show = false;
-			}
+			this.clean_verify();
 		},
 		// 增加子属性
 		add_child_property() {
@@ -842,9 +893,7 @@ new Vue({
 			temp.type = '属性';
 			temp.dataType = 'int';
 			this.form_list.push(temp);
-			for (let key in this.rules) {
-				this.rules[key].show = false;
-			}
+			this.clean_verify();
 		},
 		// 发布物模型
 		publish_model() {
@@ -886,18 +935,115 @@ new Vue({
 		// 点击下拉框获取远程数据
 		get_unit() {
 			this.request('get', protocol_units, this.token, (res) => {
+				this.static_params.unit_type_options = ['自定义'];
 				for (let [key, array] of Object.entries(res.data.data)) {
 					let temp = {
 						label: key,
 						options: [],
 					};
 					for (let item of array) {
-						let unit = { value: `${item.name} / ${item.symbol}` };
+						let unit = {
+							value: `${item.name} / ${item.symbol}`,
+						};
+						for (let key in item) {
+							unit[key] = item[key];
+						}
 						temp.options.push(unit);
 					}
 					this.static_params.unit_options.push(temp);
+					this.static_params.unit_type_options.push(key);
 				}
 			});
+		},
+		// 新增单位
+		add_unit() {
+			this.static_params.unit_add_edit = 'add';
+			this.static_params.unit_set_show = true;
+		},
+		// 编辑单位
+		edit_unit() {
+			let t_name = this.form_list[this.form_list.length - 1].unit.split(' / ')[0];
+			for (let v1 of this.static_params.unit_options) {
+				for (let v2 of v1.options) {
+					if (t_name == v2.name) {
+						this.static_params.unit_paramas.unitId = v2.unitId;
+						this.static_params.unit_paramas.unit_name = v2.name;
+						this.static_params.unit_paramas.name_old = v2.name;
+						this.static_params.unit_paramas.remarks = v2.remarks;
+						this.static_params.unit_paramas.symbol = v2.symbol;
+						this.static_params.unit_paramas.type = v2.type;
+						if (v2.type == 0) {
+							this.static_params.unit_paramas.typeName = v2.typeName;
+							this.static_params.unit_paramas.typeName_old = v2.typeName;
+						}
+					}
+				}
+			}
+			this.static_params.unit_add_edit = 'edit';
+			this.static_params.unit_set_show = true;
+		},
+		// 删除单位
+		del_unit() {
+			this.static_params.loading = true;
+			let t_name = this.form_list[this.form_list.length - 1].unit.split(' / ')[0];
+			for (let v1 of this.static_params.unit_options) {
+				for (let v2 of v1.options) {
+					if (t_name == v2.name) {
+						this.request('delete', `${protocol_unit_delete}/${v2.unitId}`, this.token, () => {
+							this.get_unit();
+							this.static_params.loading = false;
+						});
+					}
+				}
+			}
+		},
+		// 单位弹窗提交
+		unit_submit() {
+			this.static_params.loading = true;
+			let result = [];
+			result.push(this.form_verify(this.static_params.unit_paramas.unit_name, 'unit_name', this.static_params.unit_paramas.name_old));
+			result.push(this.form_verify(this.static_params.unit_paramas.symbol, 'symbol'));
+			if (this.static_params.unit_paramas.type == 0) {
+				result.push(this.form_verify(this.static_params.unit_paramas.typeName, 'typeName', this.static_params.unit_paramas.typeName_old));
+			}
+			for (let value of result) {
+				if (!value) {
+					return;
+				}
+			}
+			let t = {
+				name: this.static_params.unit_paramas.unit_name,
+				symbol: this.static_params.unit_paramas.symbol,
+				type: Number(this.static_params.unit_paramas.type),
+				remarks: this.static_params.unit_paramas.remarks,
+			};
+			if (t.type == 0) {
+				t.typeName = this.static_params.unit_paramas.typeName;
+			}
+			if (this.static_params.unit_add_edit == 'add') {
+				this.request('post', protocol_unit_add, this.token, t, () => {
+					this.get_unit();
+					this.clean_verify();
+					this.clean_object(this.static_params.unit_paramas);
+					this.static_params.unit_set_show = false;
+					this.static_params.loading = false;
+				});
+			} else {
+				t.unitId = this.static_params.unit_paramas.unitId;
+				this.request('put', protocol_unit_add, this.token, t, () => {
+					this.get_unit();
+					this.clean_verify();
+					this.clean_object(this.static_params.unit_paramas);
+					this.static_params.unit_set_show = false;
+					this.static_params.loading = false;
+				});
+			}
+		},
+		// 单位弹窗取消
+		unit_cancel() {
+			this.clean_verify();
+			this.clean_object(this.static_params.unit_paramas);
+			this.static_params.unit_set_show = false;
 		},
 		// 清空表单 并设置初始值
 		clean_form(obj) {
@@ -917,15 +1063,32 @@ new Vue({
 					obj.dataType = 'async';
 					break;
 			}
-			for (let key in this.rules) {
-				this.rules[key].show = false;
-			}
+			this.clean_verify();
 		},
 		// 点击取消时删除卡片数组最后一个
 		del_form() {
 			this.form_list.pop();
+			this.clean_verify();
+		},
+		// 当前编辑弹窗消失时 清除验证提示
+		clean_verify() {
 			for (let key in this.rules) {
 				this.rules[key].show = false;
+			}
+		},
+		// 当选择的是系统单位时禁止删除和更新按钮
+		ban_unit_button() {
+			this.static_params.unit_button_ban = false;
+			let t_name = this.form_list[this.form_list.length - 1].unit.split(' / ')[0];
+			for (let v1 of this.static_params.unit_options) {
+				for (let v2 of v1.options) {
+					if (t_name == v2.name) {
+						if (v2.sysDefault == 1) {
+							this.static_params.unit_button_ban = true;
+							return;
+						}
+					}
+				}
 			}
 		},
 	},
