@@ -25,6 +25,8 @@
         </el-select>
       </div>
       <el-button @click="new_ver_model" :disabled="history_list.length == 0">新增版本</el-button>
+      <el-button type="primary" round @click="set_product_model" :disabled="history_list.length == 0">启用当前物模型
+      </el-button>
     </div>
     <!-- 表格栏 -->
     <div style="padding:0 10px;overflow: auto;">
@@ -35,8 +37,8 @@
         <el-table-column prop="dataType_text" label="数据定义"></el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="history_list[history_selected].profile.published==='0'" @click="edit_protocol(scope.row)"
-              type="text" size="small">编辑</el-button>
+            <el-button v-if="history_list[history_selected].profile.published==='0'"
+              @click="edit_protocol(scope.row,scope.$index)" type="text" size="small">编辑</el-button>
             <el-button v-if="history_list[history_selected].profile.published==='0'" @click="delete_protocol(scope.row)"
               type="text" size="small">删除</el-button>
             <el-button v-if="history_list[history_selected].profile.published==='1'" @click="check_protocol(scope.row)"
@@ -50,7 +52,7 @@
     <div class="custom_center" v-for="card,index in form_list">
       <div class="card_layout">
         <!-- 编辑及新建卡片 -->
-        <el-card style="z-index: 990;overflow: auto;max-height: 100%;" shadow="hover" v-loading="static_params.loading">
+        <el-card style="z-index: 990;overflow: auto;max-height: 90%;" shadow="hover" v-loading="static_params.loading">
           <el-form label-width="80px">
             <!-- label-position="top" :rules="static_params.form_rules" :model="card" -->
             <!-- 选择属性、事件、服务 -->
@@ -65,15 +67,14 @@
             <template v-if="card.type=='属性'">
               <el-form-item label="属性名称" size="medium">
                 <el-input class="form_input" v-model="card.name" placeholder="请输入属性名称"
-                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')" ref="name">
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')">
                 </el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
               <el-form-item label="属性标识" size="medium">
                 <el-input class="form_input" v-model="card.identifier" placeholder="请输入您的标识符"
-                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.identifier,'identifier')"
-                  ref="identifier">
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.identifier,'identifier')">
                 </el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
@@ -88,31 +89,25 @@
               </el-form-item>
               <template v-if="card.dataType=='int'||card.dataType=='float'||card.dataType=='double'">
                 <el-form-item label="取值范围" size="medium">
-                  <div style="display: flex;width: 200px;">
-                    <div>
-                      <el-input v-model="card.min" placeholder="最小值" :disabled="static_params.add_edit=='check'"
-                        @blur="form_verify(card.min,'min',card.max)" ref="min">
-                      </el-input>
-                      <div class="verify_text" v-show="rules.min.show">{{rules.min.message}}</div>
-                    </div>
+                  <div style="display: flex;width: 100%;">
+                    <el-input-number v-model="card.min" :precision="precision_sort(card)" :step="step_sort(card)"
+                      :disabled="static_params.add_edit=='check'" size="mini">
+                    </el-input-number>
                     ~
-                    <div>
-                      <el-input v-model="card.max" placeholder="最大值" :disabled="static_params.add_edit=='check'"
-                        @blur="form_verify(card.max,'max',card.min)" ref="max">
-                      </el-input>
-                      <div class="verify_text" v-show="rules.max.show">{{rules.max.message}}</div>
-                    </div>
+                    <el-input-number v-model="card.max" :precision="precision_sort(card)" :step="step_sort(card)"
+                      :disabled="static_params.add_edit=='check'" size="mini">
+                    </el-input-number>
                   </div>
                 </el-form-item>
                 <el-form-item label="步长" size="medium">
-                  <el-input class="form_input" v-model="card.step" placeholder="请输入步长"
-                    :disabled="static_params.add_edit=='check'" @blur="form_verify(card.step,'step')" ref="step">
-                  </el-input>
+                  <el-input-number v-model="card.step" :precision="precision_sort(card)" :step="step_sort(card)"
+                    :disabled="static_params.add_edit=='check'" size="medium" controls-position="right">
+                  </el-input-number>
                   <div class="verify_text" v-show="rules.step.show">{{rules.step.message}}</div>
                 </el-form-item>
                 <el-form-item label="单位" size="medium">
                   <div style="display: flex;">
-                    <el-select style="width: 150px;margin-right: 10px;" v-model="card.unit" @change="ban_unit_button"
+                    <el-select style="width: 120px;margin-right: 4px;" v-model="card.unit" @change="ban_unit_button"
                       placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
                       <el-option-group v-for="group in static_params.unit_options" :key="group.label"
                         :label="group.label">
@@ -135,7 +130,7 @@
               <template v-if="card.dataType=='text'">
                 <el-form-item label="数据长度" size="medium">
                   <el-input class="form_input" v-model="card.textLength"
-                    @blur="form_verify(card.textLength,'textLength')" ref="textLength" placeholder="请输入数据长度"
+                    @blur="form_verify(card.textLength,'textLength')" placeholder="请输入数据长度"
                     :disabled="static_params.add_edit=='check'">
                   </el-input>
                   <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
@@ -148,7 +143,7 @@
                     <span style="font-size: 12px;color: #555;">参数名称： {{item.name}}</span>
                     <div>
                       <span class="struct_array_button" v-if="history_list[history_selected].profile.published==='0'"
-                        @click="edit_child_json(item)">编辑</span>
+                        @click="edit_child_json(item,struct_index)">编辑</span>
                       <span style="color: rgb(0, 112, 204);cursor: pointer;"
                         v-if="history_list[history_selected].profile.published==='0'"
                         @click="del_child_json(card,struct_index)">删除</span>
@@ -173,7 +168,7 @@
                   <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 </el-form-item>
                 <el-form-item label="元素个数" size="medium">
-                  <el-input class="form_input" v-model="card.size" @blur="form_verify(card.size,'size')" ref="size"
+                  <el-input class="form_input" v-model="card.size" @blur="form_verify(card.size,'size')"
                     placeholder="请输入元素个数" :disabled="static_params.add_edit=='check'">
                   </el-input>
                   <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
@@ -206,13 +201,13 @@
             <template v-if="card.type=='事件'">
               <el-form-item label="事件名称" size="medium">
                 <el-input class="form_input" v-model="card.name" :disabled="static_params.add_edit=='check'"
-                  @blur="form_verify(card.name,'name')" ref="name"></el-input>
+                  @blur="form_verify(card.name,'name')"></el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
               <el-form-item label="事件标识" size="medium">
                 <el-input class="form_input" v-model="card.identifier" :disabled="static_params.add_edit=='check'"
-                  @blur="form_verify(card.identifier,'identifier')" ref="identifier">
+                  @blur="form_verify(card.identifier,'identifier')">
                 </el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
@@ -237,13 +232,13 @@
             <template v-if="card.type=='服务'">
               <el-form-item label="服务名称" size="medium">
                 <el-input class="form_input" v-model="card.name" :disabled="static_params.add_edit=='check'"
-                  @blur="form_verify(card.name,'name')" ref="name"></el-input>
+                  @blur="form_verify(card.name,'name')"></el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>
               <el-form-item label="服务标识" size="medium">
                 <el-input class="form_input" v-model="card.identifier" :disabled="static_params.add_edit=='check'"
-                  @blur="form_verify(card.identifier,'identifier')" ref="identifier">
+                  @blur="form_verify(card.identifier,'identifier')">
                 </el-input>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
@@ -284,34 +279,33 @@
     </div>
     <!-- 新增属性弹窗 -->
     <div class="custom_center" v-show="static_params.unit_set_show">
-      <el-card style="width: 480px;" shadow="hover" v-loading="static_params.loading">
+      <el-card style="width: 480px;overflow: auto;max-height: 90%;" shadow="hover" v-loading="static_params.loading">
         <el-form label-width="80px">
           <el-form-item label="单位名称" size="medium">
             <el-input class="form_input" v-model="static_params.unit_paramas.unit_name" placeholder="请输入单位名称"
-              @blur="form_verify(static_params.unit_paramas.unit_name,'unit_name',static_params.unit_paramas.name_old)"
-              ref="unit_name">
+              @blur="form_verify(static_params.unit_paramas.unit_name,'unit_name',static_params.unit_paramas.name_old)">
             </el-input>
             <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
             <div class="verify_text" v-show="rules.unit_name.show">{{rules.unit_name.message}}</div>
           </el-form-item>
           <el-form-item label="单位符号" size="medium">
             <el-input class="form_input" v-model="static_params.unit_paramas.symbol" placeholder="请输入单位符号"
-              @blur="form_verify(static_params.unit_paramas.symbol,'symbol')" ref="symbol">
+              @blur="form_verify(static_params.unit_paramas.symbol,'symbol')">
             </el-input>
             <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
             <div class="verify_text" v-show="rules.symbol.show">{{rules.symbol.message}}</div>
           </el-form-item>
           <el-form-item label="单位类型" size="medium">
-            <el-select style="width: 120px;" v-model="static_params.unit_paramas.type" placeholder="请选择类型">
-              <el-option v-for="item,index in static_params.unit_type_options" :key="item" :label="item" :value="index">
+            <el-select style="width: 120px;" v-model="static_params.unit_paramas.type" @change="clean_verify"
+              placeholder="请选择类型">
+              <el-option v-for="item,index in static_params.unit_type_options" :label="item" :value="index">
               </el-option>
             </el-select>
             <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
           </el-form-item>
           <el-form-item label="类型名称" size="medium" v-show="static_params.unit_paramas.type==0">
             <el-input class="form_input" v-model="static_params.unit_paramas.typeName" placeholder="请输入类型名称"
-              @blur="form_verify(static_params.unit_paramas.typeName,'typeName',static_params.unit_paramas.typeName_old)"
-              ref="typeName">
+              @blur="form_verify(static_params.unit_paramas.typeName,'typeName',static_params.unit_paramas.typeName_old)">
             </el-input>
             <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
             <div class="verify_text" v-show="rules.typeName.show">{{rules.typeName.message}}</div>

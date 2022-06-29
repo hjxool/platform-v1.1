@@ -12,6 +12,7 @@ let protocol_publish = `${url}api-device/protocol/publish`;
 let protocol_units = `${url}api-device/protocol/units`;
 let protocol_unit_add = `${url}api-device/protocol/unit`;
 let protocol_unit_delete = `${url}api-device/protocol/delete`;
+let product_model = `${url}api-device/product/model`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -67,7 +68,7 @@ new Vue({
 					typeName: '',
 					remarks: '',
 				},
-				unit_type_options: [],
+				unit_type_options: ['自定义'],
 			},
 			//历史版本列表
 			history_list: [],
@@ -76,7 +77,7 @@ new Vue({
 			protocol_list: [],
 			//修改协议时的单行数据
 			single_setting: {
-				id: '', //公共 id
+				// id: '', //公共 id
 				type: '', //功能类型
 				name: '', //公共 显示名
 				identifier: '', //公共 标识
@@ -188,6 +189,7 @@ new Vue({
 			this.protocol_list = [];
 			this.history_selected = index;
 			this.model_id = this.history_list[index].modelId;
+			this.product_id = this.history_list[index].profile.productId;
 			// 不需要记录id等不展示的属性，只需要能点编辑时找到在数组中位置
 			this.history_list[index].events.forEach((e) => {
 				let table = {
@@ -229,6 +231,10 @@ new Vue({
 				} else if (e.dataType.type == 'struct') {
 					// 这地方存的是源数据 在点编辑查看时要特殊处理 取值赋给展示数据
 					table.struct_array = e.dataType.properties;
+					// let array = [];
+					// this.copy_struct_array(array, e.dataType.properties);
+					// console.log(array);
+					// console.log(array == e.dataType.properties);
 				} else if (e.dataType.type == 'array') {
 					table.itemType = e.dataType.specs.item.type;
 					table.size = e.dataType.specs.size;
@@ -245,23 +251,27 @@ new Vue({
 			});
 		},
 		// 取出属性列表 便于查询ID
-		get_property(obj) {
-			this.protocol_list.push(obj);
-			switch (obj.dataType.type) {
-				case 'array':
-					switch (obj.dataType.specs.item.type) {
-						case 'struct':
-							obj.dataType.specs.item.properties.forEach((e) => {
-								this.get_property(e);
-							});
-							break;
+		copy_struct_array(target, source) {
+			debugger;
+			if (source.constructor === Array && typeof source[0] != 'object') {
+				source.forEach((e) => {
+					target.push(e);
+				});
+			} else if (source.constructor === Array && typeof source[0] === 'object') {
+				source.forEach((e) => {
+					let t = {};
+					target.push(t);
+					this.copy_struct_array(t, e);
+				});
+			} else if (source.constructor === Object) {
+				for (let key in source) {
+					if (typeof source[key] != 'object') {
+						target[key] = source[key];
+					} else {
+						target[key] = {};
+						this.copy_struct_array(target[key], source[key]);
 					}
-					break;
-				case 'struct':
-					obj.dataType.properties.forEach((e) => {
-						this.get_property(e);
-					});
-					break;
+				}
 			}
 		},
 		// 构建属性树
@@ -314,7 +324,7 @@ new Vue({
 			});
 		},
 		// 编辑查看模型中单条数据
-		edit_protocol(row_data) {
+		edit_protocol(row_data, select_index) {
 			// protocol_list中每一行数据
 			console.log(row_data);
 			this.static_params.add_edit = 'edit';
@@ -328,6 +338,7 @@ new Vue({
 					temp[key] = row_data[key];
 				}
 			}
+			temp.index = select_index;
 			// 因为数组是对象有索引 修改父级数组后，模板中数组指针也永远改变了，所以每一层看的都是同样的数组
 			if (row_data.struct_array != undefined) {
 				temp.struct_array = row_data.struct_array;
@@ -395,7 +406,7 @@ new Vue({
 			this.form_list.push(temp);
 		},
 		// 编辑子属性
-		edit_child_json(row_data) {
+		edit_child_json(row_data, child_index) {
 			// 跟表格编辑查看不同的地方在于，表格数据是提取出来的，而子属性列表里的是原始格式数据
 			console.log(row_data);
 			this.static_params.add_edit = 'edit';
@@ -406,9 +417,10 @@ new Vue({
 				temp[key] = this.single_setting[key];
 			}
 			temp.type = '属性';
-			if (row_data.propertyId != undefined && row_data.propertyId != '') {
-				temp.id = row_data.propertyId;
-			}
+			temp.index = child_index;
+			// if (row_data.propertyId != undefined && row_data.propertyId != '') {
+			// 	temp.id = row_data.propertyId;
+			// }
 			temp.identifier = row_data.identifier;
 			temp.name = row_data.name;
 			temp.dataType = row_data.dataType.type;
@@ -443,16 +455,11 @@ new Vue({
 		},
 		// 发布后查看子属性
 		check_child_json(row_data) {
-			// 父级已经是check没必要再设置
-			for (let key in row_data) {
-				this.add_child_template[key] = row_data[key];
-			}
 			let temp = {};
 			for (let key in this.single_setting) {
 				temp[key] = this.single_setting[key];
 			}
 			temp.type = '属性';
-			temp.id = row_data.propertyId;
 			temp.identifier = row_data.identifier;
 			temp.name = row_data.name;
 			temp.dataType = row_data.dataType.type;
@@ -516,119 +523,82 @@ new Vue({
 		},
 		// 表单手动验证
 		form_verify(value, flag, compare) {
+			compare == undefined ? (compare = '') : compare;
+			this.rules[flag].show = true;
 			let reg;
 			switch (flag) {
 				case 'name':
 					reg = /^[\u4E00-\u9FA5A-Za-z0-9_]+$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '不能为空或者输入特殊字符';
+						return false;
+					}
 					break;
 				case 'identifier':
 					reg = /^\w+$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '不能为空或者输入特殊字符';
+						return false;
+					}
 					break;
 				case 'textLength':
 					reg = /^\d+$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '只能输入数字';
+						return false;
+					}
 					break;
 				case 'size':
-					reg = /^\d+$/;
-					break;
-				case 'min':
-					reg = /^\d*$/;
+					reg = /^[1-9][0-9]{0,1}$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '不能为空且只能输入2位以内非0开头的整数数字';
+						return false;
+					}
 					break;
 				case 'max':
-					reg = /^\d*$/;
-					break;
-				case 'step':
-					reg = /^\d*$/;
+					if (Number(value) < Number(compare)) {
+						this.$message.error('不能小于最小值');
+						return false;
+					}
 					break;
 				case 'unit_name':
 					reg = /^[\u4E00-\u9FA5A-Za-z0-9_]+$/;
-					break;
-				default:
-					reg = /^.{1,}$/;
-					break;
-			}
-			if (!reg.test(value)) {
-				this.rules[flag].show = true;
-				switch (flag) {
-					case 'name':
+					if (!reg.test(value)) {
 						this.rules[flag].message = '不能为空或者输入特殊字符';
-						break;
-					case 'identifier':
-						this.rules[flag].message = '不能为空或者输入特殊字符';
-						break;
-					case 'textLength':
-						this.rules[flag].message = '只能输入数字';
-						break;
-					case 'size':
-						this.rules[flag].message = '不能为空且只能输入数字';
-						break;
-					case 'min':
-						this.rules[flag].message = '只能输入数字';
-						break;
-					case 'max':
-						this.rules[flag].message = '只能输入数字';
-						break;
-					case 'step':
-						this.rules[flag].message = '只能输入数字';
-						break;
-					case 'unit_name':
-						this.rules[flag].message = '不能为空或者输入特殊字符';
-						// this.$refs[flag].$refs.input.style.borderColor = 'red';
-						// this.$refs[flag].$refs.input.placeholder = '';
-						break;
-					default:
-						this.rules[flag].message = '不能为空';
-						// this.$refs[flag].$refs.input.style.borderColor = 'red';
-						// this.$refs[flag].$refs.input.placeholder = '';
-						break;
-				}
-				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = 'red';
-				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.placeholder = '';
-				return false;
-			} else {
-				this.rules[flag].show = true;
-				switch (flag) {
-					case 'size':
-						reg = /^\d{1,3}$/;
-						if (!reg.test(value)) {
-							this.rules[flag].message = '只能输入3位以内的数字';
-							return false;
-						}
-						break;
-					case 'min':
-						if (Number(value) > Number(compare)) {
-							this.rules[flag].message = '不能大于最大值';
-							return false;
-						}
-						break;
-					case 'max':
-						if (Number(value) < Number(compare)) {
-							this.rules[flag].message = '不能小于最小值';
-							return false;
-						}
-						break;
-					case 'unit_name':
-						for (let obj of this.static_params.unit_options) {
-							for (let item of obj.options) {
-								if (value == item.name && value != compare) {
-									this.rules[flag].message = '跟已有单位重名';
-									return false;
-								}
-							}
-						}
-						break;
-					case 'typeName':
-						for (let obj of this.static_params.unit_options) {
-							if (value == obj.label && value != compare) {
-								this.rules[flag].message = '跟已有类型重名';
+						return false;
+					}
+					for (let obj of this.static_params.unit_options) {
+						for (let item of obj.options) {
+							if (value == item.name && value != compare) {
+								this.rules[flag].message = '跟已有单位重名';
 								return false;
 							}
 						}
-						break;
-				}
-				this.rules[flag].show = false;
-				// this.$refs[flag][this.$refs[flag].length - 1].$refs.input.style.borderColor = '';
-				return true;
+					}
+					break;
+				case 'typeName':
+					reg = /^.{1,}$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '不能为空';
+						return false;
+					}
+					for (let obj of this.static_params.unit_options) {
+						if (value == obj.label && value != compare) {
+							this.rules[flag].message = '跟已有类型重名';
+							return false;
+						}
+					}
+					break;
+				default:
+					reg = /^.{1,}$/;
+					if (!reg.test(value)) {
+						this.rules[flag].message = '不能为空';
+						return false;
+					}
+					break;
 			}
+			this.rules[flag].show = false;
+			return true;
 		},
 		// 提交表单
 		submit_form(obj, index) {
@@ -636,9 +606,7 @@ new Vue({
 			result.push(this.form_verify(obj.name, 'name'));
 			result.push(this.form_verify(obj.identifier, 'identifier'));
 			if (obj.dataType == 'int' || obj.dataType == 'float' || obj.dataType == 'double') {
-				result.push(this.form_verify(obj.min, 'min', obj.max));
 				result.push(this.form_verify(obj.max, 'max', obj.min));
-				result.push(this.form_verify(obj.step, 'step'));
 			}
 			if (obj.dataType == 'text') {
 				result.push(this.form_verify(obj.textLength, 'textLength'));
@@ -719,61 +687,107 @@ new Vue({
 							} else {
 								array = this.history_list[this.history_selected].properties;
 							}
-							let property;
-							array.forEach((e) => {
-								if (e.propertyId == obj.id) {
-									e.name = obj.name;
-									e.identifier = obj.identifier;
-									e.dataType.type = obj.dataType;
-									switch (obj.dataType) {
-										case 'text':
-											// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
-											// 而且本来specs里就没有什么固定内容
-											e.dataType.specs = { length: obj.textLength };
-											break;
-										case 'date':
-											break;
-										case 'struct':
-											if (e.dataType.specs != null) {
-												if (e.dataType.specs.item != null) {
-													e.dataType.specs.item.properties = [];
-												}
-											}
-											e.dataType.properties = [];
-											for (let i of obj.struct_array) {
-												e.dataType.properties.push(i);
-											}
-											break;
-										case 'array':
-											e.dataType.properties = [];
-											e.dataType.specs = {
-												size: obj.size,
-												item: { type: obj.itemType },
-											};
-											if (obj.itemType == 'struct') {
-												e.dataType.specs.item.properties = [];
-												for (let i of obj.struct_array) {
-													e.dataType.specs.item.properties.push(i);
-												}
-											}
-											break;
-										default:
-											e.dataType.specs = {
-												min: obj.min == '' ? null : obj.min,
-												max: obj.max == '' ? null : obj.max,
-												step: obj.step == '' ? null : obj.step,
-												unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
-												unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
-											};
-											break;
+							array[obj.index].name = obj.name;
+							array[obj.index].identifier = obj.identifier;
+							array[obj.index].dataType.type = obj.dataType;
+							switch (obj.dataType) {
+								case 'text':
+									// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
+									// 而且本来specs里就没有什么固定内容
+									array[obj.index].dataType.specs = { length: obj.textLength };
+									break;
+								case 'date':
+									break;
+								case 'struct':
+									if (array[obj.index].dataType.specs != null) {
+										if (array[obj.index].dataType.specs.item != null) {
+											array[obj.index].dataType.specs.item.properties = [];
+										}
 									}
-									property = e;
-								}
-							});
+									array[obj.index].dataType.properties = [];
+									for (let i of obj.struct_array) {
+										array[obj.index].dataType.properties.push(i);
+									}
+									break;
+								case 'array':
+									array[obj.index].dataType.properties = [];
+									array[obj.index].dataType.specs = {
+										size: obj.size,
+										item: { type: obj.itemType },
+									};
+									if (obj.itemType == 'struct') {
+										array[obj.index].dataType.specs.item.properties = [];
+										for (let i of obj.struct_array) {
+											array[obj.index].dataType.specs.item.properties.push(i);
+										}
+									}
+									break;
+								default:
+									array[obj.index].dataType.specs = {
+										min: obj.min == '' ? 0 : obj.min,
+										max: obj.max == '' ? 0 : obj.max,
+										step: obj.step == '' ? 0 : obj.step,
+										unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+										unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+									};
+									break;
+							}
+							//#region
+							// array.forEach((e) => {
+							// 	if (e.propertyId == obj.id) {
+							// 		e.name = obj.name;
+							// 		e.identifier = obj.identifier;
+							// 		e.dataType.type = obj.dataType;
+							// 		switch (obj.dataType) {
+							// 			case 'text':
+							// 				// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
+							// 				// 而且本来specs里就没有什么固定内容
+							// 				e.dataType.specs = { length: obj.textLength };
+							// 				break;
+							// 			case 'date':
+							// 				break;
+							// 			case 'struct':
+							// 				if (e.dataType.specs != null) {
+							// 					if (e.dataType.specs.item != null) {
+							// 						e.dataType.specs.item.properties = [];
+							// 					}
+							// 				}
+							// 				e.dataType.properties = [];
+							// 				for (let i of obj.struct_array) {
+							// 					e.dataType.properties.push(i);
+							// 				}
+							// 				break;
+							// 			case 'array':
+							// 				e.dataType.properties = [];
+							// 				e.dataType.specs = {
+							// 					size: obj.size,
+							// 					item: { type: obj.itemType },
+							// 				};
+							// 				if (obj.itemType == 'struct') {
+							// 					e.dataType.specs.item.properties = [];
+							// 					for (let i of obj.struct_array) {
+							// 						e.dataType.specs.item.properties.push(i);
+							// 					}
+							// 				}
+							// 				break;
+							// 			default:
+							// 				e.dataType.specs = {
+							// 					min: obj.min == '' ? 0 : obj.min,
+							// 					max: obj.max == '' ? 0 : obj.max,
+							// 					step: obj.step == '' ? 0 : obj.step,
+							// 					unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+							// 					unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+							// 				};
+							// 				break;
+							// 		}
+							// 		property = e;
+							// 	}
+							// });
+							//#endregion
 							if (this.form_list.length > 1) {
 								this.form_list.pop();
 							} else {
-								this.request('put', protocol_property, this.token, property, () => {
+								this.request('put', protocol_property, this.token, array[obj.index], () => {
 									this.res_history_model(this.history_selected);
 									this.form_list.pop();
 								});
@@ -852,9 +866,9 @@ new Vue({
 					break;
 				default:
 					dataType.specs = {
-						min: obj.min == '' ? null : obj.min,
-						max: obj.max == '' ? null : obj.max,
-						step: obj.step == '' ? null : obj.step,
+						min: obj.min == '' ? 0 : obj.min,
+						max: obj.max == '' ? 0 : obj.max,
+						step: obj.step == '' ? 0 : obj.step,
 						unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
 						unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
 					};
@@ -916,9 +930,9 @@ new Vue({
 				case 'date':
 					break;
 				default:
-					temp.min = this.add_child_template.min == '' ? null : this.add_child_template.min;
-					temp.max = this.add_child_template.max = '' ? null : this.add_child_template.max;
-					temp.step = this.add_child_template.step = '' ? null : this.add_child_template.step;
+					temp.min = this.add_child_template.min == '' ? 0 : this.add_child_template.min;
+					temp.max = this.add_child_template.max = '' ? 0 : this.add_child_template.max;
+					temp.step = this.add_child_template.step = '' ? 0 : this.add_child_template.step;
 					temp.unit = this.add_child_template.unit = '' ? null : this.add_child_template.unit;
 					break;
 			}
@@ -934,8 +948,9 @@ new Vue({
 		},
 		// 点击下拉框获取远程数据
 		get_unit() {
+			this.static_params.unit_type_options = ['自定义'];
 			this.request('get', protocol_units, this.token, (res) => {
-				this.static_params.unit_type_options = ['自定义'];
+				this.static_params.unit_options = [];
 				for (let [key, array] of Object.entries(res.data.data)) {
 					let temp = {
 						label: key,
@@ -999,7 +1014,6 @@ new Vue({
 		},
 		// 单位弹窗提交
 		unit_submit() {
-			this.static_params.loading = true;
 			let result = [];
 			result.push(this.form_verify(this.static_params.unit_paramas.unit_name, 'unit_name', this.static_params.unit_paramas.name_old));
 			result.push(this.form_verify(this.static_params.unit_paramas.symbol, 'symbol'));
@@ -1011,6 +1025,7 @@ new Vue({
 					return;
 				}
 			}
+			this.static_params.loading = true;
 			let t = {
 				name: this.static_params.unit_paramas.unit_name,
 				symbol: this.static_params.unit_paramas.symbol,
@@ -1025,6 +1040,7 @@ new Vue({
 					this.get_unit();
 					this.clean_verify();
 					this.clean_object(this.static_params.unit_paramas);
+					this.static_params.unit_paramas.type = 0;
 					this.static_params.unit_set_show = false;
 					this.static_params.loading = false;
 				});
@@ -1034,6 +1050,7 @@ new Vue({
 					this.get_unit();
 					this.clean_verify();
 					this.clean_object(this.static_params.unit_paramas);
+					this.static_params.unit_paramas.type = 0;
 					this.static_params.unit_set_show = false;
 					this.static_params.loading = false;
 				});
@@ -1043,6 +1060,7 @@ new Vue({
 		unit_cancel() {
 			this.clean_verify();
 			this.clean_object(this.static_params.unit_paramas);
+			this.static_params.unit_paramas.type = 0;
 			this.static_params.unit_set_show = false;
 		},
 		// 清空表单 并设置初始值
@@ -1090,6 +1108,32 @@ new Vue({
 					}
 				}
 			}
+		},
+		// 精度分类
+		precision_sort(obj) {
+			switch (obj.dataType) {
+				case 'int':
+					return 0;
+				case 'float':
+					return 2;
+				case 'double':
+					return 4;
+			}
+		},
+		// 步长分类
+		step_sort(obj) {
+			switch (obj.dataType) {
+				case 'int':
+					return 1;
+				case 'float':
+					return 0.1;
+				case 'double':
+					return 0.01;
+			}
+		},
+		// 启用当前物模型
+		set_product_model() {
+			this.request('put', `${product_model}/${this.product_id}/${this.model_id}`, this.token);
 		},
 	},
 });

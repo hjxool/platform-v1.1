@@ -23,13 +23,11 @@ const common_functions = {
 			axios({
 				method: method,
 				url: url,
-				data: typeof data === 'object' ? data : null,
+				data: typeof data === 'object' ? data : typeof data === 'function' ? ((func = data), null) : null,
 				headers: { Authorization: `Bearer ${token}` },
 			}).then((res) => {
 				if (res.data.head.code == 200) {
-					if (typeof data === 'function') {
-						data(res);
-					} else if (typeof func === 'function') {
+					if (typeof func === 'function') {
 						func(res);
 					}
 				} else {
