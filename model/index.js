@@ -13,6 +13,7 @@ let protocol_units = `${url}api-device/protocol/units`;
 let protocol_unit_add = `${url}api-device/protocol/unit`;
 let protocol_unit_delete = `${url}api-device/protocol/delete`;
 let product_model = `${url}api-device/product/model`;
+let current_model = `${url}api-device/protocol/current`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -69,6 +70,7 @@ new Vue({
 					remarks: '',
 				},
 				unit_type_options: ['自定义'],
+				current_version: '', //当前启用物模型版本
 			},
 			//历史版本列表
 			history_list: [],
@@ -177,6 +179,7 @@ new Vue({
 				console.log('历史版本', res);
 				if (res.data.data.data != null) {
 					this.history_list = res.data.data.data;
+					this.search_current_model();
 					this.model_select(index);
 					// 加载完毕后再显示底部卡片
 					this.static_params.first_load = false;
@@ -189,7 +192,6 @@ new Vue({
 			this.protocol_list = [];
 			this.history_selected = index;
 			this.model_id = this.history_list[index].modelId;
-			this.product_id = this.history_list[index].profile.productId;
 			// 不需要记录id等不展示的属性，只需要能点编辑时找到在数组中位置
 			this.history_list[index].events.forEach((e) => {
 				let table = {
@@ -231,10 +233,6 @@ new Vue({
 				} else if (e.dataType.type == 'struct') {
 					// 这地方存的是源数据 在点编辑查看时要特殊处理 取值赋给展示数据
 					table.struct_array = e.dataType.properties;
-					// let array = [];
-					// this.copy_struct_array(array, e.dataType.properties);
-					// console.log(array);
-					// console.log(array == e.dataType.properties);
 				} else if (e.dataType.type == 'array') {
 					table.itemType = e.dataType.specs.item.type;
 					table.size = e.dataType.specs.size;
@@ -250,66 +248,77 @@ new Vue({
 				this.protocol_list.push(table);
 			});
 		},
+		//#region
 		// 取出属性列表 便于查询ID
-		copy_struct_array(target, source) {
-			debugger;
-			if (source.constructor === Array && typeof source[0] != 'object') {
-				source.forEach((e) => {
-					target.push(e);
-				});
-			} else if (source.constructor === Array && typeof source[0] === 'object') {
-				source.forEach((e) => {
-					let t = {};
-					target.push(t);
-					this.copy_struct_array(t, e);
-				});
-			} else if (source.constructor === Object) {
-				for (let key in source) {
-					if (typeof source[key] != 'object') {
-						target[key] = source[key];
-					} else {
-						target[key] = {};
-						this.copy_struct_array(target[key], source[key]);
-					}
-				}
-			}
-		},
+		// copy_struct_array(target, source) {
+		// 	if (source.constructor === Array && typeof source[0] != 'object') {
+		// 		source.forEach((e) => {
+		// 			target.push(e);
+		// 		});
+		// 	} else if (source.constructor === Array && typeof source[0] === 'object') {
+		// 		source.forEach((e) => {
+		// 			if (e != null) {
+		// 				let t = {};
+		// 				target.push(t);
+		// 				this.copy_struct_array(t, e);
+		// 			} else {
+		// 				target.push(null);
+		// 			}
+		// 		});
+		// 	} else if (source.constructor === Object) {
+		// 		for (let key in source) {
+		// 			if (typeof source[key] != 'object') {
+		// 				target[key] = source[key];
+		// 			} else {
+		// 				if (source[key] != null) {
+		// 					target[key] = {};
+		// 					this.copy_struct_array(target[key], source[key]);
+		// 				} else {
+		// 					target[key] = null;
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// },
+		//#endregion
+		//#region
 		// 构建属性树
-		property_tree(obj, target, parent_index) {
-			if (obj.dataType.type == 'array' || obj.dataType.type == 'struct') {
-				let properties;
-				switch (obj.dataType.type) {
-					case 'array':
-						properties = obj.dataType.specs.item.properties;
-						break;
-					case 'struct':
-						properties = obj.dataType.properties;
-						break;
-				}
-				for (let index = 0; index < properties.length; index++) {
-					let property = properties[index];
-					let temp = {
-						id: property.propertyId,
-						parent_index: `${parent_index}-${index}`,
-						type: '属性',
-						child: [],
-						data: {
-							name: property.name,
-							identifier: property.identifier,
-							dataType: property.dataType.type,
-							min: property.dataType.type != 'struct' ? property.dataType.specs.min : '',
-							max: property.dataType.type != 'struct' ? property.dataType.specs.max : '',
-							step: property.dataType.type != 'struct' ? property.dataType.specs.step : '',
-							unit: property.dataType.type != 'struct' ? (property.dataType.specs.unitName == null ? '' : `${property.dataType.specs.unitName} / ${property.dataType.specs.unit}`) : '',
-							size: property.dataType.type === 'array' ? property.dataType.specs.size : '',
-						},
-					};
-					target.push(temp);
-					// 找到child里的子节点 再往里遍历
-					this.property_tree(property, target[index].child, temp.parent_index);
-				}
-			}
-		},
+		// property_tree(obj, target, parent_index) {
+		// 	if (obj.dataType.type == 'array' || obj.dataType.type == 'struct') {
+		// 		let properties;
+		// 		switch (obj.dataType.type) {
+		// 			case 'array':
+		// 				properties = obj.dataType.specs.item.properties;
+		// 				break;
+		// 			case 'struct':
+		// 				properties = obj.dataType.properties;
+		// 				break;
+		// 		}
+		// 		for (let index = 0; index < properties.length; index++) {
+		// 			let property = properties[index];
+		// 			let temp = {
+		// 				id: property.propertyId,
+		// 				parent_index: `${parent_index}-${index}`,
+		// 				type: '属性',
+		// 				child: [],
+		// 				data: {
+		// 					name: property.name,
+		// 					identifier: property.identifier,
+		// 					dataType: property.dataType.type,
+		// 					min: property.dataType.type != 'struct' ? property.dataType.specs.min : '',
+		// 					max: property.dataType.type != 'struct' ? property.dataType.specs.max : '',
+		// 					step: property.dataType.type != 'struct' ? property.dataType.specs.step : '',
+		// 					unit: property.dataType.type != 'struct' ? (property.dataType.specs.unitName == null ? '' : `${property.dataType.specs.unitName} / ${property.dataType.specs.unit}`) : '',
+		// 					size: property.dataType.type === 'array' ? property.dataType.specs.size : '',
+		// 				},
+		// 			};
+		// 			target.push(temp);
+		// 			// 找到child里的子节点 再往里遍历
+		// 			this.property_tree(property, target[index].child, temp.parent_index);
+		// 		}
+		// 	}
+		// },
+		//#endregion
 		// 新建物模型
 		new_ver_model() {
 			this.$confirm('确认以当前所选物模型版本新建物模型？', '提示', {
@@ -324,7 +333,7 @@ new Vue({
 			});
 		},
 		// 编辑查看模型中单条数据
-		edit_protocol(row_data, select_index) {
+		edit_protocol(row_data) {
 			// protocol_list中每一行数据
 			console.log(row_data);
 			this.static_params.add_edit = 'edit';
@@ -338,10 +347,17 @@ new Vue({
 					temp[key] = row_data[key];
 				}
 			}
-			temp.index = select_index;
+			// 给form_list数据增加id便于取消操作数据回滚
+			if (row_data.id != undefined && row_data.id != '') {
+				temp.id = row_data.id;
+			}
 			// 因为数组是对象有索引 修改父级数组后，模板中数组指针也永远改变了，所以每一层看的都是同样的数组
 			if (row_data.struct_array != undefined) {
 				temp.struct_array = row_data.struct_array;
+				// 还需要准备一个临时的深拷贝响应数组，当取消删除操作时，用此临时数据替换源数组
+				// 在准备好的数组push前，声明的非响应式数据在push之后都会变成响应式
+				// temp.struct_array_replace = [];
+				// this.copy_struct_array(temp.struct_array_replace, row_data.struct_array);
 			}
 			this.form_list.push(temp);
 		},
@@ -417,10 +433,11 @@ new Vue({
 				temp[key] = this.single_setting[key];
 			}
 			temp.type = '属性';
+			//第一层数据因为是从protocol_list取值，所以索引无用不如id，但是里层嵌套的数组用索引取值更好
 			temp.index = child_index;
-			// if (row_data.propertyId != undefined && row_data.propertyId != '') {
-			// 	temp.id = row_data.propertyId;
-			// }
+			if (row_data.propertyId != undefined && row_data.propertyId != '') {
+				temp.id = row_data.propertyId;
+			}
 			temp.identifier = row_data.identifier;
 			temp.name = row_data.name;
 			temp.dataType = row_data.dataType.type;
@@ -432,12 +449,16 @@ new Vue({
 					break;
 				case 'struct':
 					temp.struct_array = row_data.dataType.properties;
+					// temp.struct_array_replace = [];
+					// this.copy_struct_array(temp.struct_array_replace, row_data.dataType.properties);
 					break;
 				case 'array':
 					temp.itemType = row_data.dataType.specs.item.type;
 					temp.size = row_data.dataType.specs.size;
 					if (temp.itemType == 'struct') {
 						temp.struct_array = row_data.dataType.specs.item.properties;
+						// temp.struct_array_replace = [];
+						// this.copy_struct_array(temp.struct_array_replace, row_data.dataType.specs.item.properties);
 					}
 					break;
 				default:
@@ -451,7 +472,14 @@ new Vue({
 		},
 		// 删除子属性
 		del_child_json(parent, child_index) {
-			parent.struct_array.splice(child_index, 1);
+			this.$confirm(`此操作不可逆，删除后需刷新页面重新获取数据`, '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'info',
+				center: true,
+			}).then(() => {
+				parent.struct_array.splice(child_index, 1);
+			});
 		},
 		// 发布后查看子属性
 		check_child_json(row_data) {
@@ -602,6 +630,7 @@ new Vue({
 		},
 		// 提交表单
 		submit_form(obj, index) {
+			// 提交按钮传入的是form_list里的数据
 			let result = [];
 			result.push(this.form_verify(obj.name, 'name'));
 			result.push(this.form_verify(obj.identifier, 'identifier'));
@@ -684,110 +713,104 @@ new Vue({
 							let array;
 							if (this.form_list.length > 1) {
 								array = this.form_list[index - 1].struct_array;
-							} else {
-								array = this.history_list[this.history_selected].properties;
-							}
-							array[obj.index].name = obj.name;
-							array[obj.index].identifier = obj.identifier;
-							array[obj.index].dataType.type = obj.dataType;
-							switch (obj.dataType) {
-								case 'text':
-									// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
-									// 而且本来specs里就没有什么固定内容
-									array[obj.index].dataType.specs = { length: obj.textLength };
-									break;
-								case 'date':
-									break;
-								case 'struct':
-									if (array[obj.index].dataType.specs != null) {
-										if (array[obj.index].dataType.specs.item != null) {
-											array[obj.index].dataType.specs.item.properties = [];
+								array[obj.index].name = obj.name;
+								array[obj.index].identifier = obj.identifier;
+								array[obj.index].dataType.type = obj.dataType;
+								switch (obj.dataType) {
+									case 'text':
+										// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
+										// 而且本来specs里就没有什么固定内容
+										array[obj.index].dataType.specs = { length: obj.textLength };
+										break;
+									case 'date':
+										break;
+									case 'struct':
+										if (array[obj.index].dataType.specs != null) {
+											if (array[obj.index].dataType.specs.item != null) {
+												array[obj.index].dataType.specs.item.properties = [];
+											}
 										}
-									}
-									array[obj.index].dataType.properties = [];
-									for (let i of obj.struct_array) {
-										array[obj.index].dataType.properties.push(i);
-									}
-									break;
-								case 'array':
-									array[obj.index].dataType.properties = [];
-									array[obj.index].dataType.specs = {
-										size: obj.size,
-										item: { type: obj.itemType },
-									};
-									if (obj.itemType == 'struct') {
-										array[obj.index].dataType.specs.item.properties = [];
+										array[obj.index].dataType.properties = [];
 										for (let i of obj.struct_array) {
-											array[obj.index].dataType.specs.item.properties.push(i);
+											array[obj.index].dataType.properties.push(i);
 										}
-									}
-									break;
-								default:
-									array[obj.index].dataType.specs = {
-										min: obj.min == '' ? 0 : obj.min,
-										max: obj.max == '' ? 0 : obj.max,
-										step: obj.step == '' ? 0 : obj.step,
-										unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
-										unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
-									};
-									break;
-							}
-							//#region
-							// array.forEach((e) => {
-							// 	if (e.propertyId == obj.id) {
-							// 		e.name = obj.name;
-							// 		e.identifier = obj.identifier;
-							// 		e.dataType.type = obj.dataType;
-							// 		switch (obj.dataType) {
-							// 			case 'text':
-							// 				// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
-							// 				// 而且本来specs里就没有什么固定内容
-							// 				e.dataType.specs = { length: obj.textLength };
-							// 				break;
-							// 			case 'date':
-							// 				break;
-							// 			case 'struct':
-							// 				if (e.dataType.specs != null) {
-							// 					if (e.dataType.specs.item != null) {
-							// 						e.dataType.specs.item.properties = [];
-							// 					}
-							// 				}
-							// 				e.dataType.properties = [];
-							// 				for (let i of obj.struct_array) {
-							// 					e.dataType.properties.push(i);
-							// 				}
-							// 				break;
-							// 			case 'array':
-							// 				e.dataType.properties = [];
-							// 				e.dataType.specs = {
-							// 					size: obj.size,
-							// 					item: { type: obj.itemType },
-							// 				};
-							// 				if (obj.itemType == 'struct') {
-							// 					e.dataType.specs.item.properties = [];
-							// 					for (let i of obj.struct_array) {
-							// 						e.dataType.specs.item.properties.push(i);
-							// 					}
-							// 				}
-							// 				break;
-							// 			default:
-							// 				e.dataType.specs = {
-							// 					min: obj.min == '' ? 0 : obj.min,
-							// 					max: obj.max == '' ? 0 : obj.max,
-							// 					step: obj.step == '' ? 0 : obj.step,
-							// 					unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
-							// 					unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
-							// 				};
-							// 				break;
-							// 		}
-							// 		property = e;
-							// 	}
-							// });
-							//#endregion
-							if (this.form_list.length > 1) {
+										break;
+									case 'array':
+										array[obj.index].dataType.properties = [];
+										array[obj.index].dataType.specs = {
+											size: obj.size,
+											item: { type: obj.itemType },
+										};
+										if (obj.itemType == 'struct') {
+											array[obj.index].dataType.specs.item.properties = [];
+											for (let i of obj.struct_array) {
+												array[obj.index].dataType.specs.item.properties.push(i);
+											}
+										}
+										break;
+									default:
+										array[obj.index].dataType.specs = {
+											min: obj.min == '' ? 0 : obj.min,
+											max: obj.max == '' ? 0 : obj.max,
+											step: obj.step == '' ? 0 : obj.step,
+											unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+											unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+										};
+										break;
+								}
 								this.form_list.pop();
 							} else {
-								this.request('put', protocol_property, this.token, array[obj.index], () => {
+								let property;
+								array = this.history_list[this.history_selected].properties;
+								array.forEach((e) => {
+									if (e.propertyId == obj.id) {
+										e.name = obj.name;
+										e.identifier = obj.identifier;
+										e.dataType.type = obj.dataType;
+										switch (obj.dataType) {
+											case 'text':
+												e.dataType.specs = { length: obj.textLength };
+												break;
+											case 'date':
+												break;
+											case 'struct':
+												if (e.dataType.specs != null) {
+													if (e.dataType.specs.item != null) {
+														e.dataType.specs.item.properties = [];
+													}
+												}
+												e.dataType.properties = [];
+												for (let i of obj.struct_array) {
+													e.dataType.properties.push(i);
+												}
+												break;
+											case 'array':
+												e.dataType.properties = [];
+												e.dataType.specs = {
+													size: obj.size,
+													item: { type: obj.itemType },
+												};
+												if (obj.itemType == 'struct') {
+													e.dataType.specs.item.properties = [];
+													for (let i of obj.struct_array) {
+														e.dataType.specs.item.properties.push(i);
+													}
+												}
+												break;
+											default:
+												e.dataType.specs = {
+													min: obj.min == '' ? 0 : obj.min,
+													max: obj.max == '' ? 0 : obj.max,
+													step: obj.step == '' ? 0 : obj.step,
+													unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+													unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+												};
+												break;
+										}
+										property = e;
+									}
+								});
+								this.request('put', protocol_property, this.token, property, () => {
 									this.res_history_model(this.history_selected);
 									this.form_list.pop();
 								});
@@ -879,16 +902,16 @@ new Vue({
 				name: obj.name,
 				dataType: dataType,
 			};
-			if (obj.id != null && obj.id != '') {
-				temp.propertyId = obj.id;
-			}
+			// if (obj.id != null && obj.id != '') {
+			// 	temp.propertyId = obj.id;
+			// }
 			return temp;
 		},
 		// 切换数据类型时构造不同的参数
 		format_type_data(obj) {
 			if (obj.dataType == 'struct' || obj.dataType == 'array') {
 				if (obj.struct_array == undefined) {
-					obj.struct_array = [];
+					this.$set(obj, 'struct_array', []);
 				}
 				if (obj.itemType == '' || obj.itemType == null) {
 					obj.itemType = 'int';
@@ -914,37 +937,6 @@ new Vue({
 			this.request('get', `${protocol_publish}/${this.model_id}`, this.token, () => {
 				this.res_history_model(this.history_selected);
 			});
-		},
-		// 子参数添加到struct_array
-		submit_struct_array() {
-			// 因为数据都是一层，且有的有有的没有，故直接用新对象替换
-			let temp = {
-				identifier: this.add_child_template.identifier,
-				name: this.add_child_template.name,
-				dataType: this.add_child_template.dataType,
-			};
-			switch (this.add_child_template.dataType) {
-				case 'text':
-					temp.textLength = this.add_child_template.textLength;
-					break;
-				case 'date':
-					break;
-				default:
-					temp.min = this.add_child_template.min == '' ? 0 : this.add_child_template.min;
-					temp.max = this.add_child_template.max = '' ? 0 : this.add_child_template.max;
-					temp.step = this.add_child_template.step = '' ? 0 : this.add_child_template.step;
-					temp.unit = this.add_child_template.unit = '' ? null : this.add_child_template.unit;
-					break;
-			}
-			if (this.static_params.add_edit_json == 'add') {
-				temp.index = this.struct_array.length;
-				this.struct_array.push(temp);
-			} else if (this.static_params.add_edit_json == 'edit') {
-				temp.id = this.add_child_template.id;
-				temp.index = this.add_child_template.index;
-				this.struct_array[this.add_child_template.index] = temp;
-			}
-			this.rules.struct.show = false;
 		},
 		// 点击下拉框获取远程数据
 		get_unit() {
@@ -1084,7 +1076,8 @@ new Vue({
 			this.clean_verify();
 		},
 		// 点击取消时删除卡片数组最后一个
-		del_form() {
+		del_form(obj) {
+			// 传入的是form_list数据
 			this.form_list.pop();
 			this.clean_verify();
 		},
@@ -1133,7 +1126,22 @@ new Vue({
 		},
 		// 启用当前物模型
 		set_product_model() {
-			this.request('put', `${product_model}/${this.product_id}/${this.model_id}`, this.token);
+			this.request('put', `${product_model}/${this.id}/${this.model_id}`, this.token, () => {
+				this.res_history_model(this.history_selected);
+			});
+		},
+		// 页面加载时查询启用物模型版本
+		search_current_model() {
+			let flag = false;
+			this.history_list.forEach((e) => {
+				if (e.profile.isCurrentVersion == '1') {
+					this.static_params.current_version = e.profile.version;
+					flag = true;
+				}
+			});
+			if (!flag) {
+				this.static_params.current_version = '未设置启用模型';
+			}
 		},
 	},
 });

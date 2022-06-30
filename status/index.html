@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <el-card v-for="card,index in card_list" style="width: 250px;height: 200px;" v-loading="page.loading">
+      <div class="card_layout">
+        <!-- 标题及按钮 -->
+        <div class="title">
+          <span>test1</span>
+          <i class="el-icon-refresh"></i>
+        </div>
+        <!-- 状态 -->
+        <span style="font-size: 20px;align-self: center;">离线</span>
+        <!-- 其他信息 -->
+        <div class="info">
+          <span>离线时间</span>
+          <span style="margin-left: 20px;">2022.6.30</span>
+        </div>
+      </div>
+    </el-card>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

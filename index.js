@@ -31,9 +31,13 @@ new Vue({
 			});
 		},
 		turn_to() {
+			let url;
 			switch (this.router) {
 				case 'model':
-					let url = `./物模型页/index.html?id=${this.id}&token=${this.token}`;
+					url = `./model/index.html?id=${this.id}&token=${this.token}`;
+					return url;
+				case 'DeviceStatus':
+					url = `./status/index.html?id=${this.id}&token=${this.token}`;
 					return url;
 			}
 		},

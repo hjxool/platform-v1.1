@@ -27,6 +27,10 @@
       <el-button @click="new_ver_model" :disabled="history_list.length == 0">新增版本</el-button>
       <el-button type="primary" round @click="set_product_model" :disabled="history_list.length == 0">启用当前物模型
       </el-button>
+      <div class="current_model">
+        <span>当前启用物模型版本：</span>
+        <span style="padding-left: 20px;">{{static_params.current_version}}</span>
+      </div>
     </div>
     <!-- 表格栏 -->
     <div style="padding:0 10px;overflow: auto;">
@@ -37,8 +41,8 @@
         <el-table-column prop="dataType_text" label="数据定义"></el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
           <template slot-scope="scope">
-            <el-button v-if="history_list[history_selected].profile.published==='0'"
-              @click="edit_protocol(scope.row,scope.$index)" type="text" size="small">编辑</el-button>
+            <el-button v-if="history_list[history_selected].profile.published==='0'" @click="edit_protocol(scope.row)"
+              type="text" size="small">编辑</el-button>
             <el-button v-if="history_list[history_selected].profile.published==='0'" @click="delete_protocol(scope.row)"
               type="text" size="small">删除</el-button>
             <el-button v-if="history_list[history_selected].profile.published==='1'" @click="check_protocol(scope.row)"
@@ -180,7 +184,7 @@
                       <span style="font-size: 12px;color: #555;">参数名称： {{item.name}}</span>
                       <div>
                         <span class="struct_array_button" v-if="history_list[history_selected].profile.published==='0'"
-                          @click="edit_child_json(item)">编辑</span>
+                          @click="edit_child_json(item,struct_index)">编辑</span>
                         <span style="color: rgb(0, 112, 204);cursor: pointer;"
                           v-if="history_list[history_selected].profile.published==='0'"
                           @click="del_child_json(card,struct_index)">删除</span>
@@ -271,13 +275,13 @@
             <el-form-item class="button_layout">
               <el-button type="primary" @click="submit_form(card,index)" :disabled="static_params.add_edit=='check'">保存
               </el-button>
-              <el-button @click="del_form">取消</el-button>
+              <el-button @click="del_form(card)">取消</el-button>
             </el-form-item>
           </el-form>
         </el-card>
       </div>
     </div>
-    <!-- 新增属性弹窗 -->
+    <!-- 新增/编辑单位弹窗 -->
     <div class="custom_center" v-show="static_params.unit_set_show">
       <el-card style="width: 480px;overflow: auto;max-height: 90%;" shadow="hover" v-loading="static_params.loading">
         <el-form label-width="80px">
