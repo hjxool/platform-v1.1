@@ -13,25 +13,63 @@
 
 <body>
   <div id="index" v-cloak>
-    <el-card v-for="card,index in card_list" style="width: 250px;height: 200px;" v-loading="page.loading">
+    <el-card v-for="card,index in card_list" class="card_size" v-loading="html.loading" v-show="page_list.length==0">
       <div class="card_layout">
         <!-- 标题及按钮 -->
         <div class="title">
-          <span>test1</span>
-          <i class="el-icon-refresh"></i>
+          <span>{{card.name}}</span>
+          <!-- 设置标识符 只有最里层的才显示按钮 -->
+          <div v-show="card.is_floor">
+            <i class="el-icon-refresh button" @click="refresh" title="刷新"></i>
+            <i class="el-icon-s-operation button" @click="get_history(card)" title="详情"></i>
+          </div>
         </div>
-        <!-- 状态 -->
-        <span style="font-size: 20px;align-self: center;">离线</span>
-        <!-- 其他信息 -->
-        <div class="info">
-          <span>离线时间</span>
-          <span style="margin-left: 20px;">2022.6.30</span>
+        <!-- 信息 -->
+        <div class="content button" v-if="!card.is_floor" @click="next_page(card.child)">
+          <span class="content_text" v-for="child in card.child">{{child.name}}</span>
+        </div>
+        <div class="content" v-if="card.is_floor">
+          <span class="content_text">{{card.value}}</span>
+          <span class="content_text">{{card.unit}}{{card.unit=='未设置'?'':' / '}}{{card.unit_name}}</span>
         </div>
       </div>
     </el-card>
+    <!-- 子层级 -->
+    <div class="detail" v-for="page in page_list" ref="detail">
+      <div class="detail_header">
+        <el-page-header @back="back" :content="!page.is_history?'详情页面':'历史数据'"></el-page-header>
+      </div>
+      <!-- 卡片样式 -->
+      <div class="detail_layout" v-if="!page.is_history">
+        <el-card v-for="card,index in page.child_array" class="card_size">
+          <div class="card_layout">
+            <!-- 标题及按钮 -->
+            <div class="title">
+              <span>{{card.name}}</span>
+              <!-- 设置标识符 只有最里层的才显示按钮 -->
+              <div v-show="card.is_floor">
+                <i class="el-icon-refresh button" @click="refresh" title="刷新"></i>
+                <i class="el-icon-s-operation button" @click="get_history(card)" title="详情"></i>
+              </div>
+            </div>
+            <!-- 信息 -->
+            <div class="content button" v-if="!card.is_floor" @click="next_page(card.child)">
+              <span class="content_text" v-for="child in card.child">{{child.name}}</span>
+            </div>
+            <div class="content" v-if="card.is_floor">
+              <span class="content_text">{{card.value}}</span>
+              <span class="content_text">{{card.unit}}{{card.unit=='未设置'?'':' / '}}{{card.unit_name}}</span>
+            </div>
+          </div>
+        </el-card>
+      </div>
+      <!-- 历史数据 -->
+      <div id="history" v-if="page.is_history"></div>
+    </div>
   </div>
 
   <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/echarts.min.js"></script>
   <script src="../module/vue.js"></script>
   <script src="../module/element-ui.js"></script>
   <script src="../module/axios.min.js"></script>
