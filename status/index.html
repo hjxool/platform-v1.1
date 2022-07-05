@@ -12,31 +12,13 @@
 </head>
 
 <body>
-  <div id="index" v-cloak>
-    <el-card v-for="card,index in card_list" class="card_size" v-loading="html.loading" v-show="page_list.length==0">
-      <div class="card_layout">
-        <!-- 标题及按钮 -->
-        <div class="title">
-          <span>{{card.name}}</span>
-          <!-- 设置标识符 只有最里层的才显示按钮 -->
-          <div v-show="card.is_floor">
-            <i class="el-icon-refresh button" @click="refresh" title="刷新"></i>
-            <i class="el-icon-s-operation button" @click="get_history(card)" title="详情"></i>
-          </div>
-        </div>
-        <!-- 信息 -->
-        <div class="content button" v-if="!card.is_floor" @click="next_page(card.child)">
-          <span class="content_text" v-for="child in card.child">{{child.name}}</span>
-        </div>
-        <div class="content" v-if="card.is_floor">
-          <span class="content_text">{{card.value}}</span>
-          <span class="content_text">{{card.unit}}{{card.unit=='未设置'?'':' / '}}{{card.unit_name}}</span>
-        </div>
-      </div>
-    </el-card>
-    <!-- 子层级 -->
-    <div class="detail" v-for="page in page_list" ref="detail">
-      <div class="detail_header">
+  <div id="index" v-cloak v-loading="html.loading">
+    <!-- 空值时内容 -->
+    <el-empty style="height: 100%;" description="未设置属性" :image-size="300" v-show="html.empty"></el-empty>
+    <!-- 卡片布局 -->
+    <div class="detail" v-for="page in page_list" ref="detail"
+      :style="{gridTemplateRows:page.first_page?'100%':'70px auto'}">
+      <div class="detail_header" v-show="!page.first_page">
         <el-page-header @back="back" :content="!page.is_history?'详情页面':'历史数据'"></el-page-header>
       </div>
       <!-- 卡片样式 -->
@@ -45,20 +27,21 @@
           <div class="card_layout">
             <!-- 标题及按钮 -->
             <div class="title">
-              <span>{{card.name}}</span>
+              <span class="title_text">{{card.name}}</span>
               <!-- 设置标识符 只有最里层的才显示按钮 -->
               <div v-show="card.is_floor">
-                <i class="el-icon-refresh button" @click="refresh" title="刷新"></i>
                 <i class="el-icon-s-operation button" @click="get_history(card)" title="详情"></i>
               </div>
             </div>
             <!-- 信息 -->
             <div class="content button" v-if="!card.is_floor" @click="next_page(card.child)">
-              <span class="content_text" v-for="child in card.child">{{child.name}}</span>
+              <span class="content_text" v-for="child,name_index in card.child" style="max-width: 90%;">
+                {{content_name(child,name_index)}}
+              </span>
             </div>
-            <div class="content" v-if="card.is_floor">
-              <span class="content_text">{{card.value}}</span>
-              <span class="content_text">{{card.unit}}{{card.unit=='未设置'?'':' / '}}{{card.unit_name}}</span>
+            <div class="floor_content button" v-if="card.is_floor" @click="get_history(card)">
+              <span class="content_text" style="max-width: 60%;">{{card.value}}</span>
+              <span class="content_text">{{card.unit}}{{card.unit==''?'':' / '}}{{card.unit_name}}</span>
             </div>
           </div>
         </el-card>

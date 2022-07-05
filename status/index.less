@@ -6,12 +6,6 @@
 	height: 100%;
 	position: absolute;
 	overflow: auto;
-	display: grid;
-	grid-template-columns: repeat(auto-fill, 300px);
-	grid-auto-columns: 300px;
-	grid-auto-rows: 220px;
-	justify-items: center;
-	align-items: center;
 }
 .el-card__body {
 	width: 100%;
@@ -26,17 +20,32 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		.title_text {
+			max-width: 80%;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+	}
+	.floor_content {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 	.content {
 		display: flex;
-		flex-wrap: wrap;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		.content_text {
-			font-size: 20px;
-			font-weight: bold;
-			margin: 0 5px;
-		}
+		overflow: hidden;
+	}
+	.content_text {
+		font-size: 20px;
+		font-weight: bold;
+		margin: 0 5px;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		flex-shrink: 0;
 	}
 }
 .detail {
@@ -54,8 +63,8 @@
 	}
 	.detail_layout {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, 300px);
-		grid-auto-columns: 300px;
+		grid-template-columns: repeat(auto-fill, 280px);
+		grid-auto-columns: 280px;
 		grid-auto-rows: 220px;
 		justify-items: center;
 		align-items: center;

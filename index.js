@@ -39,6 +39,9 @@ new Vue({
 				case 'DeviceStatus':
 					url = `./status/index.html?id=${this.id}&token=${this.token}`;
 					return url;
+				case 'RulesEngine':
+					url = `./rules/index.html?id=${this.id}&token=${this.token}`;
+					return url;
 			}
 		},
 	},

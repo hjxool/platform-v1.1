@@ -24,7 +24,10 @@ const common_functions = {
 				method: method,
 				url: url,
 				data: typeof data === 'object' ? data : typeof data === 'function' ? ((func = data), null) : null,
-				headers: { Authorization: `Bearer ${token}` },
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'content-type': 'application/json',
+				},
 			}).then((res) => {
 				if (res.data.head.code == 200) {
 					if (typeof func === 'function') {

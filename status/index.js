@@ -1,6 +1,6 @@
 let url = `${我是接口地址}/`;
-let device_status = `${url}api-device/device-anon/device/status`;
-let device_status_history = `${url}api-device/device-anon/device/status/history`;
+let device_status = `${url}api-device/device/status`;
+let device_status_history = `${url}api-device/device/status/history`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -11,9 +11,8 @@ new Vue({
 		token: '',
 		html: {
 			loading: true, //页面初加载遮罩
-			// first_load_echarts: true, //第一次加载图表初始设置
+			empty: '', //无数据显示内容
 		},
-		card_list: [], //弹窗属性值卡片列表
 		page_list: [], //弹窗页面数据数组
 	},
 	mounted() {
@@ -30,20 +29,24 @@ new Vue({
 		res_card_list() {
 			this.request('get', `${device_status}/${this.id}`, this.token, (res) => {
 				console.log('设备状态', res);
-				this.card_list = [];
-				if (res.data.data.properties === null || res.data.data.properties === {}) {
-					this.$alert('未设置属性！', '提示', {
-						confirmButtonText: '确定',
-					});
+				this.html.loading = false;
+				if (Object.keys(res.data.data.properties).length == 0) {
+					this.html.empty = true;
 					return;
 				}
+				let page = {
+					first_page: true,
+					is_history: false,
+					child_array: [],
+				};
 				for (let [key, value] of Object.entries(res.data.data.properties)) {
 					// 单个卡片或者属性最外层
 					let card = {};
 					this.card_tree(card, value, 'properties', key);
-					this.card_list.push(card);
+					page.child_array.push(card);
 				}
-				this.html.loading = false;
+				this.page_list.push(page);
+				this.html.empty = false;
 			});
 		},
 		// 遍历是否有子属性 没有则添加单位和值 有则增加child数组
@@ -53,7 +56,7 @@ new Vue({
 			if (source.propertyValue.constructor === Array && typeof source.propertyValue[0] != 'object') {
 				target.is_floor = true;
 				target.value = source.propertyValue;
-				target.unit = source.unit == null ? '未设置' : source.unit;
+				target.unit = source.unit == null ? '' : source.unit;
 				target.unit_name = source.unit == null ? '' : source.unitName;
 			} else if (source.propertyValue.constructor === Array && typeof source.propertyValue[0] === 'object') {
 				// 不是最底层则不展示单位 用v-if控制
@@ -65,7 +68,7 @@ new Vue({
 					let card = {
 						path: `${target.path}.propertyValue[${index}]`,
 					};
-					card.name = index;
+					card.name = `数组索引${index}`;
 					card.is_floor = false;
 					card.child = [];
 					for (let key in e) {
@@ -87,7 +90,7 @@ new Vue({
 			} else {
 				target.is_floor = true;
 				target.value = source.propertyValue;
-				target.unit = source.unit == null ? '未设置' : source.unit;
+				target.unit = source.unit == null ? '' : source.unit;
 				target.unit_name = source.unit == null ? '' : source.unitName;
 			}
 		},
@@ -102,6 +105,7 @@ new Vue({
 		// 具有子属性的点击进入下一级页面
 		next_page(child_array) {
 			let page = {
+				first_page: false,
 				child_array: child_array,
 				is_history: false,
 			};
@@ -111,15 +115,12 @@ new Vue({
 				dom[dom.length - 1].className = 'detail unfold';
 			});
 		},
-		// 刷新按钮
-		refresh() {
-			// this.res_card_list();
-		},
 		// 查询历史详情
 		get_history(card_obj) {
 			this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 999 }, (res) => {
 				console.log('历史记录', res);
 				let page = {
+					first_page: false,
 					is_history: true,
 				};
 				this.page_list.push(page);
@@ -129,7 +130,7 @@ new Vue({
 				if (res.data.data.data[0].unit != null) {
 					this.unit = `${res.data.data.data[0].unit}/${res.data.data.data[0].unitName}`;
 				} else {
-					this.unit = '未设置';
+					this.unit = '';
 				}
 				res.data.data.data.forEach((e) => {
 					this.time_list.push(e.created);
@@ -147,12 +148,12 @@ new Vue({
 				grid: {
 					show: true,
 				},
-				tooltips: {
+				tooltip: {
 					trigger: 'axis',
 					formatter: (value) => {
 						let text = `
               日期：${value[0].axisValue.split(' ')[0]}<br>
-              时间：${value[0].axisValue.split(' ')[1]}>br>
+              时间：${value[0].axisValue.split(' ')[1]}<br>
               ${this.propertyName}：${value[0].data} ${this.unit}
             `;
 						return text;
@@ -180,6 +181,18 @@ new Vue({
 				],
 			};
 			this.history.setOption(option);
+		},
+		// 当还有下级时content里的名字列表
+		content_name(child_obj, index) {
+			let text;
+			if (index < 3) {
+				if (condition) {
+				}
+				text = child_obj.name;
+			} else if (index == 3) {
+				text = '...';
+			}
+			return text;
 		},
 	},
 });

@@ -123,56 +123,8 @@ new Vue({
 		}
 		this.res_history_model(0);
 		this.get_unit();
-		// this.content = [];
-		// this.test();
 	},
 	methods: {
-		test() {
-			this.request('get', `${protocol_view}1538794699296227328`, this.token, (res) => {
-				console.log(res);
-				let t = {
-					attributes: {},
-				};
-				res.data.data.properties.forEach((e) => {
-					this.test2(e, t.attributes);
-				});
-				this.content.push(t);
-				res.data.data.services.forEach((e) => {
-					let t2 = {
-						identifier: e.identifier,
-						attributes: {},
-					};
-					e.inputData.forEach((e2) => {
-						this.test2(e2, t2.attributes);
-					});
-					this.content.push(t2);
-				});
-				console.log(this.content);
-			});
-		},
-		test2(obj, target) {
-			switch (obj.dataType.type) {
-				case 'struct':
-					target[obj.identifier] = {};
-					obj.dataType.properties.forEach((e) => {
-						this.test2(e, target[obj.identifier]);
-					});
-					break;
-				case 'array':
-					target[obj.identifier] = [];
-					if (obj.dataType.specs.item.type == 'struct') {
-						let t = {};
-						obj.dataType.specs.item.properties.forEach((e) => {
-							this.test2(e, t);
-						});
-						target[obj.identifier].push(t);
-					}
-					break;
-				default:
-					target[obj.identifier] = '';
-					break;
-			}
-		},
 		// 页面加载时历史版本
 		res_history_model(index) {
 			this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, (res) => {
@@ -360,6 +312,10 @@ new Vue({
 				// this.copy_struct_array(temp.struct_array_replace, row_data.struct_array);
 			}
 			this.form_list.push(temp);
+			this.$nextTick(() => {
+				let dom = this.$refs.custom_center[0];
+				dom.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+			});
 		},
 		// 删除属性等协议
 		delete_protocol(row_data) {
@@ -425,7 +381,7 @@ new Vue({
 		edit_child_json(row_data, child_index) {
 			// 跟表格编辑查看不同的地方在于，表格数据是提取出来的，而子属性列表里的是原始格式数据
 			console.log(row_data);
-			this.static_params.add_edit = 'edit';
+			// this.static_params.add_edit = 'edit_child';
 			let count = 0;
 			this.child_count_list.push(count);
 			let temp = {};
@@ -530,6 +486,10 @@ new Vue({
 			// 数组要独一份创建
 			// temp.struct_array = [];
 			this.form_list.push(temp);
+			this.$nextTick(() => {
+				let dom = this.$refs.custom_center[0];
+				dom.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+			});
 		},
 		// 迭代清空对象
 		clean_object(obj) {
@@ -630,6 +590,7 @@ new Vue({
 		},
 		// 提交表单
 		submit_form(obj, index) {
+			console.log('提交表单', obj);
 			// 提交按钮传入的是form_list里的数据
 			let result = [];
 			result.push(this.form_verify(obj.name, 'name'));
@@ -651,116 +612,123 @@ new Vue({
 					return;
 				}
 			}
+			// 先判断是否已经到了最近的编辑层,如果还没到，则往上一层级新增格式化数据
 			if (this.child_count_list[this.child_count_list.length - 1] > 0) {
 				let temp = this.format_params(obj);
 				this.form_list[index - 1].struct_array.push(temp);
 				this.form_list.pop();
 				this.child_count_list[this.child_count_list.length - 1]--;
 			} else {
-				if (this.static_params.add_edit === 'add') {
-					let temp;
-					switch (obj.type) {
-						case '属性':
-							let property = this.format_params(obj);
-							temp = {
-								modelId: this.model_id,
-								properties: [property],
-							};
-							this.request('post', protocol_properties, this.token, temp, () => {
-								this.res_history_model(this.history_selected);
-								this.form_list = [];
-							});
+				// 如果已经到了最近的编辑层 再判断是否是最外层的编辑或新增功能 同时删除后一个计数器
+				if (this.form_list.length > 1) {
+					// 在编辑和新增里 如果未到最外层这一部分是公共逻辑 进行的是往上找 修改上一层级数据
+					let array = this.form_list[index - 1].struct_array;
+					array[obj.index].name = obj.name;
+					array[obj.index].identifier = obj.identifier;
+					array[obj.index].dataType.type = obj.dataType;
+					switch (obj.dataType) {
+						case 'text':
+							// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
+							// 而且本来specs里就没有什么固定内容
+							array[obj.index].dataType.specs = { length: obj.textLength };
 							break;
-						case '事件':
-							temp = {
-								modelId: this.model_id,
-								events: [
-									{
-										identifier: obj.identifier,
-										name: obj.name,
-										type: obj.dataType,
-										outputData: obj.outputData,
-									},
-								],
-							};
-							this.request('post', protocol_event, this.token, temp, () => {
-								this.res_history_model(this.history_selected);
-								this.form_list = [];
-							});
+						case 'date':
 							break;
-						case '服务':
-							temp = {
-								modelId: this.model_id,
-								services: [
-									{
-										identifier: obj.identifier,
-										name: obj.name,
-										method: obj.dataType,
-										inputData: obj.inputData,
-										outputData: obj.outputData,
-									},
-								],
+						case 'struct':
+							if (array[obj.index].dataType.specs != null) {
+								if (array[obj.index].dataType.specs.item != null) {
+									array[obj.index].dataType.specs.item.properties = [];
+								}
+							}
+							array[obj.index].dataType.properties = [];
+							for (let i of obj.struct_array) {
+								array[obj.index].dataType.properties.push(i);
+							}
+							break;
+						case 'array':
+							array[obj.index].dataType.properties = [];
+							array[obj.index].dataType.specs = {
+								size: obj.size,
+								item: { type: obj.itemType },
 							};
-							this.request('post', protocol_service, this.token, temp, () => {
-								this.res_history_model(this.history_selected);
-								this.form_list = [];
-							});
+							if (obj.itemType == 'struct') {
+								array[obj.index].dataType.specs.item.properties = [];
+								for (let i of obj.struct_array) {
+									array[obj.index].dataType.specs.item.properties.push(i);
+								}
+							}
+							break;
+						default:
+							array[obj.index].dataType.specs = {
+								min: obj.min == '' ? 0 : obj.min,
+								max: obj.max == '' ? 0 : obj.max,
+								step: obj.step == '' ? 0 : obj.step,
+								unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
+								unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
+							};
 							break;
 					}
+					// 修改完后关闭一层表单
+					this.form_list.pop();
+					this.child_count_list.pop();
 				} else {
-					switch (obj.type) {
-						case '属性':
-							let array;
-							if (this.form_list.length > 1) {
-								array = this.form_list[index - 1].struct_array;
-								array[obj.index].name = obj.name;
-								array[obj.index].identifier = obj.identifier;
-								array[obj.index].dataType.type = obj.dataType;
-								switch (obj.dataType) {
-									case 'text':
-										// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
-										// 而且本来specs里就没有什么固定内容
-										array[obj.index].dataType.specs = { length: obj.textLength };
-										break;
-									case 'date':
-										break;
-									case 'struct':
-										if (array[obj.index].dataType.specs != null) {
-											if (array[obj.index].dataType.specs.item != null) {
-												array[obj.index].dataType.specs.item.properties = [];
-											}
-										}
-										array[obj.index].dataType.properties = [];
-										for (let i of obj.struct_array) {
-											array[obj.index].dataType.properties.push(i);
-										}
-										break;
-									case 'array':
-										array[obj.index].dataType.properties = [];
-										array[obj.index].dataType.specs = {
-											size: obj.size,
-											item: { type: obj.itemType },
-										};
-										if (obj.itemType == 'struct') {
-											array[obj.index].dataType.specs.item.properties = [];
-											for (let i of obj.struct_array) {
-												array[obj.index].dataType.specs.item.properties.push(i);
-											}
-										}
-										break;
-									default:
-										array[obj.index].dataType.specs = {
-											min: obj.min == '' ? 0 : obj.min,
-											max: obj.max == '' ? 0 : obj.max,
-											step: obj.step == '' ? 0 : obj.step,
-											unitName: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[0],
-											unit: obj.unit.split(' / ')[0] == '' ? null : obj.unit.split(' / ')[1],
-										};
-										break;
-								}
-								this.form_list.pop();
-							} else {
-								let property;
+					// 此时只有一个表单 就要开始区分是编辑还是新增功能
+					if (this.static_params.add_edit === 'add') {
+						let temp;
+						switch (obj.type) {
+							case '属性':
+								let property = this.format_params(obj);
+								temp = {
+									modelId: this.model_id,
+									properties: [property],
+								};
+								this.request('post', protocol_properties, this.token, temp, () => {
+									this.res_history_model(this.history_selected);
+									this.form_list = [];
+									this.child_count_list.pop();
+								});
+								break;
+							case '事件':
+								temp = {
+									modelId: this.model_id,
+									events: [
+										{
+											identifier: obj.identifier,
+											name: obj.name,
+											type: obj.dataType,
+											outputData: obj.outputData,
+										},
+									],
+								};
+								this.request('post', protocol_event, this.token, temp, () => {
+									this.res_history_model(this.history_selected);
+									this.form_list = [];
+									this.child_count_list.pop();
+								});
+								break;
+							case '服务':
+								temp = {
+									modelId: this.model_id,
+									services: [
+										{
+											identifier: obj.identifier,
+											name: obj.name,
+											method: obj.dataType,
+											inputData: obj.inputData,
+											outputData: obj.outputData,
+										},
+									],
+								};
+								this.request('post', protocol_service, this.token, temp, () => {
+									this.res_history_model(this.history_selected);
+									this.form_list = [];
+									this.child_count_list.pop();
+								});
+								break;
+						}
+					} else if (this.static_params.add_edit === 'edit') {
+						switch (obj.type) {
+							case '属性':
 								array = this.history_list[this.history_selected].properties;
 								array.forEach((e) => {
 									if (e.propertyId == obj.id) {
@@ -807,47 +775,48 @@ new Vue({
 												};
 												break;
 										}
-										property = e;
+										this.request('put', protocol_property, this.token, e, () => {
+											this.res_history_model(this.history_selected);
+											this.form_list = [];
+											this.child_count_list.pop();
+										});
 									}
 								});
-								this.request('put', protocol_property, this.token, property, () => {
-									this.res_history_model(this.history_selected);
-									this.form_list.pop();
+								break;
+							case '事件':
+								this.history_list[this.history_selected].events.forEach((e) => {
+									if (e.eventId == obj.id) {
+										e.identifier = obj.identifier;
+										e.name = obj.name;
+										e.type = obj.dataType;
+										e.outputData = obj.outputData;
+										this.request('put', `${protocol_event}/${this.model_id}`, this.token, e, () => {
+											this.res_history_model(this.history_selected);
+											this.form_list = [];
+											this.child_count_list.pop();
+										});
+									}
 								});
-							}
-							break;
-						case '事件':
-							this.history_list[this.history_selected].events.forEach((e) => {
-								if (e.eventId == obj.id) {
-									e.identifier = obj.identifier;
-									e.name = obj.name;
-									e.type = obj.dataType;
-									e.outputData = obj.outputData;
-									this.request('put', `${protocol_event}/${this.model_id}`, this.token, e, () => {
-										this.res_history_model(this.history_selected);
-										this.form_list.pop();
-									});
-								}
-							});
-							break;
-						case '服务':
-							this.history_list[this.history_selected].services.forEach((e) => {
-								if (e.serviceId == obj.id) {
-									e.identifier = obj.identifier;
-									e.name = obj.name;
-									e.type = obj.dataType;
-									e.inputData = obj.inputData;
-									e.outputData = obj.outputData;
-									this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
-										this.res_history_model(this.history_selected);
-										this.form_list.pop();
-									});
-								}
-							});
-							break;
+								break;
+							case '服务':
+								this.history_list[this.history_selected].services.forEach((e) => {
+									if (e.serviceId == obj.id) {
+										e.identifier = obj.identifier;
+										e.name = obj.name;
+										e.type = obj.dataType;
+										e.inputData = obj.inputData;
+										e.outputData = obj.outputData;
+										this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
+											this.res_history_model(this.history_selected);
+											this.form_list = [];
+											this.child_count_list.pop();
+										});
+									}
+								});
+								break;
+						}
 					}
 				}
-				this.child_count_list.pop();
 			}
 		},
 		// 根据传入的数据构造可发送的参数格式
@@ -918,6 +887,15 @@ new Vue({
 				}
 			}
 			this.clean_verify();
+		},
+		// 格式化数组元素类型
+		format_array_data(obj) {
+			// 传入的是form_list对象
+			if (obj.itemType == 'struct') {
+				if (obj.struct_array == undefined) {
+					this.$set(obj, 'struct_array', []);
+				}
+			}
 		},
 		// 增加子属性
 		add_child_property() {
@@ -1079,6 +1057,11 @@ new Vue({
 		del_form(obj) {
 			// 传入的是form_list数据
 			this.form_list.pop();
+			if (this.child_count_list[this.child_count_list.length - 1] > 0) {
+				--this.child_count_list[this.child_count_list.length - 1];
+			} else {
+				this.child_count_list.pop();
+			}
 			this.clean_verify();
 		},
 		// 当前编辑弹窗消失时 清除验证提示
