@@ -30,7 +30,7 @@ new Vue({
 			this.request('get', `${device_status}/${this.id}`, this.token, (res) => {
 				console.log('设备状态', res);
 				this.html.loading = false;
-				if (Object.keys(res.data.data.properties).length == 0) {
+				if (res.data.data == null || Object.keys(res.data.data.properties).length == 0) {
 					this.html.empty = true;
 					return;
 				}
@@ -54,13 +54,15 @@ new Vue({
 			target.path = `${path1}.${path2}`;
 			target.name = source.propertyName;
 			if (source.propertyValue.constructor === Array && typeof source.propertyValue[0] != 'object') {
-				target.is_floor = true;
-				target.value = source.propertyValue;
+				target.data_type = 'array';
+				source.propertyValue;
+				let value = source.propertyValue + '';
+				target.value = value;
 				target.unit = source.unit == null ? '' : source.unit;
 				target.unit_name = source.unit == null ? '' : source.unitName;
 			} else if (source.propertyValue.constructor === Array && typeof source.propertyValue[0] === 'object') {
 				// 不是最底层则不展示单位 用v-if控制
-				target.is_floor = false;
+				target.data_type = 'object_array';
 				target.child = [];
 				let index = 0;
 				source.propertyValue.forEach((e) => {
@@ -68,8 +70,8 @@ new Vue({
 					let card = {
 						path: `${target.path}.propertyValue[${index}]`,
 					};
-					card.name = `数组索引${index}`;
-					card.is_floor = false;
+					card.name = `...`;
+					card.data_type = 'object';
 					card.child = [];
 					for (let key in e) {
 						let card2 = {};
@@ -80,7 +82,7 @@ new Vue({
 					index++;
 				});
 			} else if (source.propertyValue.constructor === Object) {
-				target.is_floor = false;
+				target.data_type = 'object';
 				target.child = [];
 				for (let key in source.propertyValue) {
 					let card = {};
@@ -88,7 +90,12 @@ new Vue({
 					target.child.push(card);
 				}
 			} else {
-				target.is_floor = true;
+				let reg = /^\-?\d+(\.\d+)?$/;
+				if (reg.test(source.propertyValue)) {
+					target.data_type = 'number';
+				} else {
+					target.data_type = 'other';
+				}
 				target.value = source.propertyValue;
 				target.unit = source.unit == null ? '' : source.unit;
 				target.unit_name = source.unit == null ? '' : source.unitName;
@@ -117,8 +124,15 @@ new Vue({
 		},
 		// 查询历史详情
 		get_history(card_obj) {
+			if (card_obj.data_type !== 'number') {
+				return;
+			}
 			this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 999 }, (res) => {
 				console.log('历史记录', res);
+				if (res.data.data.data.length == 0 || res.data.data.data == null) {
+					this.$message.info('无历史数据');
+					return;
+				}
 				let page = {
 					first_page: false,
 					is_history: true,
@@ -181,18 +195,6 @@ new Vue({
 				],
 			};
 			this.history.setOption(option);
-		},
-		// 当还有下级时content里的名字列表
-		content_name(child_obj, index) {
-			let text;
-			if (index < 3) {
-				if (condition) {
-				}
-				text = child_obj.name;
-			} else if (index == 3) {
-				text = '...';
-			}
-			return text;
 		},
 	},
 });

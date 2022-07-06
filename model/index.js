@@ -626,6 +626,12 @@ new Vue({
 					array[obj.index].name = obj.name;
 					array[obj.index].identifier = obj.identifier;
 					array[obj.index].dataType.type = obj.dataType;
+					if (array[obj.index].dataType.specs != null) {
+						if (array[obj.index].dataType.specs.item != null) {
+							array[obj.index].dataType.specs.item.properties = [];
+						}
+					}
+					array[obj.index].dataType.properties = [];
 					switch (obj.dataType) {
 						case 'text':
 							// 如果原先数据是date等 specs就是null不能直接添加属性 而要用新对象直接覆盖
@@ -635,24 +641,17 @@ new Vue({
 						case 'date':
 							break;
 						case 'struct':
-							if (array[obj.index].dataType.specs != null) {
-								if (array[obj.index].dataType.specs.item != null) {
-									array[obj.index].dataType.specs.item.properties = [];
-								}
-							}
-							array[obj.index].dataType.properties = [];
 							for (let i of obj.struct_array) {
 								array[obj.index].dataType.properties.push(i);
 							}
 							break;
 						case 'array':
-							array[obj.index].dataType.properties = [];
 							array[obj.index].dataType.specs = {
 								size: obj.size,
 								item: { type: obj.itemType },
 							};
+							array[obj.index].dataType.specs.item.properties = [];
 							if (obj.itemType == 'struct') {
-								array[obj.index].dataType.specs.item.properties = [];
 								for (let i of obj.struct_array) {
 									array[obj.index].dataType.specs.item.properties.push(i);
 								}
@@ -735,6 +734,12 @@ new Vue({
 										e.name = obj.name;
 										e.identifier = obj.identifier;
 										e.dataType.type = obj.dataType;
+										if (e.dataType.specs != null) {
+											if (e.dataType.specs.item != null) {
+												e.dataType.specs.item.properties = [];
+											}
+										}
+										e.dataType.properties = [];
 										switch (obj.dataType) {
 											case 'text':
 												e.dataType.specs = { length: obj.textLength };
@@ -742,24 +747,17 @@ new Vue({
 											case 'date':
 												break;
 											case 'struct':
-												if (e.dataType.specs != null) {
-													if (e.dataType.specs.item != null) {
-														e.dataType.specs.item.properties = [];
-													}
-												}
-												e.dataType.properties = [];
 												for (let i of obj.struct_array) {
 													e.dataType.properties.push(i);
 												}
 												break;
 											case 'array':
-												e.dataType.properties = [];
 												e.dataType.specs = {
 													size: obj.size,
 													item: { type: obj.itemType },
 												};
+												e.dataType.specs.item.properties = [];
 												if (obj.itemType == 'struct') {
-													e.dataType.specs.item.properties = [];
 													for (let i of obj.struct_array) {
 														e.dataType.specs.item.properties.push(i);
 													}
