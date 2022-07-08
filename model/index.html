@@ -113,7 +113,7 @@
                 <el-form-item label="单位" size="medium">
                   <div style="display: flex;">
                     <el-select style="width: 120px;margin-right: 4px;" v-model="card.unit" @change="ban_unit_button"
-                      placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
+                      filterable placeholder="请选择单位" :disabled="static_params.add_edit=='check'">
                       <el-option-group v-for="group in static_params.unit_options" :key="group.label"
                         :label="group.label">
                         <el-option v-for="item in group.options" :key="item.value" :label="item.value"
