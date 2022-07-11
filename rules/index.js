@@ -6,7 +6,10 @@ let trigger_list = `${url}api-device/rule/conf/trigger/list`;
 let action_list = `${url}api-device/rule/conf/action/list`;
 let trigger_add = `${url}api-device/rule/conf/trigger/add`;
 let trigger_delete = `${url}api-device/rule/conf/trigger/delete`;
-
+let trigger_edit = `${url}api-device/rule/conf/trigger/edit`;
+let event_add = `${url}api-device/rule/conf/action/add`;
+let event_delete = `${url}api-device/rule/conf/action/delete`;
+let event_edit = `${url}api-device/rule/conf/action/edit`;
 let product_detail = `${url}api-device/product`;
 let property_list = `${url}api-device/protocol/property/list`;
 
@@ -22,14 +25,38 @@ new Vue({
 			rule_config: false, //规则配置页面
 			trigger_config: false, //触发配置显示
 			loading_rule_detail: false, //加载条件和事件列表
+			event_config: false, //事件表单显示
+			info_type_options: [
+				{ name: '只落库', val: 0, ban: false },
+				{ name: '消息定向推送', val: 1, ban: false },
+				{ name: '发短信', val: 2, ban: true },
+				{ name: '发邮件', val: 3, ban: true },
+				{ name: '设备联动操作', val: 4, ban: true },
+			],
 		},
 		rule_list: [], //规则列表
 		trigger_and_event_list: [], //事件和条件列表
-		// 表单内容
+		// 触发条件表单
 		form: {
 			name: '',
 			exp: '', //规则表达式
 			condition: [], //占位符个数生成的输入元素
+		},
+		// 响应事件表单
+		event_form: {
+			name: '',
+			template: '', //告警内容模板
+			fields: [], //占位符生成的输入元素
+			info_type: 0, //通知方式
+			//通知方式1时用户填写内容
+			type1: {
+				username: '',
+				password: '',
+				host: '',
+				port: '',
+				topic: '',
+				routingKey: '',
+			},
 		},
 		json_text: '', //物模型JSON
 	},
@@ -45,16 +72,18 @@ new Vue({
 		this.thro_flag = false;
 	},
 	methods: {
+		//#region
 		// 节流
-		throttle(fun, delay, args) {
-			if (!this.thro_flag) {
-				setTimeout(() => {
-					fun(args);
-					this.thro_flag = false;
-				}, delay);
-			}
-			this.thro_flag = true;
-		},
+		// throttle(fun, delay, ...args) {
+		// 	if (!this.thro_flag) {
+		// 		setTimeout(() => {
+		// 			fun(...args);
+		// 			this.thro_flag = false;
+		// 		}, delay);
+		// 	}
+		// 	this.thro_flag = true;
+		// },
+		//#endregion
 		req_rule_list() {
 			this.request('post', rule_list, this.token, { condition: { groupId: this.id }, pageNum: 1, pageSize: 999 }, (res) => {
 				console.log('规则列表', res);
@@ -101,6 +130,10 @@ new Vue({
 				console.log('触发条件列表', res);
 				this.request('get', `${action_list}?ruleId=${rule_id}`, this.token, (res) => {
 					console.log('响应事件列表', res);
+					if (res.data.data == null) {
+						this.html.loading_rule_detail = false;
+						return;
+					}
 					res.data.data.forEach((e) => {
 						let table = { type: '响应事件' };
 						for (let key in e) {
@@ -112,6 +145,10 @@ new Vue({
 					});
 					this.html.loading_rule_detail = false;
 				});
+				if (res.data.data == null) {
+					this.html.loading_rule_detail = false;
+					return;
+				}
 				res.data.data.forEach((e) => {
 					let table = { type: '触发条件' };
 					for (let key in e) {
@@ -119,6 +156,10 @@ new Vue({
 							table[key] = e[key];
 						}
 					}
+					// table.fields = e.fields || []
+					// table.nodeId = e.nodeId
+					// table.nodeName = e.nodeName || ''
+					// table.template = e.template||[]
 					this.trigger_and_event_list.push(table);
 				});
 			});
@@ -127,7 +168,33 @@ new Vue({
 		},
 		// 关闭页面任意
 		close_page(flag) {
+			switch (flag) {
+				case 'rule_detail':
+					this.html.rule_config = false;
+					break;
+			}
 			flag = false;
+		},
+		// 清空对象
+		clean_object(obj) {
+			for (let key in obj) {
+				switch (obj[key].constructor) {
+					case String:
+						obj[key] = '';
+						break;
+					case Number:
+						obj[key] = 0;
+						break;
+					case Array:
+						obj[key] = [];
+						break;
+					case Object:
+						for (let key2 in obj[key]) {
+							this.clean_object(obj[key][key2]);
+						}
+						break;
+				}
+			}
 		},
 		// 新增触发条件按钮
 		add_trigger() {
@@ -138,25 +205,17 @@ new Vue({
 				});
 			});
 			this.add_edit = 'add';
-			for (let key in this.form) {
-				switch (this.form[key].constructor) {
-					case String:
-						this.form[key] = '';
-						break;
-					case Number:
-						this.form[key] = 0;
-						break;
-					case Array:
-						this.form[key] = [];
-						break;
-					case Object:
-						this.form[key] = {};
-						break;
-				}
-			}
+			this.clean_object(this.form);
+		},
+		// 新增响应事件按钮
+		add_event() {
+			this.add_edit = 'add';
+			this.clean_object(this.event_form);
+			this.html.event_config = true;
 		},
 		// 编辑条件或事件
 		edit_trigger_event(list_data) {
+			console.log('编辑', list_data);
 			this.add_edit = 'edit';
 			if (list_data.type == '触发条件') {
 				this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
@@ -165,6 +224,7 @@ new Vue({
 						this.html.trigger_config = true;
 					});
 				});
+				this.form.id = list_data.nodeId;
 				this.form.name = list_data.nodeName;
 				this.form.exp = list_data.expression;
 				this.form.condition = [];
@@ -176,6 +236,17 @@ new Vue({
 					this.form.condition[i].default_value = list_data.defaultValues[i];
 				}
 			} else if (list_data.type == '响应事件') {
+				this.event_form.id = list_data.nodeId;
+				this.event_form.name = list_data.nodeName;
+				this.event_form.template = list_data.template;
+				this.event_form.fields = [];
+				list_data.fields.forEach((e) => {
+					let t = { field: e };
+					this.event_form.fields.push(t);
+				});
+				this.event_form.info_type = 0;
+				this.clean_object(this.event_form.type1);
+				this.html.event_config = true;
 			}
 		},
 		// 删除条件或事件
@@ -191,20 +262,32 @@ new Vue({
 						this.check_rule(this.rule_id);
 					});
 				} else {
+					this.request('put', event_delete, this.token, { baseId: this.rule_id, nodeId: list_data.nodeId }, () => {
+						this.check_rule(this.rule_id);
+					});
 				}
 			});
 		},
 		// 检测规则表达式里的特殊符号 并动态生成元素
-		identify_symbol(input, index) {
+		identify_symbol(input, flag, index) {
 			if (index == undefined) {
 				index = 0;
-				this.form.condition = [];
+				if (flag == 'trigger') {
+					this.form.condition = [];
+				} else if (flag == 'event') {
+					this.event_form.fields = [];
+				}
 			}
-			index = input.indexOf('%s', index + 2);
+			index = input.indexOf('%s', index);
 			if (index != -1) {
-				let t = { field: '', default_value: '' };
-				this.form.condition.push(t);
-				this.identify_symbol(input, index);
+				if (flag == 'trigger') {
+					let t = { field: '', default_value: '' };
+					this.form.condition.push(t);
+				} else if (flag == 'event') {
+					let t = { field: '' };
+					this.event_form.fields.push(t);
+				}
+				this.identify_symbol(input, flag, index + 2);
 			}
 		},
 		//#region
@@ -224,7 +307,7 @@ new Vue({
 		// 	return true;
 		// },
 		//#endregion
-		// 提交规则新增修改
+		// 条件提交
 		trigger_submit() {
 			let t = {
 				baseId: this.rule_id,
@@ -239,10 +322,46 @@ new Vue({
 			});
 			if (this.add_edit == 'add') {
 				this.request('post', trigger_add, this.token, t, () => {
+					this.html.trigger_config = false;
 					this.check_rule(this.rule_id);
 				});
-				this.html.trigger_config = false;
 			} else {
+				t.nodeId = this.form.id;
+				this.request('put', trigger_edit, this.token, t, () => {
+					this.html.trigger_config = false;
+					this.check_rule(this.rule_id);
+				});
+			}
+		},
+		// 事件提交
+		event_submit() {
+			let t = {
+				baseId: this.rule_id,
+				name: this.event_form.name,
+				template: this.event_form.template,
+				actionType: this.event_form.info_type,
+				fields: [],
+			};
+			this.event_form.fields.forEach((e) => {
+				t.fields.push(e.field);
+			});
+			if (this.event_form.info_type == 1) {
+				t.extraParam = {};
+				for (let key in this.event_form.type1) {
+					t.extraParam[key] = this.event_form.type1[key];
+				}
+			}
+			if (this.add_edit == 'add') {
+				this.request('post', event_add, this.token, t, () => {
+					this.html.event_config = false;
+					this.check_rule(this.rule_id);
+				});
+			} else {
+				t.nodeId = this.event_form.id;
+				this.request('put', event_edit, this.token, t, () => {
+					this.html.event_config = false;
+					this.check_rule(this.rule_id);
+				});
 			}
 		},
 	},
