@@ -58,7 +58,11 @@ new Vue({
 				routingKey: '',
 			},
 		},
-		json_text: '', //物模型JSON
+		protocol_tree: [], //物模型树
+		tree_conf: {
+			children: 'child',
+			label: 'name',
+		},
 	},
 	mounted() {
 		if (!location.search) {
@@ -68,10 +72,60 @@ new Vue({
 			this.get_token();
 		}
 		this.req_rule_list();
+		this.req_protocol();
 		// 节流标识符
 		this.thro_flag = false;
 	},
 	methods: {
+		// 物模型树，每层记录路径和标识
+		req_protocol() {
+			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
+				this.request('post', `${property_list}/${res.data.data.currentModelId}`, this.token, (res) => {
+					res.data.data.forEach((e) => {
+						let tree = {};
+						this.get_protocol_tree(tree, e);
+						this.protocol_tree.push(tree);
+					});
+				});
+			});
+		},
+		get_protocol_tree(target, source, path) {
+			target.name = source.identifier;
+			if (path == undefined) {
+				target.path = source.identifier;
+			} else {
+				target.path = path + source.identifier;
+			}
+			switch (source.dataType.type) {
+				case 'struct':
+					target.type = '结构体';
+					break;
+				case 'array':
+					target.type = '数组';
+					break;
+				default:
+					target.type = source.dataType.type;
+					break;
+			}
+			if (source.dataType.type == 'struct') {
+				let a = source.dataType.properties;
+				target.child = [];
+				for (let i = 0; i < a.length; i++) {
+					let t = {};
+					this.get_protocol_tree(t, a[i], `${target.path}.`);
+					target.child.push(t);
+				}
+			}
+			if (source.dataType.type == 'array' && source.dataType.specs.item.type == 'struct') {
+				let a = source.dataType.specs.item.properties;
+				target.child = [];
+				for (let i = 0; i < a.length; i++) {
+					let t = {};
+					this.get_protocol_tree(t, a[i], `${target.path}[num].`);
+					target.child.push(t);
+				}
+			}
+		},
 		//#region
 		// 节流
 		// throttle(fun, delay, ...args) {
@@ -130,8 +184,8 @@ new Vue({
 				console.log('触发条件列表', res);
 				this.request('get', `${action_list}?ruleId=${rule_id}`, this.token, (res) => {
 					console.log('响应事件列表', res);
+					this.html.loading_rule_detail = false;
 					if (res.data.data == null) {
-						this.html.loading_rule_detail = false;
 						return;
 					}
 					res.data.data.forEach((e) => {
@@ -143,10 +197,8 @@ new Vue({
 						}
 						this.trigger_and_event_list.push(table);
 					});
-					this.html.loading_rule_detail = false;
 				});
 				if (res.data.data == null) {
-					this.html.loading_rule_detail = false;
 					return;
 				}
 				res.data.data.forEach((e) => {
@@ -156,10 +208,6 @@ new Vue({
 							table[key] = e[key];
 						}
 					}
-					// table.fields = e.fields || []
-					// table.nodeId = e.nodeId
-					// table.nodeName = e.nodeName || ''
-					// table.template = e.template||[]
 					this.trigger_and_event_list.push(table);
 				});
 			});
@@ -198,14 +246,9 @@ new Vue({
 		},
 		// 新增触发条件按钮
 		add_trigger() {
-			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
-				this.request('post', `${property_list}/${res.data.data.currentModelId}`, this.token, (res) => {
-					this.json_text = JSON.stringify(res.data.data);
-					this.html.trigger_config = true;
-				});
-			});
 			this.add_edit = 'add';
 			this.clean_object(this.form);
+			this.html.trigger_config = true;
 		},
 		// 新增响应事件按钮
 		add_event() {
@@ -218,12 +261,6 @@ new Vue({
 			console.log('编辑', list_data);
 			this.add_edit = 'edit';
 			if (list_data.type == '触发条件') {
-				this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
-					this.request('post', `${property_list}/${res.data.data.currentModelId}`, this.token, (res) => {
-						this.json_text = JSON.stringify(res.data.data);
-						this.html.trigger_config = true;
-					});
-				});
 				this.form.id = list_data.nodeId;
 				this.form.name = list_data.nodeName;
 				this.form.exp = list_data.expression;
@@ -235,6 +272,7 @@ new Vue({
 				for (let i = 0; i < list_data.defaultValues.length; i++) {
 					this.form.condition[i].default_value = list_data.defaultValues[i];
 				}
+				this.html.trigger_config = true;
 			} else if (list_data.type == '响应事件') {
 				this.event_form.id = list_data.nodeId;
 				this.event_form.name = list_data.nodeName;
@@ -363,6 +401,17 @@ new Vue({
 					this.check_rule(this.rule_id);
 				});
 			}
+		},
+		// 复制内容
+		copy_path(path) {
+			// navigator.clipboard.writeText(path);
+			let temp = document.createElement('textarea');
+			temp.innerText = path;
+			document.body.appendChild(temp);
+			temp.select();
+			document.execCommand('copy');
+			document.body.removeChild(temp);
+			this.$message.success('已复制到剪贴板');
 		},
 	},
 });

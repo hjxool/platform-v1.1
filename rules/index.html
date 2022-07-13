@@ -59,9 +59,9 @@
     <!-- 新增/编辑条件 -->
     <div class="custom_center" v-if="html.trigger_config">
       <el-card style="width: 900px;max-height: 90%;overflow: auto;" shadow="hover">
-        <div class="trigger_layout">
+        <div class="two_col_layout">
           <!-- 表单 -->
-          <div class="rule_layout">
+          <div class="col_layout">
             <span class="title">编辑触发条件</span>
             <el-form label-width="100px" style="padding-right: 20px;">
               <el-form-item label="名称" size="medium">
@@ -88,72 +88,92 @@
               </el-form-item>
             </el-form>
           </div>
-          <!-- JSON文本 -->
-          <div class="rule_layout">
+          <!-- 物模型树 -->
+          <div class="col_layout">
             <span class="title">物模型属性列表</span>
-            <el-input type="textarea" autosize v-model="json_text"></el-input>
+            <el-tree :data="protocol_tree" :props="tree_conf">
+              <span class="tree_node_style" slot-scope="{ node, data }">
+                <span>{{data.name}}</span>
+                <span>类型：{{data.type}}</span>
+                <i class="el-icon-document-copy" @click.stop="copy_path(data.path)"></i>
+              </span>
+            </el-tree>
           </div>
         </div>
       </el-card>
     </div>
     <!-- 新增编辑响应事件 -->
     <div class="custom_center" v-if="html.event_config">
-      <el-card style="width: 400px;max-height: 90%;overflow: auto;" shadow="hover">
-        <div class="event_layout">
-          <span class="title">编辑响应事件</span>
-          <el-form label-width="80px">
-            <el-form-item label="名称" size="medium">
-              <el-input class="form_input" v-model="event_form.name" placeholder="请输入名称">
-              </el-input>
-            </el-form-item>
-            <el-form-item label="内容模板" size="medium">
-              <el-input style="width: 70%;" type="textarea" autosize v-model="event_form.template"
-                placeholder="请输入告警内容模板">
-              </el-input>
-              <el-button type="warning" size="mini" round @click="identify_symbol(event_form.template,'event')">检测
-              </el-button>
-            </el-form-item>
-            <el-form-item label="变量路径" size="medium">
-              <el-input class="form_input" v-for="item in event_form.fields" v-model="item.field" placeholder="输入取值路径">
-              </el-input>
-            </el-form-item>
-            <el-form-item label="通知方式" size="medium">
-              <el-radio-group v-model="event_form.info_type">
-                <el-radio :label="type.val" v-for="type in html.info_type_options" :disabled="type.ban">{{type.name}}
-                </el-radio>
-              </el-radio-group>
-            </el-form-item>
-            <template v-if="event_form.info_type==1">
-              <el-form-item label="用户名" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.username" placeholder="请输入用户名">
+      <el-card style="width: 900px;max-height: 90%;overflow: auto;" shadow="hover">
+        <div class="two_col_layout">
+          <div class="col_layout">
+            <span class="title">编辑响应事件</span>
+            <el-form label-width="80px">
+              <el-form-item label="名称" size="medium">
+                <el-input class="form_input" v-model="event_form.name" placeholder="请输入名称">
                 </el-input>
               </el-form-item>
-              <el-form-item label="密码" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.password" placeholder="请输入密码">
+              <el-form-item label="内容模板" size="medium">
+                <el-input style="width: 70%;" type="textarea" autosize v-model="event_form.template"
+                  placeholder="请输入告警内容模板">
+                </el-input>
+                <el-button type="warning" size="mini" round @click="identify_symbol(event_form.template,'event')">检测
+                </el-button>
+              </el-form-item>
+              <el-form-item label="变量路径" size="medium">
+                <el-input class="form_input" v-for="item in event_form.fields" v-model="item.field"
+                  placeholder="输入取值路径">
                 </el-input>
               </el-form-item>
-              <el-form-item label="host" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.host" placeholder="请输入host">
-                </el-input>
+              <el-form-item label="通知方式" size="medium">
+                <el-radio-group v-model="event_form.info_type">
+                  <el-radio :label="type.val" v-for="type in html.info_type_options" :disabled="type.ban">{{type.name}}
+                  </el-radio>
+                </el-radio-group>
               </el-form-item>
-              <el-form-item label="port" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.port" placeholder="请输入port">
-                </el-input>
+              <template v-if="event_form.info_type==1">
+                <el-form-item label="用户名" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.username" placeholder="请输入用户名">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="密码" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.password" placeholder="请输入密码">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="host" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.host" placeholder="请输入host">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="port" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.port" placeholder="请输入port">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="topic" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.topic" placeholder="请输入topic">
+                  </el-input>
+                </el-form-item>
+                <el-form-item label="routingKey" size="medium">
+                  <el-input class="form_input" v-model="event_form.type1.routingKey" placeholder="请输入routingKey">
+                  </el-input>
+                </el-form-item>
+              </template>
+              <el-form-item class="button_layout">
+                <el-button type="primary" @click="event_submit">保存</el-button>
+                <el-button @click="html.event_config=false">取消</el-button>
               </el-form-item>
-              <el-form-item label="topic" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.topic" placeholder="请输入topic">
-                </el-input>
-              </el-form-item>
-              <el-form-item label="routingKey" size="medium">
-                <el-input class="form_input" v-model="event_form.type1.routingKey" placeholder="请输入routingKey">
-                </el-input>
-              </el-form-item>
-            </template>
-            <el-form-item class="button_layout">
-              <el-button type="primary" @click="event_submit">保存</el-button>
-              <el-button @click="html.event_config=false">取消</el-button>
-            </el-form-item>
-          </el-form>
+            </el-form>
+          </div>
+          <!-- 物模型树 -->
+          <div class="col_layout">
+            <span class="title">物模型属性列表</span>
+            <el-tree :data="protocol_tree" :props="tree_conf">
+              <span class="tree_node_style" slot-scope="{ node, data }">
+                <span>{{data.name}}</span>
+                <span>类型：{{data.type}}</span>
+                <i class="el-icon-document-copy" @click.stop="copy_path(data.path)"></i>
+              </span>
+            </el-tree>
+          </div>
         </div>
       </el-card>
     </div>
