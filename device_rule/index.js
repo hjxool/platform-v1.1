@@ -171,8 +171,13 @@ new Vue({
 						let t = {
 							type: '响应事件',
 						};
+						t.conf = JSON.parse(e.defaultConfField).conf;
+						t.exp = this.joint_params(t.conf.template, t.conf.fields, 0);
 						for (let key in e) {
-							if (key != 'defaultConfField') {
+							if (key == 'customConf') {
+								t.custom_conf = e[key].condition;
+								t.custom_exp = this.joint_params(t.custom_conf.template, t.custom_conf.fields, 0);
+							} else if (key != 'defaultConfField') {
 								t[key] = e[key] || 0;
 							}
 						}
@@ -187,8 +192,6 @@ new Vue({
 						// t.key1 = t2.template;
 						// t.key2 = t2.fields;
 						//#endregion
-						t.conf = JSON.parse(e.defaultConfField).conf;
-						t.exp = this.joint_params(t.conf.template, t.conf.fields, 0);
 						this.node_list.push(t);
 					});
 					this.html.rule_config = true;
@@ -208,8 +211,13 @@ new Vue({
 					let t = {
 						type: '触发条件',
 					};
+					t.conf = JSON.parse(e.defaultConfField).conf;
+					t.exp = this.joint_params(t.conf.exp, t.conf.defaultValues, 0);
 					for (let key in e) {
-						if (key != 'defaultConfField') {
+						if (key == 'customConf') {
+							t.custom_conf = e[key].condition;
+							t.custom_exp = this.joint_params(t.conf.exp, t.custom_conf.defaultValues, 0);
+						} else if (key != 'defaultConfField') {
 							t[key] = e[key] || 0;
 						}
 					}
@@ -222,8 +230,6 @@ new Vue({
 					// });
 					// this.joint_params(t.exp, t2.defaultValues, 0);
 					//#endregion
-					t.conf = JSON.parse(e.defaultConfField).conf;
-					t.exp = this.joint_params(t.conf.exp, t.conf.defaultValues, 0);
 					this.node_list.push(t);
 				});
 			});
@@ -237,7 +243,7 @@ new Vue({
 		// },
 		//#endregion
 		joint_params(input, array, index) {
-			input = input.replace('%s', array[index]);
+			input = input.replace('%s', array[index] || '');
 			if (index + 1 < array.length) {
 				this.joint_params(input, array, index + 1);
 			}
@@ -257,14 +263,27 @@ new Vue({
 					ruleId: this.rule_id,
 				};
 				if (e.type == '触发条件') {
-					t2.condition = {
-						defaultValues: e.conf.defaultValues,
-					};
+					if (Object.keys(e).indexOf('custom_conf') != -1) {
+						t2.condition = {
+							defaultValues: e.custom_conf.defaultValues,
+						};
+					} else {
+						t2.condition = {
+							defaultValues: e.conf.defaultValues,
+						};
+					}
 				} else if (e.type == '响应事件') {
-					t2.condition = {
-						template: e.conf.template,
-						fields: e.conf.fields,
-					};
+					if (Object.keys(e).indexOf('custom_conf') != -1) {
+						t2.condition = {
+							template: e.custom_conf.template,
+							fields: e.custom_conf.fields,
+						};
+					} else {
+						t2.condition = {
+							template: e.conf.template,
+							fields: e.conf.fields,
+						};
+					}
 				}
 				if (selected.indexOf(e.nodeId) != -1) {
 					t2.enabled = true;
@@ -283,30 +302,65 @@ new Vue({
 				this.trigger_form.exp = node_list.conf.exp || '';
 				this.trigger_form.field = node_list.conf.conditionFields || [];
 				this.trigger_form.params = [];
-				node_list.conf.defaultValues.forEach((e) => {
-					let t = { value: e };
-					this.trigger_form.params.push(t);
-				});
+				if (Object.keys(node_list).indexOf('custom_conf')) {
+					node_list.custom_conf.defaultValues.forEach((e) => {
+						let t = { value: e };
+						this.trigger_form.params.push(t);
+					});
+				} else {
+					node_list.conf.defaultValues.forEach((e) => {
+						let t = { value: e };
+						this.trigger_form.params.push(t);
+					});
+				}
 				this.html.trigger_form = true;
 			} else if (node_list.type == '响应事件') {
 				this.event_form.name = node_list.nodeName | '';
-				this.event_form.template = node_list.conf.template || '';
 				this.event_form.field = [];
-				node_list.conf.fields.forEach((e) => {
-					let t = { value: e };
-					this.event_form.field.push(t);
-				});
+				if (Object.keys(node_list).indexOf('customConf')) {
+					this.event_form.template = node_list.custom_conf.template || '';
+					node_list.custom_conf.fields.forEach((e) => {
+						let t = { value: e };
+						this.event_form.field.push(t);
+					});
+				} else {
+					this.event_form.template = node_list.conf.template || '';
+					node_list.conf.fields.forEach((e) => {
+						let t = { value: e };
+						this.event_form.field.push(t);
+					});
+				}
 				this.html.event_form = true;
 			}
 		},
 		// 条件保存
 		trigger_submit() {
-			for (let i = 0; i < this.trigger_form.params.length; i++) {
-				if (this.trigger_form.params[i].value != '') {
-					this.node_list[this.node_index].conf.defaultValues[i] = this.trigger_form.params[i].value;
-				}
+			let t = this.node_list[this.node_index];
+			let t2 = [
+				{
+					confId: t.nodeId,
+					deviceId: this.id,
+					ruleId: this.rule_id,
+				},
+			];
+			let array = [];
+			this.trigger_form.params.forEach((e) => {
+				array.push(e.value);
+			});
+			t2[0].condition = { defaultValues: array };
+			let selected = [];
+			this.node_selected.forEach((e) => {
+				selected.push(e.nodeId);
+			});
+			if (selected.indexOf(t.nodeId) != -1) {
+				t2[0].enabled = true;
+			} else {
+				t2[0].enabled = false;
 			}
-			this.html.trigger_form = false;
+			this.request('post', save_node, this.token, t2, () => {
+				this.edit_rule(this.rule_id);
+				this.html.trigger_form = false;
+			});
 		},
 		// 检测规则表达式里的特殊符号 并动态生成元素
 		identify_symbol(input, flag, index) {
@@ -333,36 +387,33 @@ new Vue({
 		},
 		// 事件保存
 		event_submit() {
-			if (this.event_form.template != '') {
-				this.node_list[this.node_index].conf.template = this.event_form.template;
-			}
-			let t1 = this.node_list[this.node_index].conf.fields;
-			let t2 = this.event_form.field;
-			if (t1.length > t2.length) {
-				for (let i = 0; i < t2.length; i++) {
-					if (t2[i].value != '') {
-						t1[i] = t2[i].value;
-					}
-				}
-				t1.splice(t2 - 1);
-			} else if (t1.length < t2.length) {
-				for (let i = 0; i < t2.length; i++) {
-					if (i < t1.length) {
-						if (t2[i].value != '') {
-							t1[i] = t2[i].value;
-						}
-					} else {
-						t1[i] = t2[i].value;
-					}
-				}
+			let t = this.node_list[this.node_index];
+			let t2 = [
+				{
+					confId: t.nodeId,
+					deviceId: this.id,
+					ruleId: this.rule_id,
+					condition: { template: this.event_form.template || t.conf.template },
+				},
+			];
+			let array = [];
+			this.event_form.field.forEach((e) => {
+				array.push(e.value);
+			});
+			t2[0].condition.fields = array;
+			let selected = [];
+			this.node_selected.forEach((e) => {
+				selected.push(e.nodeId);
+			});
+			if (selected.indexOf(t.nodeId) != -1) {
+				t2[0].enabled = true;
 			} else {
-				for (let i = 0; i < t2.length; i++) {
-					if (t2[i].value != '') {
-						t1[i] = t2[i].value;
-					}
-				}
+				t2[0].enabled = false;
 			}
-			this.html.event_form = false;
+			this.request('post', save_node, this.token, t2, () => {
+				this.edit_rule(this.rule_id);
+				this.html.trigger_form = false;
+			});
 		},
 		// 删除节点
 		del_node(node_list) {

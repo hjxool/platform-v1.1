@@ -12,6 +12,7 @@ let event_delete = `${url}api-device/rule/conf/action/delete`;
 let event_edit = `${url}api-device/rule/conf/action/edit`;
 let product_detail = `${url}api-device/product`;
 let property_list = `${url}api-device/protocol/property/list`;
+let check_model = `${url}api-device/protocol/view`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -26,6 +27,7 @@ new Vue({
 			trigger_config: false, //触发配置显示
 			loading_rule_detail: false, //加载条件和事件列表
 			event_config: false, //事件表单显示
+			trigger_event_conf: false, //事件触发配置显示
 			info_type_options: [
 				{ name: '只落库', val: 0, ban: false },
 				{ name: '消息定向推送', val: 1, ban: false },
@@ -38,12 +40,20 @@ new Vue({
 		trigger_and_event_list: [], //事件和条件列表
 		// 触发条件表单
 		form: {
+			enable: false, //全部设备启用
 			name: '',
 			exp: '', //规则表达式
 			condition: [], //占位符个数生成的输入元素
 		},
+		// 事件触发表单
+		event_trigger_form: {
+			enable: false, //全部设备启用
+			name: '',
+			value: '', //选择的事件
+		},
 		// 响应事件表单
 		event_form: {
+			enable: false, //全部设备启用
 			name: '',
 			template: '', //告警内容模板
 			fields: [], //占位符生成的输入元素
@@ -58,11 +68,12 @@ new Vue({
 				routingKey: '',
 			},
 		},
-		protocol_tree: [], //物模型树
+		protocol_tree: [], //物模型属性树
 		tree_conf: {
 			children: 'child',
 			label: 'name',
 		},
+		event_list: [], //物模型事件列表
 	},
 	mounted() {
 		if (!location.search) {
@@ -72,24 +83,25 @@ new Vue({
 			this.get_token();
 		}
 		this.req_rule_list();
+		this.req_property();
 		this.req_protocol();
 		// 节流标识符
 		this.thro_flag = false;
 	},
 	methods: {
-		// 物模型树，每层记录路径和标识
-		req_protocol() {
+		// 物模型属性树，每层记录路径和标识
+		req_property() {
 			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
 				this.request('post', `${property_list}/${res.data.data.currentModelId}`, this.token, (res) => {
 					res.data.data.forEach((e) => {
 						let tree = {};
-						this.get_protocol_tree(tree, e);
+						this.get_property_tree(tree, e);
 						this.protocol_tree.push(tree);
 					});
 				});
 			});
 		},
-		get_protocol_tree(target, source, path) {
+		get_property_tree(target, source, path) {
 			target.name = source.identifier;
 			if (path == undefined) {
 				target.path = source.identifier;
@@ -112,7 +124,7 @@ new Vue({
 				target.child = [];
 				for (let i = 0; i < a.length; i++) {
 					let t = {};
-					this.get_protocol_tree(t, a[i], `${target.path}.`);
+					this.get_property_tree(t, a[i], `${target.path}.`);
 					target.child.push(t);
 				}
 			}
@@ -121,10 +133,21 @@ new Vue({
 				target.child = [];
 				for (let i = 0; i < a.length; i++) {
 					let t = {};
-					this.get_protocol_tree(t, a[i], `${target.path}[num].`);
+					this.get_property_tree(t, a[i], `${target.path}[num].`);
 					target.child.push(t);
 				}
 			}
+		},
+		// 物模型事件列表
+		req_protocol() {
+			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
+				this.request('get', `${check_model}/${res.data.data.currentModelId}`, this.token, (res) => {
+					res.data.data.events.forEach((e) => {
+						let t = { name: e.identifier };
+						this.event_list.push(t);
+					});
+				});
+			});
 		},
 		//#region
 		// 节流
@@ -155,8 +178,8 @@ new Vue({
 				inputPattern: /^[\u4E00-\u9FA5A-Za-z0-9_]+$/,
 				inputErrorMessage: '不能为空或者输入特殊字符',
 			}).then(({ value }) => {
+				this.html.loading = true;
 				this.request('post', rule_add, this.token, { name: value, productId: this.id }, () => {
-					this.html.loading = true;
 					this.req_rule_list();
 				});
 			});
@@ -202,7 +225,12 @@ new Vue({
 					return;
 				}
 				res.data.data.forEach((e) => {
-					let table = { type: '触发条件' };
+					let table = {};
+					if (e.confType == 0) {
+						table.type = '属性触发条件';
+					} else if (e.confType == 1) {
+						table.type = '事件触发条件';
+					}
 					for (let key in e) {
 						if (e[key] != null) {
 							table[key] = e[key];
@@ -241,6 +269,8 @@ new Vue({
 							this.clean_object(obj[key][key2]);
 						}
 						break;
+					case Boolean:
+						obj[key] = false;
 				}
 			}
 		},
@@ -249,6 +279,14 @@ new Vue({
 			this.add_edit = 'add';
 			this.clean_object(this.form);
 			this.html.trigger_config = true;
+		},
+		// 新增事件触发
+		add_event_trigger() {
+			this.add_edit = 'add';
+			this.clean_object(this.event_trigger_form);
+			this.event_trigger_form.exp = 'event.identifier == %s';
+			this.event_trigger_form.field = 'event.identifier';
+			this.html.trigger_event_conf = true;
 		},
 		// 新增响应事件按钮
 		add_event() {
@@ -260,7 +298,7 @@ new Vue({
 		edit_trigger_event(list_data) {
 			console.log('编辑', list_data);
 			this.add_edit = 'edit';
-			if (list_data.type == '触发条件') {
+			if (list_data.type == '属性触发条件') {
 				this.form.id = list_data.nodeId;
 				this.form.name = list_data.nodeName;
 				this.form.exp = list_data.expression;
@@ -285,6 +323,12 @@ new Vue({
 				this.event_form.info_type = 0;
 				this.clean_object(this.event_form.type1);
 				this.html.event_config = true;
+			} else if (list_data.type == '事件触发条件') {
+				this.event_trigger_form.id = list_data.nodeId;
+				this.event_trigger_form.exp = 'event.identifier == %s';
+				this.event_trigger_form.field = 'event.identifier';
+				this.event_trigger_form.value = list_data.defaultValues[0];
+				this.html.trigger_event_conf = true;
 			}
 		},
 		// 删除条件或事件
@@ -295,7 +339,7 @@ new Vue({
 				type: 'info',
 				center: true,
 			}).then(() => {
-				if (list_data.type == '触发条件') {
+				if (list_data.type == '属性触发条件' || list_data.type == '事件触发条件') {
 					this.request('put', trigger_delete, this.token, { baseId: this.rule_id, nodeId: list_data.nodeId }, () => {
 						this.check_rule(this.rule_id);
 					});
@@ -346,25 +390,35 @@ new Vue({
 		// },
 		//#endregion
 		// 条件提交
-		trigger_submit() {
+		trigger_submit(flag) {
 			let t = {
 				baseId: this.rule_id,
-				name: this.form.name,
-				expression: this.form.exp,
+				confType: flag,
 				conditionFields: [],
 				defaultValues: [],
 			};
-			this.form.condition.forEach((e) => {
-				t.conditionFields.push(e.field);
-				t.defaultValues.push(e.default_value);
-			});
+			if (flag == 0) {
+				t.name = this.form.name;
+				t.expression = this.form.exp;
+				t.defaultEnabled = this.form.enable;
+				this.form.condition.forEach((e) => {
+					t.conditionFields.push(e.field);
+					t.defaultValues.push(e.default_value);
+				});
+			} else {
+				t.name = this.event_trigger_form.name;
+				t.expression = this.event_trigger_form.exp;
+				t.defaultEnabled = this.event_trigger_form.enable;
+				t.conditionFields = [this.event_trigger_form.field];
+				t.defaultValues = this.event_trigger_form.value;
+			}
 			if (this.add_edit == 'add') {
 				this.request('post', trigger_add, this.token, t, () => {
 					this.html.trigger_config = false;
 					this.check_rule(this.rule_id);
 				});
 			} else {
-				t.nodeId = this.form.id;
+				t.nodeId = flag == 0 ? this.form.id : this.event_trigger_form.id;
 				this.request('put', trigger_edit, this.token, t, () => {
 					this.html.trigger_config = false;
 					this.check_rule(this.rule_id);

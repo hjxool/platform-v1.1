@@ -37,13 +37,14 @@
         <div class="rule_detail_layout">
           <div class="header">
             <el-button type="primary" round @click="add_trigger">新增触发条件</el-button>
+            <el-button type="primary" round @click="add_event_trigger">新增事件触发条件</el-button>
             <el-button type="primary" round @click="add_event">新增响应事件</el-button>
             <el-button style="margin-left: auto;" type="danger" icon="el-icon-close" circle
               @click="close_page('rule_detail')"></el-button>
           </div>
           <div style="padding:0 10px;overflow: auto;">
             <el-table :data="trigger_and_event_list" border v-loading="html.loading_rule_detail">
-              <el-table-column prop="type" label="配置类型"></el-table-column>
+              <el-table-column prop="type" width="120" label="配置类型"></el-table-column>
               <el-table-column prop="nodeName" label="配置名称"></el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
                 <template slot-scope="scope">
@@ -62,8 +63,11 @@
         <div class="two_col_layout">
           <!-- 表单 -->
           <div class="col_layout">
-            <span class="title">编辑触发条件</span>
+            <span class="title">编辑属性触发条件</span>
             <el-form label-width="100px" style="padding-right: 20px;">
+              <el-form-item>
+                <el-checkbox v-model="form.enable">全设备启用</el-checkbox>
+              </el-form-item>
               <el-form-item label="名称" size="medium">
                 <el-input class="form_input" v-model="form.name" placeholder="请输入名称">
                 </el-input>
@@ -76,6 +80,11 @@
               <el-form-item label="条件字段" size="medium">
                 <el-input class="form_input" v-for="item in form.condition" v-model="item.field" placeholder="请输入字段名称">
                 </el-input>
+                <!-- <div v-for="item in form.condition">
+                  <el-input class="form_input" v-model="item.field" placeholder="请输入字段名称">
+                  </el-input>
+                  <div class="verify_text" v-show="item.show">{{item.message}}</div>
+                </div> -->
               </el-form-item>
               <el-form-item label="默认值" size="medium">
                 <el-input class="form_input" v-for="item in form.condition" v-model="item.default_value"
@@ -83,7 +92,7 @@
                 </el-input>
               </el-form-item>
               <el-form-item class="button_layout">
-                <el-button type="primary" @click="trigger_submit">保存</el-button>
+                <el-button type="primary" @click="trigger_submit(0)">保存</el-button>
                 <el-button @click="html.trigger_config=false">取消</el-button>
               </el-form-item>
             </el-form>
@@ -102,6 +111,38 @@
         </div>
       </el-card>
     </div>
+    <!-- 事件触发条件 -->
+    <div class="custom_center" v-if="html.trigger_event_conf">
+      <el-card style="width: 400px;max-height: 90%;overflow: auto;" shadow="hover">
+        <div class="col_layout">
+          <span class="title">编辑事件触发条件</span>
+          <el-form label-width="100px">
+            <el-form-item>
+              <el-checkbox v-model="event_trigger_form.enable">全设备启用</el-checkbox>
+            </el-form-item>
+            <el-form-item label="名称" size="medium">
+              <el-input class="form_input" v-model="event_trigger_form.name" placeholder="请输入名称">
+              </el-input>
+            </el-form-item>
+            <el-form-item label="事件表达式" size="medium">
+              <span>{{event_trigger_form.exp}}</span>
+            </el-form-item>
+            <el-form-item label="事件字段" size="medium">
+              <span>{{event_trigger_form.field}}</span>
+            </el-form-item>
+            <el-form-item label="事件选择" size="medium">
+              <el-select v-model="event_trigger_form.value" placeholder="请选择">
+                <el-option v-for="item in event_list" :value="item.name"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item class="button_layout">
+              <el-button type="primary" @click="trigger_submit(1)">保存</el-button>
+              <el-button @click="html.trigger_event_conf=false">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-card>
+    </div>
     <!-- 新增编辑响应事件 -->
     <div class="custom_center" v-if="html.event_config">
       <el-card style="width: 900px;max-height: 90%;overflow: auto;" shadow="hover">
@@ -109,6 +150,9 @@
           <div class="col_layout">
             <span class="title">编辑响应事件</span>
             <el-form label-width="80px">
+              <el-form-item>
+                <el-checkbox v-model="event_form.enable">全设备启用</el-checkbox>
+              </el-form-item>
               <el-form-item label="名称" size="medium">
                 <el-input class="form_input" v-model="event_form.name" placeholder="请输入名称">
                 </el-input>
