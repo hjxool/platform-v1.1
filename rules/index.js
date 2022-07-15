@@ -71,7 +71,6 @@ new Vue({
 		protocol_tree: [], //物模型属性树
 		tree_conf: {
 			children: 'child',
-			label: 'name',
 		},
 		event_list: [], //物模型事件列表
 	},
@@ -220,6 +219,7 @@ new Vue({
 						}
 						this.trigger_and_event_list.push(table);
 					});
+					console.log(this.trigger_and_event_list);
 				});
 				if (res.data.data == null) {
 					return;
@@ -410,17 +410,19 @@ new Vue({
 				t.expression = this.event_trigger_form.exp;
 				t.defaultEnabled = this.event_trigger_form.enable;
 				t.conditionFields = [this.event_trigger_form.field];
-				t.defaultValues = this.event_trigger_form.value;
+				t.defaultValues = [this.event_trigger_form.value];
 			}
 			if (this.add_edit == 'add') {
 				this.request('post', trigger_add, this.token, t, () => {
 					this.html.trigger_config = false;
+					this.trigger_event_conf = false;
 					this.check_rule(this.rule_id);
 				});
 			} else {
 				t.nodeId = flag == 0 ? this.form.id : this.event_trigger_form.id;
 				this.request('put', trigger_edit, this.token, t, () => {
 					this.html.trigger_config = false;
+					this.trigger_event_conf = false;
 					this.check_rule(this.rule_id);
 				});
 			}
@@ -432,6 +434,7 @@ new Vue({
 				name: this.event_form.name,
 				template: this.event_form.template,
 				actionType: this.event_form.info_type,
+				defaultEnabled: this.event_form.enable,
 				fields: [],
 			};
 			this.event_form.fields.forEach((e) => {

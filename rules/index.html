@@ -100,13 +100,17 @@
           <!-- 物模型树 -->
           <div class="col_layout">
             <span class="title">物模型属性列表</span>
-            <el-tree :data="protocol_tree" :props="tree_conf">
-              <span class="tree_node_style" slot-scope="{ node, data }">
-                <span>{{data.name}}</span>
-                <span>类型：{{data.type}}</span>
-                <i class="el-icon-document-copy" @click.stop="copy_path(data.path)"></i>
-              </span>
-            </el-tree>
+            <div style="overflow: auto;">
+              <el-table :data="protocol_tree" row-key="name" :tree-props="tree_conf" border>
+                <el-table-column prop="name" label="标识符"></el-table-column>
+                <el-table-column prop="type" width="80" label="类型"></el-table-column>
+                <el-table-column label="复制" width="40" fixed="right">
+                  <template slot-scope="scope">
+                    <i class="el-icon-document-copy" @click="copy_path(scope.row.path)"></i>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
           </div>
         </div>
       </el-card>
@@ -210,13 +214,17 @@
           <!-- 物模型树 -->
           <div class="col_layout">
             <span class="title">物模型属性列表</span>
-            <el-tree :data="protocol_tree" :props="tree_conf">
-              <span class="tree_node_style" slot-scope="{ node, data }">
-                <span>{{data.name}}</span>
-                <span>类型：{{data.type}}</span>
-                <i class="el-icon-document-copy" @click.stop="copy_path(data.path)"></i>
-              </span>
-            </el-tree>
+            <div style="overflow: auto;">
+              <el-table :data="protocol_tree" row-key="name" :tree-props="tree_conf" border>
+                <el-table-column prop="name" label="标识符"></el-table-column>
+                <el-table-column prop="type" width="80" label="类型"></el-table-column>
+                <el-table-column label="复制" width="40" fixed="right">
+                  <template slot-scope="scope">
+                    <i class="el-icon-document-copy" @click="copy_path(scope.row.path)"></i>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
           </div>
         </div>
       </el-card>

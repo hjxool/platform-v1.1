@@ -21,6 +21,7 @@ new Vue({
 			loading_rule_detail: true, //事件等节点表单
 			trigger_form: false, //条件表单显示
 			event_form: false, //事件表单显示
+			event_trigger_form: false, //事件触发
 		},
 		rule_list: [], //设备规则列表
 		rule_selected: [], //选中的规则
@@ -28,6 +29,7 @@ new Vue({
 		node_selected: [], //选中的事件等
 		// 条件表单
 		trigger_form: {
+			enable: false,
 			name: '',
 			exp: '',
 			field: [],
@@ -35,14 +37,20 @@ new Vue({
 		},
 		// 事件表单
 		event_form: {
+			enable: false,
 			name: '',
 			template: '',
 			field: [],
 		},
+		// 事件触发
+		event_trigger_form: {
+			enable: false,
+			name: '',
+			value: '',
+		},
 		protocol_tree: [], //物模型树
 		tree_conf: {
 			children: 'child',
-			label: 'name',
 		},
 	},
 	mounted() {
@@ -52,6 +60,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.html.loading = true;
 		this.req_rule_list();
 		this.req_protocol();
 	},
@@ -178,7 +187,11 @@ new Vue({
 								t.custom_conf = e[key].condition;
 								t.custom_exp = this.joint_params(t.custom_conf.template, t.custom_conf.fields, 0);
 							} else if (key != 'defaultConfField') {
-								t[key] = e[key] || 0;
+								if (key == 'enabled') {
+									t[key] = e[key] || false;
+								} else {
+									t[key] = e[key] || 0;
+								}
 							}
 						}
 						//#region
@@ -197,7 +210,7 @@ new Vue({
 					this.html.rule_config = true;
 					this.$nextTick(() => {
 						this.node_list.forEach((e) => {
-							if (e.enabled == 1) {
+							if (e.enabled) {
 								this.$refs.node_list.toggleRowSelection(e, true);
 							}
 						});
@@ -208,9 +221,12 @@ new Vue({
 					return;
 				}
 				res.data.data.forEach((e) => {
-					let t = {
-						type: '触发条件',
-					};
+					let t = {};
+					if (e.confType == 0) {
+						t.type = '属性触发条件';
+					} else if (e.confType == 1) {
+						t.type = '事件触发条件';
+					}
 					t.conf = JSON.parse(e.defaultConfField).conf;
 					t.exp = this.joint_params(t.conf.exp, t.conf.defaultValues, 0);
 					for (let key in e) {
@@ -218,7 +234,11 @@ new Vue({
 							t.custom_conf = e[key].condition;
 							t.custom_exp = this.joint_params(t.conf.exp, t.custom_conf.defaultValues, 0);
 						} else if (key != 'defaultConfField') {
-							t[key] = e[key] || 0;
+							if (key == 'enabled') {
+								t[key] = e[key] || false;
+							} else {
+								t[key] = e[key] || 0;
+							}
 						}
 					}
 					//#region
@@ -262,7 +282,7 @@ new Vue({
 					deviceId: this.id,
 					ruleId: this.rule_id,
 				};
-				if (e.type == '触发条件') {
+				if (e.type == '属性触发条件' || e.type == '事件触发条件') {
 					if (Object.keys(e).indexOf('custom_conf') != -1) {
 						t2.condition = {
 							defaultValues: e.custom_conf.defaultValues,
@@ -297,12 +317,13 @@ new Vue({
 		// 编辑节点
 		edit_node(node_list, node_index) {
 			this.node_index = node_index;
-			if (node_list.type == '触发条件') {
-				this.trigger_form.name = node_list.nodeName | '';
+			if (node_list.type == '属性触发条件') {
+				this.trigger_form.enable = node_list.enabled;
+				this.trigger_form.name = node_list.nodeName || '';
 				this.trigger_form.exp = node_list.conf.exp || '';
 				this.trigger_form.field = node_list.conf.conditionFields || [];
 				this.trigger_form.params = [];
-				if (Object.keys(node_list).indexOf('custom_conf')) {
+				if (Object.keys(node_list).indexOf('custom_conf') != -1) {
 					node_list.custom_conf.defaultValues.forEach((e) => {
 						let t = { value: e };
 						this.trigger_form.params.push(t);
@@ -315,9 +336,10 @@ new Vue({
 				}
 				this.html.trigger_form = true;
 			} else if (node_list.type == '响应事件') {
-				this.event_form.name = node_list.nodeName | '';
+				this.event_form.enable = node_list.enabled;
+				this.event_form.name = node_list.nodeName || '';
 				this.event_form.field = [];
-				if (Object.keys(node_list).indexOf('customConf')) {
+				if (Object.keys(node_list).indexOf('customConf') != -1) {
 					this.event_form.template = node_list.custom_conf.template || '';
 					node_list.custom_conf.fields.forEach((e) => {
 						let t = { value: e };
@@ -331,10 +353,21 @@ new Vue({
 					});
 				}
 				this.html.event_form = true;
+			} else if (node_list.type == '事件触发条件') {
+				this.event_trigger_form.enable = node_list.enabled;
+				this.event_trigger_form.name = node_list.nodeName;
+				this.event_trigger_form.exp = 'event.identifier == %s';
+				this.event_trigger_form.field = 'event.identifier';
+				if (Object.keys(node_list).indexOf('custom_conf') != -1) {
+					this.event_trigger_form.value = node_list.custom_conf.defaultValues[0];
+				} else {
+					this.event_trigger_form.value = node_list.conf.defaultValues[0];
+				}
+				this.html.event_trigger_form = true;
 			}
 		},
 		// 条件保存
-		trigger_submit() {
+		trigger_submit(flag) {
 			let t = this.node_list[this.node_index];
 			let t2 = [
 				{
@@ -343,24 +376,25 @@ new Vue({
 					ruleId: this.rule_id,
 				},
 			];
-			let array = [];
-			this.trigger_form.params.forEach((e) => {
-				array.push(e.value);
-			});
-			t2[0].condition = { defaultValues: array };
-			let selected = [];
-			this.node_selected.forEach((e) => {
-				selected.push(e.nodeId);
-			});
-			if (selected.indexOf(t.nodeId) != -1) {
-				t2[0].enabled = true;
+			if (flag == 0) {
+				let array = [];
+				this.trigger_form.params.forEach((e) => {
+					array.push(e.value);
+				});
+				t2[0].condition = { defaultValues: array };
+				t2[0].enabled = this.trigger_form.enable;
+				this.request('post', save_node, this.token, t2, () => {
+					this.edit_rule(this.rule_id);
+					this.html.trigger_form = false;
+				});
 			} else {
-				t2[0].enabled = false;
+				t2[0].condition = { defaultValues: [this.event_trigger_form.value] };
+				t2[0].enabled = this.event_trigger_form.enable;
+				this.request('post', save_node, this.token, t2, () => {
+					this.edit_rule(this.rule_id);
+					this.html.event_trigger_form = false;
+				});
 			}
-			this.request('post', save_node, this.token, t2, () => {
-				this.edit_rule(this.rule_id);
-				this.html.trigger_form = false;
-			});
 		},
 		// 检测规则表达式里的特殊符号 并动态生成元素
 		identify_symbol(input, flag, index) {
@@ -401,15 +435,7 @@ new Vue({
 				array.push(e.value);
 			});
 			t2[0].condition.fields = array;
-			let selected = [];
-			this.node_selected.forEach((e) => {
-				selected.push(e.nodeId);
-			});
-			if (selected.indexOf(t.nodeId) != -1) {
-				t2[0].enabled = true;
-			} else {
-				t2[0].enabled = false;
-			}
+			t2[0].enabled = this.event_form.enable;
 			this.request('post', save_node, this.token, t2, () => {
 				this.edit_rule(this.rule_id);
 				this.html.trigger_form = false;
