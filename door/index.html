@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak @mousedown="close_message_box($event)" @drop="drop($event)" @dragover.prevent>
+    <!-- 场所列表 -->
+    <div class="place_list">
+      <div class="single" v-for="item,index in user_list">
+        <div class="name" @click="req_place_list(index)">
+          <img src="./img/项目底图.png" class="bg_img">
+          <img src="./img/加号.png" class="add button" @click.stop="add_place(index,item.tenantId)">
+          <span class="title text_ellipsis">{{item.companyName}}</span>
+          <img v-show="html.user_focus!=index" src="./img/点击显示场所.png" class="icon">
+          <img v-show="html.user_focus==index" src="./img/点击隐藏场所.png" class="icon">
+        </div>
+        <el-collapse-transition>
+          <div v-show="html.user_focus==index" style="width: 82%;">
+            <div v-for="item2,index2 in place_list" class="place" @click="select_place(index2)">
+              <img v-show="html.place_focus==index2" src="./img/场所亮.png" class="bg_img">
+              <img v-show="html.place_focus!=index2" src="./img/场所暗.png" class="bg_img">
+              <img src="./img/edit.png" class="icon" @click.stop="edit_place(item.tenantId,item2.id)">
+              <span :class="['text','text_ellipsis',html.place_focus==index2?'':'text_dark']">{{item2.placeName}}</span>
+              <img src="./img/closeIcon.png" class="icon2" @click.stop="del_place(item2.id)">
+            </div>
+          </div>
+        </el-collapse-transition>
+      </div>
+    </div>
+    <div class="gap"></div>
+    <!-- 设备卡片等 -->
+    <div class="workbench">
+      <!-- 选项卡 -->
+      <div style="display: flex;">
+        <div class="option" v-for="item,index in html.option" @click="option_switch(index)">
+          <img v-show="html.option_focus==index" src="./img/管理选项卡亮.png" class="bg_img">
+          <img v-show="html.option_focus!=index" src="./img/管理选项卡暗.png" class="bg_img">
+          <img :src="html.option_focus==index?item.src_light:item.src_dark" class="icon">
+          <span class="text">{{item.name}}</span>
+        </div>
+      </div>
+      <!-- 数据展示 -->
+      <div class="cards" v-show="html.option_focus==0">
+        <div class="buttons">
+          <img src="./img/delete.png" class="icon" @drop="del_device" id="del_area">
+          <img src="./img/编辑设备按钮.png" class="icon2" id="user_device" @click.stop="req_user_device">
+        </div>
+        <div class="card_bag">
+          <!-- 卡片列表 -->
+          <div v-for="item,index in device_list" class="card" draggable="true" @dragstart="drag_device(item)"
+            v-show="item.statusValue!=0">
+            <img v-show="item.statusValue==1" src="./img/deviceBg.png" class="bg_img">
+            <img v-show="item.statusValue!=1" src="./img/设备卡片报警.png" class="bg_img">
+            <div class="type center">
+              <img src="./img/bgicon.png" class="bg_img">
+              <span v-if="item.productType==1" class="text">{{html.product_type[0]}}</span>
+              <span v-if="item.productType==2" class="text">{{html.product_type[1]}}</span>
+              <span v-if="item.productType==3" class="text">{{html.product_type[2]}}</span>
+            </div>
+            <div class="info">
+              <div class="icon">
+                <div class="bg"></div>
+                <img :src="item.pictureUrl" class="bg_img" style="z-index: 0;">
+              </div>
+              <span class="name text_ellipsis">{{item.deviceName}}</span>
+            </div>
+            <div class="ctrl">
+              <img v-show="item.statusValue==1" src="./img/online.png" class="icon">
+              <img v-show="item.statusValue==2" src="./img/offline.png" class="icon">
+              <img src="./img/button.png" class="icon2">
+            </div>
+          </div>
+          <!-- 绝对定位的设备分配框 -->
+          <el-collapse-transition>
+            <div class="user_device_layout" v-show="html.user_device_show" v-loading="html.load_user_device"
+              element-loading-background="rgba(0, 0, 0, 0.8)">
+              <div class="search_box">
+                <el-input class="input" v-model="html.search_device"
+                  @keydown.enter.native="req_user_device(html.search_device)" size="medium" clearable></el-input>
+                <img src="./img/放大镜.png" class="icon button" @click="req_user_device(html.search_device)">
+              </div>
+              <div v-for="item,index in product_list">
+                <div class="product_layout" @click="product_click(index)">
+                  <img src="./img/icon.png" class="icon">
+                  <span class="text text_ellipsis">{{item.name}}</span>
+                  <img v-show="html.product_focus==index" src="./img/icon2.png" class="icon2">
+                  <img v-show="html.product_focus!=index" src="./img/icon3.png" class="icon3">
+                </div>
+                <el-collapse-transition>
+                  <div v-show="html.product_focus==index">
+                    <div class="device_layout" v-for="item2 in item.devices" @click="edit_place_device(item2)">
+                      <span class="text text_ellipsis">{{item2.deviceName}}</span>
+                      <img v-show="item2.check" src="./img/icon5.png" class="icon">
+                      <img v-show="!item2.check" src="./img/icon4.png" class="icon">
+                    </div>
+                  </div>
+                </el-collapse-transition>
+              </div>
+              <div class="no_data center" v-show="product_list.length==0">暂无数据</div>
+              <div class="gap"></div>
+            </div>
+          </el-collapse-transition>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

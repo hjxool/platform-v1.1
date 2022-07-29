@@ -1,0 +1,305 @@
+#index {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	position: absolute;
+}
+.place_list {
+	width: 11.46%;
+	min-width: 220px;
+	border: 1px solid #404755;
+	overflow: auto;
+	.single {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-top: 5px;
+		.name {
+			width: 98%;
+			height: 50px;
+			display: flex;
+			align-items: center;
+			position: relative;
+			z-index: 10;
+			cursor: pointer;
+			.add {
+				width: 26px;
+				height: 26px;
+				margin-left: 12px;
+			}
+			.title {
+				font-size: 16px;
+				color: #fff;
+				margin: 0 auto;
+			}
+			.icon {
+				width: 12px;
+				height: 12px;
+				margin-right: 12px;
+			}
+		}
+		.place {
+			height: 44px;
+			display: flex;
+			align-items: center;
+			position: relative;
+			z-index: 10;
+			cursor: pointer;
+			.icon {
+				width: 12px;
+				height: 12px;
+				margin-left: 12px;
+			}
+			.text {
+				font-size: 16px;
+				color: #fff;
+				margin: 0 auto;
+			}
+			.text_dark {
+				color: rgb(213, 234, 249);
+				opacity: 0.5;
+			}
+			.icon2 {
+				width: 12px;
+				height: 12px;
+				margin-right: 12px;
+			}
+		}
+	}
+}
+.gap {
+	width: 5px;
+}
+.workbench {
+	flex-grow: 1;
+	min-width: 900px;
+	display: grid;
+	grid-template-rows: 50px auto;
+	.option {
+		margin: 2px 2px 0 2px;
+		width: 146px;
+		display: flex;
+		position: relative;
+		align-items: center;
+		justify-content: space-evenly;
+		cursor: pointer;
+		.icon {
+			width: 16px;
+			height: 16px;
+		}
+		.text {
+			font-size: 18px;
+			color: #fff;
+		}
+	}
+	.cards {
+		display: grid;
+		grid-template-rows: 80px auto;
+		border: 1px solid #404755;
+		overflow: hidden;
+		.buttons {
+			display: flex;
+			align-items: center;
+			justify-content: end;
+			.icon {
+				width: 60px;
+				height: 60px;
+				margin-right: 20px;
+				object-fit: contain;
+			}
+			.icon2 {
+				width: 160px;
+				height: 60px;
+				cursor: pointer;
+				margin-right: 20px;
+				object-fit: contain;
+			}
+		}
+		.card_bag {
+			display: flex;
+			align-items: start;
+			justify-content: start;
+			flex-wrap: wrap;
+			overflow: auto;
+			position: relative;
+			.card {
+				width: 12.5vw;
+				min-width: 240px;
+				height: 32.2vh;
+				min-height: 270px;
+				position: relative;
+				margin: 15px;
+				display: flex;
+				flex-direction: column;
+				justify-content: end;
+				.type {
+					position: absolute;
+					right: 5.8%;
+					top: -12px;
+					width: 34.16%;
+					height: 10%;
+					z-index: 10;
+					.text {
+						font-size: 14px;
+						color: #fff;
+					}
+				}
+				.info {
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					margin-bottom: 10px;
+					.icon {
+						width: 37.5%;
+						height: 9.7vh;
+						min-height: 90px;
+						position: relative;
+						margin-bottom: 10px;
+						.bg {
+							width: 100%;
+							height: 100%;
+							background-color: #fff;
+							position: absolute;
+						}
+					}
+					.name {
+						font-size: 16px;
+						color: #fff;
+						max-width: 80%;
+					}
+				}
+				.ctrl {
+					height: 33.3%;
+					display: grid;
+					grid-template-columns: repeat(3, 1fr);
+					justify-items: center;
+					.icon {
+						width: 62.5%;
+						height: 30%;
+						align-self: end;
+						margin-bottom: 24%;
+						object-fit: contain;
+					}
+					.icon2 {
+						align-self: start;
+						cursor: pointer;
+						width: 100%;
+						height: 90%;
+						object-fit: contain;
+					}
+				}
+			}
+			.user_device_layout {
+				width: 17.7vw;
+				min-width: 340px;
+				max-height: 54.63vh;
+				position: absolute;
+				top: 0;
+				right: 1.4%;
+				background: #212839;
+				border: 1px solid #384353;
+				border-radius: 2px;
+				display: flex;
+				flex-direction: column;
+				overflow: auto;
+				padding-right: 10px;
+				z-index: 999;
+				.search_box {
+					align-self: center;
+					margin: 20px 0;
+					display: flex;
+					align-items: center;
+					.input {
+						width: 11.46vw;
+						min-width: 210px;
+						height: 34px;
+						margin-right: 6px;
+						.el-input__inner {
+							background-color: #101a24;
+							border: none;
+							color: #fff;
+						}
+					}
+					.icon {
+						width: 2.76vw;
+						min-width: 50px;
+						height: 34px;
+						object-fit: contain;
+					}
+				}
+				.product_layout {
+					height: 5.55vh;
+					min-height: 60px;
+					display: flex;
+					align-items: center;
+					padding: 0 8.82%;
+					background: #2d3643;
+					cursor: pointer;
+					.icon {
+						width: 8.23%;
+						min-width: 28px;
+						height: 2.59vh;
+						min-height: 28px;
+						object-fit: contain;
+					}
+					.text {
+						font-size: 16px;
+						color: #ffffff;
+						margin: 0 auto;
+					}
+					.icon2 {
+						width: 14px;
+						height: 8px;
+						object-fit: contain;
+					}
+					.icon3 {
+						width: 8px;
+						height: 14px;
+						object-fit: contain;
+					}
+				}
+				.device_layout {
+					margin: 20px 0;
+					display: flex;
+					align-items: center;
+					cursor: pointer;
+					.text {
+						font-size: 16px;
+						color: #fefeff;
+						opacity: 0.7;
+						margin: 0 auto;
+					}
+					.icon {
+						width: 18px;
+						height: 18px;
+						margin-right: 11.76%;
+					}
+				}
+				.no_data {
+					width: 100%;
+					height: 100px;
+					color: #fff;
+				}
+				.gap {
+					margin: 10px 0;
+					width: 100%;
+				}
+			}
+		}
+	}
+}
+::-webkit-scrollbar {
+	/*滚动条整体样式*/
+	width: 5px; /*高宽分别对应横竖滚动条的尺寸*/
+	height: 5px;
+}
+::-webkit-scrollbar-thumb {
+	/*滚动条里面小方块*/
+	border-radius: 5px;
+	background: #82a3f7;
+}
+::-webkit-scrollbar-track {
+	/*滚动条里面轨道*/
+	border-radius: 5px;
+	background: #404755;
+}

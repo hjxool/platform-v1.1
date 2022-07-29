@@ -53,3 +53,8 @@ body {
 .button:active {
 	transform: scale(0.9);
 }
+.text_ellipsis {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

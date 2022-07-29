@@ -45,6 +45,9 @@ new Vue({
 				case 'RulesEngine2':
 					url = `./device_rule/index.html?id=${this.id}&token=${this.token}`;
 					return url;
+				case 'OperationAndMaintenance':
+					url = `./door/index.html?id=${this.id}&token=${this.token}`;
+					return url;
 			}
 		},
 	},
