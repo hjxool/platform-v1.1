@@ -91,8 +91,8 @@ new Vue({
 				size: '', //属性 数组大小
 				itemType: '', //属性 数组元素类型
 				textLength: '', //属性 text类型
-				outputData: '', //事件/服务 属性数组
-				inputData: '', //服务 属性数组
+				outputData: [], //事件/服务 属性数组
+				inputData: [], //服务 属性数组
 				// struct_array: [], //属性 子属性数组
 			},
 			// 表单数组
@@ -695,7 +695,7 @@ new Vue({
 											identifier: obj.identifier,
 											name: obj.name,
 											type: obj.dataType,
-											outputData: obj.outputData,
+											outputData: obj.outputData || [],
 										},
 									],
 								};
@@ -713,8 +713,8 @@ new Vue({
 											identifier: obj.identifier,
 											name: obj.name,
 											method: obj.dataType,
-											inputData: obj.inputData,
-											outputData: obj.outputData,
+											inputData: obj.inputData || [],
+											outputData: obj.outputData || [],
 										},
 									],
 								};
@@ -787,7 +787,7 @@ new Vue({
 										e.identifier = obj.identifier;
 										e.name = obj.name;
 										e.type = obj.dataType;
-										e.outputData = obj.outputData;
+										e.outputData = obj.outputData || [];
 										this.request('put', `${protocol_event}/${this.model_id}`, this.token, e, () => {
 											this.res_history_model(this.history_selected);
 											this.form_list = [];
@@ -802,8 +802,8 @@ new Vue({
 										e.identifier = obj.identifier;
 										e.name = obj.name;
 										e.type = obj.dataType;
-										e.inputData = obj.inputData;
-										e.outputData = obj.outputData;
+										e.inputData = obj.inputData || [];
+										e.outputData = obj.outputData || [];
 										this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
 											this.res_history_model(this.history_selected);
 											this.form_list = [];

@@ -48,6 +48,9 @@ new Vue({
 				case 'OperationAndMaintenance':
 					url = `./door/index.html?id=${this.id}&token=${this.token}`;
 					return url;
+				case 'MeetingReservation':
+					url = `./meeting_reserve/index.html?token=${this.token}`;
+					return url;
 			}
 		},
 	},

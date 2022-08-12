@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <!-- 功能按钮等 -->
+    <div class="header">
+      <el-input class="search flex_shrink" placeholder="会议室名称" v-model="input1">
+        <i slot="suffix" class="el-input__icon el-icon-search button"></i>
+      </el-input>
+      <div class="calendar_box flex_shrink">
+        <span class="text">2022年8月10(星期二)</span>
+        <i class="el-icon-date button icon" @click="fun1"></i>
+        <el-date-picker id="calendar" v-model="input2" type="date"></el-date-picker>
+      </div>
+    </div>
+    <!-- 提示区 -->
+    <div class="table_type">
+      <span class="meeting_name">会议室(场所)</span>
+      <div class="other">
+        <span class="text flex_shrink">时间</span>
+        <div class="tips flex_shrink">
+          <span class="tip">空闲</span>
+          <span class="tip">待审批</span>
+          <span class="tip">已预定</span>
+          <span class="tip">当前时间分割线</span>
+        </div>
+      </div>
+    </div>
+    <!-- 看板 -->
+    <div class="table_box">
+      <!-- 时间轴 -->
+      <div class="time_line_box">
+        <!-- 占位 -->
+        <div></div>
+        <div v-for="i in 18" class="time_line center">{{6+i-1==24?'00':6+i-1}}:30</div>
+      </div>
+      <!-- 会议室列表 -->
+      <div class="meeting_boxs">
+        <div class="current_time"></div>
+        <div v-for="item,index in place_list" class="place">
+          <span class="place_name text_ellipsis">{{item.name}}</span>
+          <div v-for="i in 36" class="time_box">
+            <div v-show="html.block_list[index][i-1] == 1" class="no_pass"></div>
+            <div v-show="html.block_list[index][i-1] == 2" class="pass"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>
