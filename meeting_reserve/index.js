@@ -200,7 +200,7 @@ new Vue({
 		//#endregion
 		area_start(e) {
 			this.mouse_start = e.pageX; //鼠标只能往后拖
-			let mouse_position = this.mouse_start - this.first_block_position;
+			let mouse_position = this.mouse_start - this.first_block_position + 10; //10是边框带来的偏差值
 			let boundary = parseInt(document.querySelector('.current_time').style.left) - 200;
 			if (mouse_position >= boundary) {
 				// 查看鼠标点击位置方块是否已经有值
@@ -212,9 +212,6 @@ new Vue({
 					this.start_move = true;
 					this.col_index_start = col_index_start;
 					this.col_index_end = col_index_start;
-					console.log(`col_index_start：${col_index_start}
-          <br>this.col_index_start：${this.col_index_start}<br>
-          this.col_index_end：${this.col_index_end}`);
 					// 将色块状态改为3 表示选中 在取消创建会议时恢复状态为0
 					this.html.block_list[this.row_index].splice(col_index_start, 1, 3);
 				}
@@ -270,9 +267,11 @@ new Vue({
 				for (let i = 0; i <= l; i++) {
 					this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 3);
 				}
-				for (let i = 1; i < 34 - this.col_index_end; i++) {
-					if (this.html.block_list[this.row_index][this.col_index_end + i] == 3) {
-						this.html.block_list[this.row_index].splice(this.col_index_end + i, 1, 0);
+				if (this.col_index_end >= this.col_index_start) {
+					for (let i = 1; i < 34 - this.col_index_end; i++) {
+						if (this.html.block_list[this.row_index][this.col_index_end + i] == 3) {
+							this.html.block_list[this.row_index].splice(this.col_index_end + i, 1, 0);
+						}
 					}
 				}
 			}
@@ -307,10 +306,6 @@ new Vue({
 			for (let i = 0; i <= l; i++) {
 				this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 0);
 			}
-		},
-		xx() {
-			console.log(this.new_meeting_form.date);
-			console.log(typeof this.new_meeting_form.date);
 		},
 	},
 });

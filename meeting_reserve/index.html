@@ -77,7 +77,7 @@
 
           <el-form-item label="预约时间">
             <div style="display: flex;">
-              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin" @change="xx"></el-date-picker>
+              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin"></el-date-picker>
               <el-time-select v-model="new_meeting_form.time_start" class="margin"
                 :picker-options="{start: '06:00',step: '00:30',end: '23:30'}" placeholder="选择起始时间">
               </el-time-select>
