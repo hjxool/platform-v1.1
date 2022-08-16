@@ -102,7 +102,7 @@
 	position: relative;
 	.time_line_box {
 		display: grid;
-		grid-template-columns: 200px repeat(18, 1fr);
+		grid-template-columns: 200px repeat(17, 1fr);
 		grid-auto-flow: column;
 		grid-auto-columns: 60px;
 		background-color: #e9f3f7;
@@ -120,17 +120,13 @@
 		align-self: start;
 		.place {
 			display: grid;
-			grid-template-columns: 200px repeat(36, 1fr);
+			grid-template-columns: 200px repeat(34, 1fr);
 			grid-auto-flow: column;
 			grid-auto-columns: 30px;
 			border: 1px solid #e6e6e6;
-			// border-top: none;
 			border-top: 1px solid #e6e6e6;
 			position: relative;
 			margin-top: 10px;
-			// &:first-child {
-			// 	border-top: 1px solid #e6e6e6;
-			// }
 			.place_name {
 				display: flex;
 				align-items: center;
@@ -143,18 +139,22 @@
 				display: grid;
 				min-width: 30px;
 				.color_start {
-					border-top-left-radius: 50%;
-					border-bottom-left-radius: 50%;
+					border-top-left-radius: 20px;
+					border-bottom-left-radius: 20px;
 				}
 				.color_end {
-					border-top-right-radius: 50%;
-					border-bottom-right-radius: 50%;
+					border-top-right-radius: 20px;
+					border-bottom-right-radius: 20px;
 				}
 				.pass {
 					background-color: #fefe33;
 				}
 				.no_pass {
 					background-color: #7cfdff;
+				}
+				.area_box {
+					// border: 1px solid #106fff;
+					background-color: #106fff;
 				}
 			}
 		}
@@ -164,6 +164,48 @@
 			border: 2px dashed red;
 			position: absolute;
 			z-index: 100;
+		}
+	}
+}
+.new_meeting_box {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	background-color: rgba(0, 0, 0, 0.2);
+	display: grid;
+	align-content: center;
+	justify-content: center;
+	z-index: 999;
+	.form_box {
+		width: 31.25%;
+		min-width: 600px;
+		max-height: 90%;
+		.form_head {
+			display: flex;
+			align-items: center;
+			height: 40px;
+			.text {
+				font-weight: bold;
+				font-size: 18px;
+			}
+			.icon {
+				width: 26px;
+				height: 26px;
+				background-color: #fdeaea;
+				border-radius: 50%;
+				margin: 0 10px 0 auto;
+				.icon2 {
+					font-size: 16px;
+					color: #f02424;
+				}
+			}
+		}
+		.button_layout {
+			display: flex;
+			justify-content: end;
+		}
+		.margin {
+			margin-right: 10px;
 		}
 	}
 }

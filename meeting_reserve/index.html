@@ -12,16 +12,17 @@
 </head>
 
 <body>
-  <div id="index" v-cloak>
+  <div id="index" v-cloak @mouseup="area_end">
     <!-- 功能按钮等 -->
     <div class="header">
-      <el-input class="search flex_shrink" placeholder="会议室名称" v-model="input1">
+      <el-input class="search flex_shrink" placeholder="会议室名称" v-model="html.search_meeting">
         <i slot="suffix" class="el-input__icon el-icon-search button"></i>
       </el-input>
       <div class="calendar_box flex_shrink">
-        <span class="text">2022年8月10(星期二)</span>
-        <i class="el-icon-date button icon" @click="fun1"></i>
-        <el-date-picker id="calendar" v-model="input2" type="date"></el-date-picker>
+        <span class="text">{{html.year}}年{{html.month}}月{{html.day}}({{html.week}})</span>
+        <i class="el-icon-date button icon" @click="select_day"></i>
+        <el-date-picker id="calendar" v-model="html.date" type="date" @change="display_time(html.date)">
+        </el-date-picker>
       </div>
     </div>
     <!-- 提示区 -->
@@ -43,19 +44,55 @@
       <div class="time_line_box">
         <!-- 占位 -->
         <div></div>
-        <div v-for="i in 18" class="time_line center">{{6+i-1==24?'00':6+i-1}}:30</div>
+        <div v-for="i in 17" class="time_line center">{{6+i-1}}:30</div>
       </div>
       <!-- 会议室列表 -->
-      <div class="meeting_boxs">
+      <div class="meeting_boxs" @mousedown="area_start" @mousemove="area_over">
         <div class="current_time"></div>
         <div v-for="item,index in place_list" class="place">
           <span class="place_name text_ellipsis">{{item.name}}</span>
-          <div v-for="i in 36" class="time_box">
+          <div v-for="i,index2 in 34" class="time_box">
             <div v-show="html.block_list[index][i-1] == 1" class="no_pass"></div>
             <div v-show="html.block_list[index][i-1] == 2" class="pass"></div>
+            <!-- <div v-show="html.block_list[index][i-1] == 3" class="area_box"></div> -->
+            <div v-show="html.block_list[index][i-1] == 3"
+              :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']"></div>
           </div>
         </div>
       </div>
+    </div>
+    <!-- 遮罩及新建会议弹窗 -->
+    <div class="new_meeting_box" v-show="html.new_meeting">
+      <el-card class="form_box" shadow="never">
+        <div class="form_head">
+          <span class="text">预约会议</span>
+          <div class="icon center button" @click="close_new">
+            <i class="el-icon-close icon2"></i>
+          </div>
+        </div>
+        <el-form :model="new_meeting_form" label-width="80px">
+          <el-form-item label="会议名称">
+            <el-input v-model="new_meeting_form.name"></el-input>
+          </el-form-item>
+
+          <el-form-item label="预约时间">
+            <div style="display: flex;">
+              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin" @change="xx"></el-date-picker>
+              <el-time-select v-model="new_meeting_form.time_start" class="margin"
+                :picker-options="{start: '06:00',step: '00:30',end: '23:30'}" placeholder="选择起始时间">
+              </el-time-select>
+              <span class="margin">&#10140</span>
+              <el-time-select v-model="new_meeting_form.time_end" class="margin"
+                :picker-options="{start: '06:00',step: '00:30',end: '23:30'}" placeholder="选择结束时间">
+              </el-time-select>
+            </div>
+          </el-form-item>
+
+          <el-form-item class="button_layout">
+            <el-button type="primary" @click="new_submit">确定</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
     </div>
   </div>
 

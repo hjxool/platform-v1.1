@@ -63,6 +63,7 @@ new Vue({
 						this.place_list = res.data.data;
 						this.select_place(0);
 					} else {
+						this.html.user_focus = -1;
 						this.$message.info('该租户下无场所');
 					}
 				});
