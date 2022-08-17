@@ -145,6 +145,20 @@ new Vue({
 		},
 		// 获取租户下所有可分配设备
 		req_user_device(input) {
+			if (typeof this.user_id == 'undefined') {
+				this.$message.info('请选择租户');
+				return;
+			}
+			if (this.html.user_focus == -1) {
+				let t;
+				for (let i = 0; i < this.user_list.length; i++) {
+					if (this.user_id == this.user_list[i].tenantId) {
+						t = i;
+						break;
+					}
+				}
+				this.html.user_focus = t;
+			}
 			this.html.load_user_device = true;
 			this.product_list = [];
 			let req = { condition: {}, pageNum: 1, pageSize: 9999 };

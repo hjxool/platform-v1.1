@@ -1,5 +1,5 @@
-// let url = `${我是接口地址}/`;
-// let user_list = `${url}api-portal/place/tenant/findTenantList`;
+let url = `${我是接口地址}/`;
+let room_list = `${url}api-portal/room/search/time`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -17,20 +17,9 @@ new Vue({
 			search_meeting: '', //搜索会议名
 			new_meeting: false, //新增会议弹窗
 			throttle_flag: false, //节流方法标识
+			loading: true, //页面初始加载
 		},
-		place_list: [
-			{
-				name: '测试1',
-				meeting: [
-					{ start: '07:00', end: '11:30', status: 1 },
-					{ start: '14:30', end: '15:00', status: 0 },
-				],
-			},
-			{
-				name: '测试2',
-				meeting: [{ start: '10:00', end: '15:00', status: 1 }],
-			},
-		],
+		place_list: [], // 会议室及会议列表
 		// 新建会议表单
 		new_meeting_form: {
 			name: '', //会议名
@@ -41,42 +30,50 @@ new Vue({
 		col_index_start: null,
 		col_index_end: null,
 	},
-	created() {
-		this.block_status();
-	},
 	mounted() {
-		// if (!location.search) {
-		// 	this.token = sessionStorage.token;
-		// } else {
-		// 	this.get_token();
-		// }
+		if (!location.search) {
+			this.token = sessionStorage.token;
+		} else {
+			this.get_token();
+		}
+		this.req_room_list();
 		// 获取当前时间
 		this.display_time(new Date());
-		this.first_block_position = document.querySelector('.time_box').getBoundingClientRect().left;
-		this.get_boundary();
 		window.onresize = () => {
 			this.get_boundary();
 		};
-		this.add_exist_meeting_style();
 	},
 	methods: {
+		// 查询会议室及会议详情列表
+		req_room_list(meeting_name) {
+			this.request('post', room_list, this.token, { roomName: meeting_name || '' }, (res) => {
+				console.log('会议室及会议', res);
+				if (res.data == null || res.data.data == null) {
+					this.message.info('当前用户下无会议室');
+					return;
+				}
+				this.place_list = res.data.data;
+				this.block_status();
+			});
+		},
 		select_day() {
 			let dom = document.querySelector('#calendar');
 			dom.focus();
 		},
+		// 查询每一个会议室下会议占用情况
 		query_block_status(place_obj, time_index) {
 			// time_index从0开始
-			let array = place_obj.meeting;
+			let array = place_obj.meetingList;
 			// 对单个场所下每个时间点 查找是否在任意一个会议时间段内
 			for (let i = 0; i < array.length; i++) {
-				let start = array[i].start.split(':');
+				let start = array[i].startTime.split(':');
 				let start_hour = +start[0];
 				let start_minute = +start[1];
 				let start_index = (start_hour - 6) * 2;
 				if (start_minute == 30) {
 					start_index++;
 				}
-				let end = array[i].end.split(':');
+				let end = array[i].endTime.split(':');
 				let end_hour = +end[0];
 				let end_minute = +end[1];
 				// 结束时间是分隔线之前 开始时间从分隔线之后
@@ -85,17 +82,18 @@ new Vue({
 					end_index++;
 				}
 				if (time_index >= start_index && time_index <= end_index) {
-					// status 0表示待审批 1表示已预定
-					if (array[i].status == 0) {
+					// timeType 0表示已过期 1表示已预定 2表示空闲
+					if (array[i].timeType == 0) {
 						return 1;
-					} else if (array[i].status == 1) {
+					} else if (array[i].timeType == 1) {
 						return 2;
 					}
 				}
 			}
-			// 0表示空闲 1表示待审批 2表示已预定
+			// 0表示空闲 1表示已过期 2表示已预定
 			return 0;
 		},
+		// 组装二维矩阵 控制方块显示
 		block_status() {
 			this.html.block_list = [];
 			for (let i = 0; i < this.place_list.length; i++) {
@@ -105,6 +103,10 @@ new Vue({
 				}
 				this.html.block_list.push(t);
 			}
+			// vue在页面所需数组未请求回来时 不会渲染 因此找不到数组节点
+			this.first_block_position = document.querySelector('.time_box').getBoundingClientRect().left;
+			this.add_exist_meeting_style();
+			this.get_boundary();
 		},
 		get_boundary() {
 			let time = new Date().toString().split(' ')[4];
@@ -298,14 +300,17 @@ new Vue({
 		new_submit() {},
 		close_new() {
 			this.html.new_meeting = false;
-			let child = this.dom_list[this.row_index * 34 + this.col_index_start].children;
-			child[2].classList.remove('color_start');
-			let child2 = this.dom_list[this.row_index * 34 + this.col_index_end].children;
-			child2[2].classList.remove('color_end');
+			//#region
+			// let child = this.dom_list[this.row_index * 34 + this.col_index_start].children;
+			// child[2].classList.remove('color_start');
+			// let child2 = this.dom_list[this.row_index * 34 + this.col_index_end].children;
+			// child2[2].classList.remove('color_end');
+			//#endregion
 			let l = this.col_index_end - this.col_index_start;
 			for (let i = 0; i <= l; i++) {
 				this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 0);
 			}
+			this.col_index_start = this.col_index_end = null;
 		},
 	},
 });
