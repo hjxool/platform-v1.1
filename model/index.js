@@ -129,13 +129,15 @@ new Vue({
 		res_history_model(index) {
 			this.request('post', protocol_list, this.token, { condition: this.id, pageNum: 1, pageSize: 999 }, (res) => {
 				console.log('历史版本', res);
-				if (res.data.data.data != null) {
-					this.history_list = res.data.data.data;
-					this.search_current_model();
-					this.model_select(index);
-					// 加载完毕后再显示底部卡片
-					this.static_params.first_load = false;
+				// 加载完毕后再显示底部卡片
+				if (res.data.data == null || res.data.data.data == null) {
+					this.$message.info('无历史数据');
+					return;
 				}
+				this.static_params.first_load = false;
+				this.history_list = res.data.data.data;
+				this.search_current_model();
+				this.model_select(index);
 			});
 		},
 		// 选择查看版本
