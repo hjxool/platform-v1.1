@@ -40,7 +40,7 @@
       </div>
     </div>
     <!-- 看板 -->
-    <div class="table_box">
+    <div class="table_box" @mouseover="close_meeting_info_box">
       <!-- 时间轴 -->
       <div class="time_line_box">
         <!-- 占位 -->
@@ -52,12 +52,12 @@
         <div class="current_time"></div>
         <div v-for="item,index in place_list" class="place">
           <span class="place_name text_ellipsis">{{item.roomName}}</span>
-          <div v-for="i,index2 in 34" class="time_box">
-            <div class="pass center" v-if="html.block_list[index][i-1] == 1||html.block_list[index][i-1] == 2">
-              <img v-if="html.block_list[index][i-1] == 1" src="./img/icon2.png" class="icon flex_shrink">
-              <img v-if="html.block_list[index][i-1] == 2" src="./img/icon1.png" class="icon flex_shrink">
+          <div v-for="i,index2 in 34" class="time_box" @mouseover="query_meeting_info($event,index,index2)">
+            <div class="pass center" v-if="html.block_list[index][index2] == 1||html.block_list[index][index2] == 2">
+              <img v-if="html.block_list[index][index2] == 1" src="./img/icon2.png" class="icon flex_shrink">
+              <img v-if="html.block_list[index][index2] == 2" src="./img/icon1.png" class="icon flex_shrink">
             </div>
-            <div v-show="html.block_list[index][i-1] == 3"
+            <div v-show="html.block_list[index][index2] == 3"
               :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']"></div>
           </div>
         </div>
@@ -147,7 +147,7 @@
 
           <el-form-item label="附件">
             <el-upload :action="file.url" :headers="upload_header()" :file-list="file.list" :before-remove="file_del"
-              multiple :on-success="upload_result" style="width: 50%;">
+              :on-success="upload_result" style="width: 50%;">
               <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
             </el-upload>
           </el-form-item>
@@ -158,6 +158,16 @@
         </el-form>
       </el-card>
     </div>
+    <!-- 会议信息 -->
+    <el-card class="meeting_info_box" v-show="html.meeting_info_show" shadow="always">
+      <div class="single_info" v-for="item,index in html.meeting_infos">
+        <span class="title">{{item}}</span>
+        <span class="text" v-if="index==0">{{meeting_info.name}}</span>
+        <span class="text" v-if="index==1">{{meeting_info.start_time}}</span>
+        <span class="text" v-if="index==2">{{meeting_info.end_time}}</span>
+        <span class="text" v-if="index==3">{{meeting_info.type}}</span>
+      </div>
+    </el-card>
   </div>
 
   <script src="../../运维人员部署请修改我.js"></script>

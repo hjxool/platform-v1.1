@@ -24,6 +24,8 @@ new Vue({
 			reserve_type: [], //预约方式选项
 			week_options: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'], // 自定义星期选择
 			bool_options: ['否', '是'],
+			meeting_info_show: false, //会议信息显示
+			meeting_infos: ['会议主题', '开始时间', '结束时间', '类型'],
 		},
 		place_list: [], // 会议室及会议列表
 		// 新建会议表单
@@ -40,6 +42,13 @@ new Vue({
 			summary: 1, //会议纪要
 			search_person: [], // 搜索用户名
 			cycle_deadline: '', // 周期预约的截止日期
+		},
+		// 会议信息
+		meeting_info: {
+			name: '',
+			start_time: '',
+			end_time: '',
+			type: '',
 		},
 		col_index_start: null,
 		col_index_end: null,
@@ -237,7 +246,7 @@ new Vue({
 				let col_index_start = Math.floor(mouse_position / this.block_width);
 				let parent_position = document.querySelector('.meeting_boxs').getBoundingClientRect().top;
 				let mouse_y = e.pageY;
-				this.row_index = Math.floor((mouse_y - parent_position) / 70);
+				this.row_index = Math.floor((mouse_y - parent_position) / 70); // 从0开始
 				if (this.html.block_list[this.row_index][col_index_start] == 0) {
 					this.start_move = true;
 					this.col_index_start = col_index_start;
@@ -355,20 +364,52 @@ new Vue({
 					'每年(不可用)',
 					`自定义`,
 				];
+				this.new_meeting_form.name = '';
+				this.new_meeting_form.method = 0;
+				this.new_meeting_form.cus_week = [];
+				this.new_meeting_form.reply = 0;
+				this.new_meeting_form.sendMessage = 1;
+				this.new_meeting_form.signIn = 1;
+				this.new_meeting_form.summary = 1;
+				this.new_meeting_form.search_person = [];
+				this.new_meeting_form.cycle_deadline = '';
 			}
 			this.start_move = false;
 		},
 		// 提交新建会议表单 并刷新数据 关闭弹窗
 		new_submit(form) {
 			let data = {
-				// appointmentEndTime: form.cycle_deadline,
 				appointmentMode: form.method,
+				reply: form.reply,
+				roomId: this.place_list[this.row_index].id,
+				sendMessage: form.sendMessage,
+				signIn: form.signIn,
+				summary: form.summary,
+				theme: form.name,
+				userIds: form.search_person,
 			};
+			if (form.method != 0) {
+				// 周期截止
+				let y = form.cycle_deadline.getFullYear();
+				let m = form.cycle_deadline.getMonth() + 1 < 10 ? '0' + (form.cycle_deadline.getMonth() + 1) : form.cycle_deadline.getMonth() + 1;
+				let d = form.cycle_deadline.getDate() < 10 ? '0' + form.cycle_deadline.getDate() : form.cycle_deadline.getDate();
+				data.appointmentEndTime = `${y}-${m}-${d} 23:00:00`;
+			}
 			if (form.method == 5) {
+				// 自定义周
 				let t = form.cus_week.toString();
 				data.appointmentPeriod = `${t}`;
 			}
-			// this.request('post', meeting_reserve, this.token, data, () => {});
+			// 开始结束时间
+			let m = form.date.getMonth() + 1 < 10 ? '0' + (form.date.getMonth() + 1) : form.date.getMonth() + 1;
+			let d = form.date.getDate() < 10 ? '0' + form.date.getDate() : form.date.getDate();
+			data.endTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_end}:00`;
+			data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
+			this.request('post', meeting_reserve, this.token, data, () => {
+				this.col_index_start = this.col_index_end = null;
+				this.req_room_list();
+				this.html.new_meeting = false;
+			});
 		},
 		close_new() {
 			this.html.new_meeting = false;
@@ -417,6 +458,85 @@ new Vue({
 				Authorization: `Bearer ${this.token}`,
 				// 'content-type': 'application/json',
 			};
+		},
+		// 鼠标悬浮时显示其下会议信息
+		query_meeting_info(event, row_index, col_index) {
+			if (!this.start_move) {
+				// 先判断鼠标悬停处有没有会议 没有隐藏信息框 有则显示
+				this.html.meeting_info_show = false;
+				if (this.html.block_list[row_index][col_index] != 0) {
+					let t = this.place_list[row_index].meetingList;
+					for (let i = 0; i < t.length; i++) {
+						let start = t[i].startTime.split(' ')[1].split(':');
+						let start_hour = +start[0];
+						let start_minute = +start[1];
+						let start_index = (start_hour - 6) * 2;
+						if (start_minute == 30) {
+							start_index++;
+						}
+						let end = t[i].endTime.split(' ')[1].split(':');
+						let end_hour = +end[0];
+						let end_minute = +end[1];
+						let end_index = (end_hour - 6) * 2 - 1;
+						if (end_minute == 30) {
+							end_index++;
+						}
+						if (col_index >= start_index && col_index <= end_index) {
+							let info = t[i];
+							this.meeting_info.name = info.theme;
+							this.meeting_info.start_time = info.startTime;
+							this.meeting_info.end_time = info.endTime;
+							switch (info.type) {
+								case 0:
+									this.meeting_info.type = '视频会议';
+									break;
+								case 1:
+									this.meeting_info.type = '综合会议';
+									break;
+								case 2:
+									this.meeting_info.type = '无纸化会议';
+									break;
+							}
+							this.html.meeting_info_show = true;
+							// 根据鼠标位置计算弹窗出现位置 当展示距离不够时 再相反位置出现
+							let dom = document.querySelector('.meeting_info_box');
+							let box_width = dom.offsetWidth;
+							let box_height = dom.offsetHeight;
+							if (event.clientX >= box_width) {
+								dom.style.left = event.clientX - box_width + 'px';
+							} else {
+								dom.style.left = event.clientX + 'px';
+							}
+							let page = document.querySelector('#index');
+							if (page.clientHeight - event.clientY >= box_height) {
+								dom.style.top = event.clientY + 'px';
+							} else {
+								dom.style.top = event.clientY - box_height + 'px';
+							}
+							break;
+						}
+					}
+				}
+			}
+		},
+		// 鼠标移出位置时关闭弹窗
+		close_meeting_info_box(event) {
+			if (event.clientX < this.first_block_position) {
+				this.html.meeting_info_show = false;
+				return;
+			}
+			let dom1 = document.querySelector('.time_line_box');
+			let t = dom1.getBoundingClientRect().bottom;
+			if (event.clientY < t) {
+				this.html.meeting_info_show = false;
+				return;
+			}
+			let dom2 = document.querySelectorAll('.place')[length - 1];
+			let t2 = dom2.getBoundingClientRect().bottom;
+			if (event.clientY > t2) {
+				this.html.meeting_info_show = false;
+				return;
+			}
 		},
 	},
 });
