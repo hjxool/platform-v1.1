@@ -42,6 +42,7 @@ new Vue({
 			summary: 1, //会议纪要
 			search_person: [], // 搜索用户名
 			cycle_deadline: '', // 周期预约的截止日期
+			// files: [], // 存多次上传文件回来的结果
 		},
 		// 会议信息
 		meeting_info: {
@@ -319,7 +320,7 @@ new Vue({
 		area_end() {
 			if (this.start_move) {
 				this.html.new_meeting = true;
-				this.new_meeting_form.date = new Date();
+				this.new_meeting_form.date = this.html.date;
 				// 计算当前时间
 				let t = Math.floor(this.col_index_start / 2) + 6;
 				this.new_meeting_form.time_start = `${t}:00`;
@@ -373,6 +374,7 @@ new Vue({
 				this.new_meeting_form.summary = 1;
 				this.new_meeting_form.search_person = [];
 				this.new_meeting_form.cycle_deadline = '';
+				this.new_meeting_form.files = [];
 			}
 			this.start_move = false;
 		},
@@ -387,6 +389,7 @@ new Vue({
 				summary: form.summary,
 				theme: form.name,
 				userIds: form.search_person,
+				meetingFiles: form.files,
 			};
 			if (form.method != 0) {
 				// 周期截止
@@ -445,12 +448,21 @@ new Vue({
 		},
 		// 删除上传文件时
 		file_del(file, file_list) {
-			return this.$confirm(`确认删除 ${file.name} ？`);
+			let promise = this.$confirm(`确认删除 ${file.name} ？`);
+			let index;
+			for (let i = 0; i < file_list.length; i++) {
+				if (file_list[i].uid == file.uid) {
+					index = i;
+					break;
+				}
+			}
+			this.new_meeting_form.files.splice(index, 1);
+			return promise;
 		},
 		// 上传文件返回的数据
 		upload_result(res, file_list) {
 			console.log('上传结果', res);
-			this.file_info = res.data.data;
+			this.new_meeting_form.files.push(res.data);
 		},
 		// 上传文件头部
 		upload_header() {
@@ -531,8 +543,9 @@ new Vue({
 				this.html.meeting_info_show = false;
 				return;
 			}
-			let dom2 = document.querySelectorAll('.place')[length - 1];
-			let t2 = dom2.getBoundingClientRect().bottom;
+			let dom2 = document.querySelectorAll('.place');
+			let dom3 = dom2[dom2.length - 1];
+			let t2 = dom3.getBoundingClientRect().bottom;
 			if (event.clientY > t2) {
 				this.html.meeting_info_show = false;
 				return;

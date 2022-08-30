@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <!-- 日期及选项切换 -->
+    <div class="header">
+      <div class="box1">
+        <div class="icon1 center">
+          <i class="el-icon-arrow-left icon2"></i>
+        </div>
+        <el-date-picker class="calendar" v-model="html.date" type="date">
+        </el-date-picker>
+        <div class="icon1 center">
+          <i class="el-icon-arrow-right icon2"></i>
+        </div>
+      </div>
+      <div v-for="item,index in html.time_display" @click="time_display(index)"
+        :class="['box2','center','button',html.time_option==index?'box_light':'box_dark']">{{item}}</div>
+    </div>
+    <!-- 不同时间选项 不同页面 -->
+    <div v-show="html.time_option==0" class="body1">
+      <div v-for="i in 17" class="box1">
+        <span class="title center">{{i+5}}:30</span>
+        <div class="box2">
+          <div class="line"></div>
+          <!-- 一行有两个方块 小方块有三种状态 -->
+          <div class="block" v-for="i in 2">
+            <div :class="['style1','bg1']">
+              <div :class="['time','time_bg1']">
+                <span style="color: #fff;">14.00</span>
+                <span style="color: #fff;">-</span>
+                <span style="color: #fff;">15:30</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

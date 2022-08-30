@@ -80,18 +80,12 @@
 					border: 1px solid;
 				}
 				&:nth-child(2)::before {
-					background-image: url('./img/icon2.png');
-					background-position: center;
-					background-repeat: no-repeat;
-					background-size: 100% 100%;
-				}
-				&:nth-child(3)::before {
 					background-image: url('./img/icon1.png');
 					background-position: center;
 					background-repeat: no-repeat;
 					background-size: 100% 100%;
 				}
-				&:nth-child(4)::before {
+				&:nth-child(3)::before {
 					width: 20px;
 					height: 0;
 					border: 2px dashed red;
@@ -135,10 +129,18 @@
 			margin-top: 10px;
 			.place_name {
 				display: flex;
-				align-items: center;
-				padding-left: 20px;
-				font-size: 18px;
-				color: #106fff;
+				flex-direction: column;
+				justify-content: space-around;
+				.name {
+					font-size: 18px;
+					color: #106fff;
+					padding-left: 20px;
+					max-width: 100%;
+				}
+				.conf {
+					font-size: 14px;
+					padding-left: 10px;
+				}
 			}
 			.time_box {
 				border-left: 1px solid #e6e6e6;
@@ -219,13 +221,15 @@
 	}
 }
 .meeting_info_box {
-	width: 480px;
+	width: 300px;
 	position: absolute;
 	z-index: 999;
 	.single_info {
 		padding: 10px 0;
+		display: flex;
+
 		.title {
-			width: 100px;
+			width: 85px;
 			font-size: 16px;
 			font-weight: bold;
 		}

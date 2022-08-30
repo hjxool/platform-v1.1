@@ -33,7 +33,6 @@
         <span class="text flex_shrink">时间</span>
         <div class="tips flex_shrink">
           <span class="tip">空闲</span>
-          <span class="tip">已过期</span>
           <span class="tip">已预定</span>
           <span class="tip">当前时间分割线</span>
         </div>
@@ -51,11 +50,13 @@
       <div class="meeting_boxs" @mousedown="area_start" @mousemove="area_over">
         <div class="current_time"></div>
         <div v-for="item,index in place_list" class="place">
-          <span class="place_name text_ellipsis">{{item.roomName}}</span>
+          <div class="place_name">
+            <span class="name text_ellipsis">{{item.roomName}}</span>
+            <span class="conf">是否需要审批：{{item.approve==0?'否':'是'}}</span>
+          </div>
           <div v-for="i,index2 in 34" class="time_box" @mouseover="query_meeting_info($event,index,index2)">
-            <div class="pass center" v-if="html.block_list[index][index2] == 1||html.block_list[index][index2] == 2">
-              <img v-if="html.block_list[index][index2] == 1" src="./img/icon2.png" class="icon flex_shrink">
-              <img v-if="html.block_list[index][index2] == 2" src="./img/icon1.png" class="icon flex_shrink">
+            <div class="pass center" v-if="html.block_list[index][index2] == 2">
+              <img src="./img/icon1.png" class="icon flex_shrink">
             </div>
             <div v-show="html.block_list[index][index2] == 3"
               :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']"></div>
@@ -162,7 +163,7 @@
     <el-card class="meeting_info_box" v-show="html.meeting_info_show" shadow="always">
       <div class="single_info" v-for="item,index in html.meeting_infos">
         <span class="title">{{item}}</span>
-        <span class="text" v-if="index==0">{{meeting_info.name}}</span>
+        <span class="text text_ellipsis" :title="meeting_info.name" v-if="index==0">{{meeting_info.name}}</span>
         <span class="text" v-if="index==1">{{meeting_info.start_time}}</span>
         <span class="text" v-if="index==2">{{meeting_info.end_time}}</span>
         <span class="text" v-if="index==3">{{meeting_info.type}}</span>

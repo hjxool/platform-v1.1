@@ -51,6 +51,9 @@ new Vue({
 				case 'MeetingReservation':
 					url = `./meeting_reserve/index.html?token=${this.token}`;
 					return url;
+				case 'MyBooking':
+					url = `./my_booking/index.html?token=${this.token}`;
+					return url;
 			}
 		},
 	},
