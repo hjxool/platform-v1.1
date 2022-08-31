@@ -19,8 +19,15 @@
         <div class="icon1 center">
           <i class="el-icon-arrow-left icon2"></i>
         </div>
-        <el-date-picker class="calendar" v-model="html.date" type="date">
-        </el-date-picker>
+        <!-- 选择日 -->
+        <el-date-picker v-show="html.time_option==0" class="calendar" style="width: 110px;" v-model="html.date"
+          type="date"></el-date-picker>
+        <!-- 选择周 -->
+        <el-date-picker v-show="html.time_option==1" v-model="html.week_date" class="calendar" style="width: 210px;"
+          :format="week_format()" type="week"></el-date-picker>
+        <!-- 选择月 -->
+        <el-date-picker v-show="html.time_option==2" v-model="html.month_date" class="calendar" style="width: 100px;"
+          format="yyyy-MM" type="month"></el-date-picker>
         <div class="icon1 center">
           <i class="el-icon-arrow-right icon2"></i>
         </div>
@@ -34,14 +41,64 @@
         <span class="title center">{{i+5}}:30</span>
         <div class="box2">
           <div class="line"></div>
-          <!-- 一行有两个方块 小方块有三种状态 -->
-          <div class="block" v-for="i in 2">
-            <div :class="['style1','bg1']">
-              <div :class="['time','time_bg1']">
-                <span style="color: #fff;">14.00</span>
-                <span style="color: #fff;">-</span>
-                <span style="color: #fff;">15:30</span>
-              </div>
+        </div>
+      </div>
+      <!-- 会议遮罩 -->
+      <div class="meeting_block" v-for="item in day_meeting">
+        <div class="time">
+          <span class="text">15:30</span>
+          <span class="text">-</span>
+          <span class="text">16:30</span>
+        </div>
+        <div class="center text_ellipsis">test</div>
+      </div>
+    </div>
+    <div v-show="html.time_option==1" class="body2">
+      <div class="week_box">
+        <div></div>
+        <span class="text">周日</span>
+        <span class="text">周一</span>
+        <span class="text">周二</span>
+        <span class="text">周三</span>
+        <span class="text">周四</span>
+        <span class="text">周五</span>
+        <span class="text">周六</span>
+      </div>
+      <div class="box1">
+        <div v-for="i in 17" class="box2">
+          <span class="title center">{{i+5}}:30</span>
+          <div class="box3" v-for="i in 7">
+            <div class="line"></div>
+          </div>
+        </div>
+        <!-- 会议遮罩 -->
+        <div class="meeting_block" v-for="item in day_meeting">
+          <div class="time">
+            <span class="text">15:30</span>
+            <span class="text">-</span>
+            <span class="text">16:30</span>
+          </div>
+          <div class="center text_ellipsis">test</div>
+        </div>
+      </div>
+    </div>
+    <div v-show="html.time_option==2" class="body3">
+      <div class="week_box">
+        <span class="text center">周日</span>
+        <span class="text center">周一</span>
+        <span class="text center">周二</span>
+        <span class="text center">周三</span>
+        <span class="text center">周四</span>
+        <span class="text center">周五</span>
+        <span class="text center">周六</span>
+      </div>
+      <div class="box1">
+        <div v-for="item,index in html.month_block" class="box2">
+          <span :class="['text',index < html.day_start?'text3': index >= html.day_end?'text3':'']">{{item}}</span>
+          <div class="box3">
+            <div class="block" v-for="i in 3">
+              <span class="time">11:30</span>
+              <span class="text2 text_ellipsis">{{i}}</span>
             </div>
           </div>
         </div>
