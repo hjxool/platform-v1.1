@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <!-- 场所选择 -->
+    <div class="button_layout" style="padding: 5px 0;">
+      <el-select v-model="place_id" @change="page_switch(html.page_select)">
+        <el-option v-for="item in place_list" :label="item.roomName" :value="item.id">
+        </el-option>
+      </el-select>
+    </div>
+    <!-- 页面切换按钮 -->
+    <div class="button_layout" style="padding: 5px 0;">
+      <div :class="['button',html.page_select==index?'button_light':'button_dark','center','buttons']"
+        v-for="item,index in html.page_options" @click="page_switch(index)">
+        {{item}}</div>
+    </div>
+    <!-- 设备卡片页面 -->
+    <div class="page1" v-show="html.page_select==0" v-loading="html.page_loading">
+      <el-card class="cards" shadow="hover" v-for="item in device.list">
+        <div class="box1">
+          <span class="text1 text_ellipsis">{{item.deviceName}}</span>
+          <div class="box2 flex_shrink">
+            <div v-if="item.statusValue==0" class="icon0"></div>
+            <span v-if="item.statusValue==0" class="text4">未注册</span>
+            <div v-if="item.statusValue==1" class="icon1"></div>
+            <span v-if="item.statusValue==1" class="text2">在线</span>
+            <div v-if="item.statusValue==2" class="icon2"></div>
+            <span v-if="item.statusValue==2" class="text3">离线</span>
+          </div>
+        </div>
+        <div class="box1">
+          <div class="box2">
+            <!-- <i class="el-icon-edit icon3 button"></i> -->
+            <span class="icon3 text_ellipsis">所属产品类型:{{item.productTypeValue}}</span>
+          </div>
+          <img src="./img/icon1.png" class="icon4 button">
+        </div>
+      </el-card>
+      <el-empty v-show="device.list_empty" description="会议室下无设备" style="width: 100%;height: 100%;"></el-empty>
+    </div>
+    <!-- 联检页面 -->
+    <div class="page2 flex_grow" v-show="html.page_select==1" v-loading="html.page_loading">
+      <!-- 按钮 -->
+      <div class="button_layout">
+        <el-button class="buttons" v-for="item,index in joint.options" :type="joint.select==index?'primary':''"
+          @click="joint_select(index)" size="small">{{item}}
+        </el-button>
+        <el-button class="buttons" v-show="joint.select==0" @click="add_joint_rules" icon="el-icon-plus" size="small">
+          添加规则
+        </el-button>
+      </div>
+      <!-- 规则表格 -->
+      <div class="page2_1" v-show="joint.select==0">
+        <el-table :data="joint.rule_list" border :max-height="joint.table1_height" style="width: 100%">
+          <el-table-column prop="onlineCheckName" label="名称"></el-table-column>
+          <el-table-column prop="executeTime" label="时间"></el-table-column>
+          <el-table-column prop="status" label="开启状态" :formatter="format_status"></el-table-column>
+          <el-table-column label="操作" width="250">
+            <template slot-scope="scope">
+              <el-button type="text" size="small" @click="edit_joint_rule(scope.row)">编辑</el-button>
+              <el-button type="text" size="small">删除</el-button>
+              <el-button v-show="scope.row.status==0" type="text" size="small">开启</el-button>
+              <el-button v-show="scope.row.status==1" type="text" size="small">关闭</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <!-- 记录表格 -->
+      <div class="page2_2" v-show="joint.select==1">
+        <div class="button_layout">
+          <el-input class="log_search" size="small" placeholder="请输入内容" v-model="joint.log_search" clearable></el-input>
+          <i class="el-icon-refresh-right button icon1"></i>
+        </div>
+        <div class="table2">
+          <el-table :data="tableData" border :max-height="joint.table2_height"
+            :default-sort="{prop:'d',order: 'descending'}" style="width: 100%">
+            <el-table-column prop="a" label="名称"></el-table-column>
+            <el-table-column prop="b" label="结果"></el-table-column>
+            <el-table-column prop="c" label="房间"></el-table-column>
+            <el-table-column prop="d" label="时间" sortable></el-table-column>
+            <el-table-column label="操作" width="100">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">查看</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+    </div>
+    <!-- 巡检页面 -->
+    <div class="page3 flex_grow" v-show="html.page_select==2" v-loading="html.page_loading">
+      <!-- 计划、规则、记录切换 -->
+      <div class="button_layout">
+        <el-button class="buttons" v-for="item,index in polling.options" :type="polling.select==index?'primary':''"
+          @click="polling_select(index)" size="small">{{item}}
+        </el-button>
+      </div>
+      <div class="page3" style="padding: 0;">
+        <!-- 子页面按钮 -->
+        <div class="button_layout">
+          <el-button class="buttons" v-show="polling.select==0" icon="el-icon-plus" size="small">新增巡检计划
+          </el-button>
+
+          <span class="buttons" v-show="polling.select==1">应用会议室</span>
+          <el-select class="buttons" v-model="polling.apply_place" v-show="polling.select==1" size="small">
+            <el-option v-for="item in option1" :value="item"></el-option>
+          </el-select>
+          <el-button class="buttons" v-show="polling.select==1" icon="el-icon-plus" size="small">新增检查项
+          </el-button>
+
+          <el-radio-group v-show="polling.select==2" v-model="polling.log_select" size="small">
+            <el-radio :label="0">全部</el-radio>
+            <el-radio :label="1">待巡检</el-radio>
+            <el-radio :label="2">正常完成</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="table3">
+          <!-- 计划表格 -->
+          <el-table v-show="polling.select==0" :data="tableData" border :max-height="polling.table3_height"
+            style="width: 100%">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="计划名称"></el-table-column>
+            <el-table-column prop="c" label="启用状态"></el-table-column>
+            <el-table-column prop="d" label="执行周期"></el-table-column>
+            <el-table-column label="操作" width="150">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">编辑</el-button>
+                <el-button type="text" size="small">禁用</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 规则表格 -->
+          <el-table v-show="polling.select==1" :data="tableData" border :max-height="polling.table3_height"
+            style="width: 100%">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="规则名称"></el-table-column>
+            <el-table-column prop="c" label="应用会议室"></el-table-column>
+            <el-table-column prop="d" label="应用会议室"></el-table-column>
+            <el-table-column label="操作" width="150">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">编辑</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 记录表格 -->
+          <el-table v-show="polling.select==2" :data="tableData" border :max-height="polling.table3_height"
+            style="width: 100%">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="计划名称"></el-table-column>
+            <el-table-column prop="c" label="结果"></el-table-column>
+            <el-table-column prop="d" label="巡检时间"></el-table-column>
+            <el-table-column prop="e" label="巡检人员"></el-table-column>
+            <el-table-column label="操作" width="120">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">详情</el-button>
+                <el-button type="text" size="small">执行巡检</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+    </div>
+    <!-- 情景模式 -->
+    <div class="page4 flex_grow" v-show="html.page_select==3"></div>
+
+    <!-- 添加规则弹窗 -->
+    <div class="popup" v-show="joint.add_rule_display">
+      <el-card class="add_rule_form">
+        <div class="form_head">
+          <span class="text">添加规则</span>
+          <div class="icon center button" @click="joint.add_rule_display=false">
+            <i class="el-icon-close icon2"></i>
+          </div>
+        </div>
+        <el-form :model="joint.form" label-width="100px" v-loading="html.popup_loading">
+          <el-form-item label="规则名称">
+            <el-input v-model="joint.form.name" style="width: 250px;"></el-input>
+          </el-form-item>
+
+          <el-form-item label="有效期">
+            <el-date-picker v-model="joint.form.date" type="daterange" range-separator="至" start-placeholder="开始日期"
+              end-placeholder="结束日期"></el-date-picker>
+          </el-form-item>
+
+          <el-form-item label="周期">
+            <el-checkbox-group v-model="joint.form.cycle_week">
+              <el-checkbox label="1">周一</el-checkbox>
+              <el-checkbox label="2">周二</el-checkbox>
+              <el-checkbox label="3">周三</el-checkbox>
+              <el-checkbox label="4">周四</el-checkbox>
+              <el-checkbox label="5">周五</el-checkbox>
+              <el-checkbox label="6">周六</el-checkbox>
+              <el-checkbox label="7">周日</el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+
+          <el-form-item label="时间">
+            <el-time-picker v-model="joint.form.select_time" style="width: 150px;"></el-time-picker>
+          </el-form-item>
+
+          <el-form-item label="联检设备">
+            <div class="box1">
+              <el-checkbox class="flex_shrink" :indeterminate="joint.form.isIndeterminate" v-model="joint.form.checkAll"
+                @change="check_all" v-if="!device.list_empty">全选
+              </el-checkbox>
+              <el-checkbox-group v-if="!device.list_empty" class="flex_shrink" v-model="joint.form.device_selected"
+                @change="check_change">
+                <el-checkbox class="box2" v-for="item in device.list" :label="item" :key="item.id"
+                  style="margin-bottom: 10px;">
+                  <div class="box2 box3">
+                    <span class="text1 text_ellipsis">{{item.deviceName}}</span>
+                    <el-select v-model="item.server_select" @visible-change="get_model_server($event,item.id)"
+                      placeholder="选择物模型服务" size="small" style="width: 150px ;" class="flex_shrink">
+                      <el-option v-for="item2 in joint.form.model_server_list" :key="item2.serviceId"
+                        :value="item2.identifier">
+                      </el-option>
+                    </el-select>
+                  </div>
+                </el-checkbox>
+              </el-checkbox-group>
+              <el-empty v-show="device.list_empty" description="会议室下无设备">
+              </el-empty>
+            </div>
+          </el-form-item>
+
+          <el-form-item class="buttons">
+            <el-button style="margin-right: 20px;" @click="joint_rule_submit(joint.form,0)">保存</el-button>
+            <el-button type="primary" @click="joint_rule_submit(joint.form,1)">保存并启用</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+    </div>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

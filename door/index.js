@@ -93,8 +93,8 @@ new Vue({
 			this.$prompt('请输入场所名称', '提示', {
 				confirmButtonText: '确定',
 				cancelButtonText: '取消',
-			}).then(({ val }) => {
-				this.request('post', `${place_list}/${user_id}/add`, this.token, { placeName: val, placeType: 1 }, () => {
+			}).then(({ value }) => {
+				this.request('post', `${place_list}/${user_id}/add`, this.token, { placeName: value, placeType: 1 }, () => {
 					if (index == this.user_focus) {
 						this.refresh_place_list();
 					} else {

@@ -54,6 +54,11 @@ new Vue({
 				case 'MyBooking':
 					url = `./my_booking/index.html?token=${this.token}`;
 					return url;
+				case 'workbench':
+					return;
+				case 'IoTControl':
+					url = `./IoTControl/index.html?token=${this.token}`;
+					return url;
 			}
 		},
 	},

@@ -92,6 +92,7 @@ new Vue({
 		req_property() {
 			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
 				this.request('post', `${property_list}/${res.data.data.currentModelId}`, this.token, (res) => {
+					// name字段重复了 不能作为row-key绑定值
 					res.data.data.forEach((e) => {
 						let tree = {};
 						this.get_property_tree(tree, e);
@@ -102,6 +103,7 @@ new Vue({
 		},
 		get_property_tree(target, source, path) {
 			target.name = source.identifier;
+			target.id = source.propertyId;
 			if (path == undefined) {
 				target.path = source.identifier;
 			} else {
@@ -320,8 +322,19 @@ new Vue({
 					let t = { field: e };
 					this.event_form.fields.push(t);
 				});
-				this.event_form.info_type = 0;
 				this.clean_object(this.event_form.type1);
+				this.event_form.info_type = list_data.actionType || 0;
+				if (list_data.actionType == 1) {
+					// this.event_form.type1.username = list_data.extraParam.username;
+					// this.event_form.type1.password = list_data.extraParam.password;
+					// this.event_form.type1.host = list_data.extraParam.host;
+					// this.event_form.type1.topic = list_data.extraParam.topic;
+					// this.event_form.type1.routingKey = list_data.extraParam.routingKey;
+					// this.event_form.type1.port = list_data.extraParam.port;
+					for (let key in list_data.extraParam) {
+						this.event_form.type1[key] = list_data.extraParam[key];
+					}
+				}
 				this.html.event_config = true;
 			} else if (list_data.type == '事件触发条件') {
 				this.event_trigger_form.id = list_data.nodeId;

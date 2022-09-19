@@ -51,22 +51,38 @@
         <div class="current_time"></div>
         <div v-for="item,index in place_list" class="place">
           <div class="place_name">
-            <span class="name text_ellipsis">{{item.roomName}}</span>
-            <span class="conf">是否需要审批：{{item.approve==0?'否':'是'}}</span>
+            <div class="info">
+              <div class="box1">
+                <span class="name text_ellipsis" :title="item.roomName">{{item.roomName}}</span>
+                <el-tag type="danger" size="mini" v-if="item.approve==1">需审批</el-tag>
+                <el-tag size="mini" v-if="item.approve==0">无需审批</el-tag>
+              </div>
+              <span class="type">{{item.type==0?'视频':item.type==1?'综合':'无纸化'}}</span>
+              <div>
+                <i class="el-icon-user type"></i>
+                <span class="type"> {{item.num}}</span>
+              </div>
+            </div>
+            <!-- <div class="center">
+              <img v-if="item.photoUrl!=null" :src="item.photoUrl" class="icon2">
+              <i v-if="item.photoUrl==null" class="el-icon-picture-outline"></i>
+            </div> -->
           </div>
           <div v-for="i,index2 in 34" class="time_box" @mouseover="query_meeting_info($event,index,index2)">
             <div class="pass center" v-if="html.block_list[index][index2] == 2">
               <img src="./img/icon1.png" class="icon flex_shrink">
             </div>
+            <div class="over_time" v-if="html.block_list[index][index2] == 1"></div>
             <div v-show="html.block_list[index][index2] == 3"
-              :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']"></div>
+              :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']">
+            </div>
           </div>
         </div>
       </div>
     </div>
     <!-- 遮罩及新建会议弹窗 -->
     <div class="popover" v-if="html.new_meeting">
-      <el-card class="form_box" shadow="never">
+      <el-card class="form_box" shadow="never" v-loading="html.form_loading">
         <div class="form_head">
           <span class="text">预约会议</span>
           <div class="icon center button" @click="close_new">
@@ -80,13 +96,14 @@
 
           <el-form-item label="预约时间">
             <div style="display: flex;">
-              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin"></el-date-picker>
-              <el-time-select v-model="new_meeting_form.time_start" class="margin"
-                :picker-options="{start: '06:00',step: '00:30',end: '23:30'}" placeholder="选择起始时间">
+              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin" @change="change_reserve_type">
+              </el-date-picker>
+              <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type" class="margin"
+                :picker-options="{start: '06:00',step: '00:30',end: '23:00'}" placeholder="选择起始时间">
               </el-time-select>
               <span class="margin">&#10140</span>
-              <el-time-select v-model="new_meeting_form.time_end" class="margin"
-                :picker-options="{start: '06:00',step: '00:30',end: '23:30'}" placeholder="选择结束时间">
+              <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type" class="margin"
+                :picker-options="{start: '06:00',step: '00:30',end: '23:00'}" placeholder="选择结束时间">
               </el-time-select>
             </div>
           </el-form-item>
@@ -126,10 +143,26 @@
           </el-form-item>
 
           <el-form-item label="是否通知">
-            <el-select v-model="new_meeting_form.sendMessage">
-              <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
-              </el-option>
-            </el-select>
+            <div style="display: flex;align-items: center;">
+              <el-select v-model="new_meeting_form.sendMessage" style="margin-right: 20px;" @change="change_info">
+                <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
+                </el-option>
+              </el-select>
+              <el-button @click="add_alert_time" v-show="new_meeting_form.sendMessage==1" type="text" size="small">添加提醒
+              </el-button>
+            </div>
+          </el-form-item>
+          <el-form-item label="&#128276;" v-show="new_meeting_form.meetingReminds.length>0">
+            <div class="alert_box">
+              <div v-for="item in new_meeting_form.meetingReminds" class="box1">
+                <span class="text1 center">开始前{{item.time}}提醒</span>
+                <el-select v-model="item.type" class="box2">
+                  <el-option v-for="item2,index in html.info_type" :label="item2" :value="index">
+                  </el-option>
+                </el-select>
+                <i class="el-icon-close icon button" @click="del_alert_time"></i>
+              </div>
+            </div>
           </el-form-item>
 
           <el-form-item label="是否签到">

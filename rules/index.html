@@ -101,7 +101,7 @@
           <div class="col_layout">
             <span class="title">物模型属性列表</span>
             <div style="overflow: auto;">
-              <el-table :data="protocol_tree" row-key="name" :tree-props="tree_conf" border>
+              <el-table :data="protocol_tree" row-key="id" :tree-props="tree_conf" border>
                 <el-table-column prop="name" label="标识符"></el-table-column>
                 <el-table-column prop="type" width="80" label="类型"></el-table-column>
                 <el-table-column label="复制" width="40" fixed="right">
@@ -215,7 +215,7 @@
           <div class="col_layout">
             <span class="title">物模型属性列表</span>
             <div style="overflow: auto;">
-              <el-table :data="protocol_tree" row-key="name" :tree-props="tree_conf" border>
+              <el-table :data="protocol_tree" row-key="id" :tree-props="tree_conf" border>
                 <el-table-column prop="name" label="标识符"></el-table-column>
                 <el-table-column prop="type" width="80" label="类型"></el-table-column>
                 <el-table-column label="复制" width="40" fixed="right">

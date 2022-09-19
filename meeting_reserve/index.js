@@ -1,5 +1,6 @@
 let url = `${我是接口地址}/`;
-let room_list = `${url}api-portal/room/search/time`;
+// let room_list = `${url}api-portal/room/search/time`;
+let room_list = `${url}api-portal/room/search/date`;
 let meeting_reserve = `${url}api-portal/meeting`;
 let user_list = `${url}api-portal/users`;
 let upload_files = `${url}api-portal/meeting/upload/files`;
@@ -16,9 +17,10 @@ new Vue({
 			month: '',
 			day: '',
 			week: '',
-			date: '',
+			date: new Date(),
 			search_meeting: '', //搜索会议名
 			new_meeting: false, //新增会议弹窗
+			form_loading: false, // 提交表单时加载遮罩
 			throttle_flag: false, //节流方法标识
 			loading: true, //页面初始加载
 			reserve_type: [], //预约方式选项
@@ -26,6 +28,7 @@ new Vue({
 			bool_options: ['否', '是'],
 			meeting_info_show: false, //会议信息显示
 			meeting_infos: ['会议主题', '开始时间', '结束时间', '类型'],
+			info_type: ['站内消息', '微信公众号', '微信小程序', '钉钉', '短信', '邮件', 'APP'], // 通知方式
 		},
 		place_list: [], // 会议室及会议列表
 		// 新建会议表单
@@ -43,6 +46,7 @@ new Vue({
 			search_person: [], // 搜索用户名
 			cycle_deadline: '', // 周期预约的截止日期
 			// files: [], // 存多次上传文件回来的结果
+			meetingReminds: [], // 提醒时间 数组
 		},
 		// 会议信息
 		meeting_info: {
@@ -65,6 +69,19 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		let time = new Date().toString().split(' ')[4];
+		let time_list = time.split(':');
+		let hour = +time_list[0];
+		let minute = +time_list[1];
+		// 首先找到当前时间所在方格
+		this.boundary = (hour - 6) * 2;
+		// 计算当前时间线所在的方格索引 小于这个索引的全部变灰
+		if (minute >= 30) {
+			this.boundary++;
+		}
+		// 小于当天的格子全部灰掉
+		let t = new Date();
+		this.current_day = new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`).getTime();
 		// 获取当前时间
 		this.display_time(new Date());
 		window.onresize = () => {
@@ -81,7 +98,7 @@ new Vue({
 			this.request('post', room_list, this.token, { roomName: meeting_name || '', startTime: `${t4} 06:00:00`, endTime: `${t4} 23:00:00` }, (res) => {
 				console.log('会议室及会议', res);
 				this.html.loading = false;
-				if (res.data == null || res.data.data == null) {
+				if (res.data == null || res.data.data == null || typeof res.data.data == 'string') {
 					this.$message.info('当前用户下无会议室');
 					return;
 				}
@@ -94,9 +111,14 @@ new Vue({
 			dom.focus();
 		},
 		// 查询每一个会议室下会议占用情况
-		query_block_status(place_obj, time_index) {
+		query_block_status(array, time_index) {
 			// time_index从0开始
-			let array = place_obj.meetingList;
+			// let array = Object.entries(place_obj.meetingList)[0][1];
+			// 可能会有几种情况 变灰和灰色上同时有会议
+			let result = 0;
+			if (this.display_day < this.current_day || time_index < this.boundary) {
+				result = 1;
+			}
 			// 对单个场所下每个时间点 查找是否在任意一个会议时间段内
 			for (let i = 0; i < array.length; i++) {
 				let start = array[i].startTime.split(' ')[1].split(':');
@@ -116,31 +138,41 @@ new Vue({
 				}
 				if (time_index >= start_index && time_index <= end_index) {
 					// timeType 0表示已过期 1表示已预定 2表示空闲
-					if (array[i].timeType == 0) {
-						return 1;
-					} else if (array[i].timeType == 1) {
-						return 2;
-					}
+					// if (array[i].timeType == 0) {
+					// 	return 1;
+					// } else if (array[i].timeType == 1) {
+					// 	return 2;
+					// }
+					result = 2;
+					break;
 				}
 			}
 			// 0表示空闲 1表示已过期 2表示已预定
-			return 0;
+			return result;
 		},
 		// 组装二维矩阵 控制方块显示
 		block_status() {
 			this.html.block_list = [];
+			// 当前选择时间
+			this.display_day = this.html.date.getTime();
 			for (let i = 0; i < this.place_list.length; i++) {
 				let t = [];
-				for (let j = 0; j < 38; j++) {
-					t[j] = this.query_block_status(this.place_list[i], j);
+				let t2;
+				if (this.place_list[i].meetingList != null) {
+					t2 = Object.entries(this.place_list[i].meetingList)[0][1];
+				} else {
+					t2 = [];
+				}
+				for (let j = 0; j < 34; j++) {
+					t[j] = this.query_block_status(t2, j);
 				}
 				this.html.block_list.push(t);
 			}
 			this.$nextTick(() => {
 				// this.add_exist_meeting_style();
-				this.get_boundary();
 				// vue在页面所需数组未请求回来时 不会渲染 因此找不到数组节点
 				this.first_block_position = document.querySelector('.time_box').getBoundingClientRect().left;
+				this.get_boundary();
 			});
 		},
 		get_boundary() {
@@ -241,13 +273,15 @@ new Vue({
 		area_start(e) {
 			this.mouse_start = e.pageX; //鼠标只能往后拖
 			let mouse_position = this.mouse_start - this.first_block_position + 10; //10是边框带来的偏差值
-			let boundary = parseInt(document.querySelector('.current_time').style.left) - 200;
+			let w = document.querySelector('.place_name').offsetWidth;
+			let boundary = parseInt(document.querySelector('.current_time').style.left) - w;
 			if (mouse_position >= boundary) {
 				// 查看鼠标点击位置方块是否已经有值
 				let col_index_start = Math.floor(mouse_position / this.block_width);
 				let parent_position = document.querySelector('.meeting_boxs').getBoundingClientRect().top;
 				let mouse_y = e.pageY;
-				this.row_index = Math.floor((mouse_y - parent_position) / 70); // 从0开始
+				let h = document.querySelector('.place').offsetHeight + 10; //10是margin-top的高度
+				this.row_index = Math.floor((mouse_y - parent_position) / h); // 从0开始
 				if (this.html.block_list[this.row_index][col_index_start] == 0) {
 					this.start_move = true;
 					this.col_index_start = col_index_start;
@@ -332,39 +366,7 @@ new Vue({
 				if ((this.col_index_end + 1) % 2 != 0) {
 					this.new_meeting_form.time_end = `${t2}:30`;
 				}
-				// 获取当前时间、星期和几号 并填入
-				let curr_week;
-				switch (new Date().getDay()) {
-					case 0:
-						curr_week = '天';
-						break;
-					case 1:
-						curr_week = '一';
-						break;
-					case 2:
-						curr_week = '二';
-						break;
-					case 3:
-						curr_week = '三';
-						break;
-					case 4:
-						curr_week = '四';
-						break;
-					case 5:
-						curr_week = '五';
-						break;
-					case 6:
-						curr_week = '六';
-						break;
-				}
-				this.html.reserve_type = [
-					'单次预约',
-					`每天${this.new_meeting_form.time_start}~${this.new_meeting_form.time_end}`,
-					`每周${curr_week}`,
-					`每月${new Date().getDate()}号`,
-					'每年(不可用)',
-					`自定义`,
-				];
+				this.change_reserve_type();
 				this.new_meeting_form.name = '';
 				this.new_meeting_form.method = 0;
 				this.new_meeting_form.cus_week = [];
@@ -375,8 +377,45 @@ new Vue({
 				this.new_meeting_form.search_person = [];
 				this.new_meeting_form.cycle_deadline = '';
 				this.new_meeting_form.files = [];
+				this.html.form_loading = false;
 			}
 			this.start_move = false;
+		},
+		// 每次修改日期修改预定方式里的列表
+		change_reserve_type() {
+			// 获取选择的时间、星期和几号 并填入
+			let curr_week;
+			switch (this.new_meeting_form.date.getDay()) {
+				case 0:
+					curr_week = '天';
+					break;
+				case 1:
+					curr_week = '一';
+					break;
+				case 2:
+					curr_week = '二';
+					break;
+				case 3:
+					curr_week = '三';
+					break;
+				case 4:
+					curr_week = '四';
+					break;
+				case 5:
+					curr_week = '五';
+					break;
+				case 6:
+					curr_week = '六';
+					break;
+			}
+			this.html.reserve_type = [
+				'单次预约',
+				`每天${this.new_meeting_form.time_start}~${this.new_meeting_form.time_end}`,
+				`每周${curr_week}`,
+				`每月${this.new_meeting_form.date.getDate()}号`,
+				'每年(不可用)',
+				`自定义`,
+			];
 		},
 		// 提交新建会议表单 并刷新数据 关闭弹窗
 		new_submit(form) {
@@ -390,6 +429,7 @@ new Vue({
 				theme: form.name,
 				userIds: form.search_person,
 				meetingFiles: form.files,
+				meetingReminds: [],
 			};
 			if (form.method != 0) {
 				// 周期截止
@@ -408,10 +448,24 @@ new Vue({
 			let d = form.date.getDate() < 10 ? '0' + form.date.getDate() : form.date.getDate();
 			data.endTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_end}:00`;
 			data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
+			// 提醒时间
+			let t = form.time_start.split(':');
+			for (let i = 0; i < form.meetingReminds.length; i++) {
+				let t2 = {};
+				if (t[1] == 00) {
+					t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0] - 1}:${50}:00`;
+				} else {
+					t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0]}:${20}:00`;
+				}
+				t2.remindType = form.meetingReminds[i].type;
+				data.meetingReminds.push(t2);
+			}
+			this.html.form_loading = true;
 			this.request('post', meeting_reserve, this.token, data, () => {
 				this.col_index_start = this.col_index_end = null;
 				this.req_room_list();
 				this.html.new_meeting = false;
+				this.html.form_loading = false;
 			});
 		},
 		close_new() {
@@ -474,10 +528,11 @@ new Vue({
 		// 鼠标悬浮时显示其下会议信息
 		query_meeting_info(event, row_index, col_index) {
 			if (!this.start_move) {
-				// 先判断鼠标悬停处有没有会议 没有隐藏信息框 有则显示
 				this.html.meeting_info_show = false;
-				if (this.html.block_list[row_index][col_index] != 0) {
-					let t = this.place_list[row_index].meetingList;
+				// 先判断鼠标悬停处有没有会议 没有隐藏信息框 有则显示 过期的也不显示
+				let t2 = this.html.block_list[row_index][col_index];
+				if (t2 != 0 && t2 != 1) {
+					let t = Object.entries(this.place_list[row_index].meetingList)[0][1];
 					for (let i = 0; i < t.length; i++) {
 						let start = t[i].startTime.split(' ')[1].split(':');
 						let start_hour = +start[0];
@@ -549,6 +604,26 @@ new Vue({
 			if (event.clientY > t2) {
 				this.html.meeting_info_show = false;
 				return;
+			}
+		},
+		// 添加提醒时间、方式
+		add_alert_time() {
+			if (this.new_meeting_form.meetingReminds.length == 0) {
+				let t = {
+					time: '10分钟',
+					type: 0,
+				};
+				this.new_meeting_form.meetingReminds.push(t);
+			}
+		},
+		// 删除提醒
+		del_alert_time() {
+			this.new_meeting_form.meetingReminds.pop();
+		},
+		// 改变是否提醒 清空数组
+		change_info() {
+			if (this.new_meeting_form.sendMessage == 0) {
+				this.new_meeting_form.meetingReminds = [];
 			}
 		},
 	},
