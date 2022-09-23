@@ -364,25 +364,60 @@ new Vue({
 			});
 		},
 		// 检测规则表达式里的特殊符号 并动态生成元素
-		identify_symbol(input, flag, index) {
+		identify_symbol(input, flag, last_length, index, count) {
+			//#region
+			// if (index == undefined) {
+			// 	// index等于undefined说明点击了检测按钮 而不是回调 就可以根据上一次数组长度删除末尾 保留前面的
+			// 	index = 0;
+			// 	if (flag == 'trigger') {
+			// 		this.form.condition = [];
+			// 	} else if (flag == 'event') {
+			// 		this.event_form.fields = [];
+			// 	}
+			// }
+			// index = input.indexOf('%s', index);
+			// if (index != -1) {
+			// 	if (flag == 'trigger') {
+			// 		let t = { field: '', default_value: '' };
+			// 		this.form.condition.push(t);
+			// 	} else if (flag == 'event') {
+			// 		let t = { field: '' };
+			// 		this.event_form.fields.push(t);
+			// 	}
+			// 	this.identify_symbol(input, flag, last_length, index + 2);
+			// }
+			//#endregion
+
 			if (index == undefined) {
 				index = 0;
-				if (flag == 'trigger') {
-					this.form.condition = [];
-				} else if (flag == 'event') {
-					this.event_form.fields = [];
-				}
+				count = 0;
 			}
 			index = input.indexOf('%s', index);
 			if (index != -1) {
-				if (flag == 'trigger') {
-					let t = { field: '', default_value: '' };
-					this.form.condition.push(t);
-				} else if (flag == 'event') {
-					let t = { field: '' };
-					this.event_form.fields.push(t);
+				count++;
+				this.identify_symbol(input, flag, last_length, index + 2, count);
+			} else {
+				// last_length不等于0 则说明之前有值 新数组需要根据旧数组截取
+				if (last_length > count) {
+					if (flag == 'trigger') {
+						// count后包括count都删除
+						this.form.condition.splice(count);
+					} else if (flag == 'event') {
+						this.event_form.fields.splice(count);
+					}
+				} else if (last_length < count) {
+					if (flag == 'trigger') {
+						for (let i = 0; i < count - last_length; i++) {
+							let t = { field: '', default_value: '' };
+							this.form.condition.push(t);
+						}
+					} else if (flag == 'event') {
+						for (let i = 0; i < count - last_length; i++) {
+							let t = { field: '' };
+							this.event_form.fields.push(t);
+						}
+					}
 				}
-				this.identify_symbol(input, flag, index + 2);
 			}
 		},
 		//#region

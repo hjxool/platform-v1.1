@@ -47,8 +47,8 @@
         <div v-for="i in 17" class="time_line center">{{6+i-1}}:30</div>
       </div>
       <!-- 会议室列表 -->
-      <div class="meeting_boxs" @mousedown="area_start" @mousemove="area_over">
-        <div class="current_time"></div>
+      <div class="meeting_boxs">
+        <div class="current_time" v-show="html.boundary_display"></div>
         <div v-for="item,index in place_list" class="place">
           <div class="place_name">
             <div class="info">
@@ -68,12 +68,13 @@
               <i v-if="item.photoUrl==null" class="el-icon-picture-outline"></i>
             </div> -->
           </div>
-          <div v-for="i,index2 in 34" class="time_box" @mouseover="query_meeting_info($event,index,index2)">
+          <div v-for="i,index2 in 34" class="time_box" @mousedown="area_start(index,index2)"
+            @mouseover="area_enter(index,index2)" @mouseenter="query_meeting_info($event,index,index2)">
             <div class="pass center" v-if="html.block_list[index][index2] == 2">
               <img src="./img/icon1.png" class="icon flex_shrink">
             </div>
             <div class="over_time" v-if="html.block_list[index][index2] == 1"></div>
-            <div v-show="html.block_list[index][index2] == 3"
+            <div v-show="html.block_list2[index][index2] == 3"
               :class="['area_box',col_index_start==index2?'color_start':'',col_index_end==index2?'color_end':'']">
             </div>
           </div>
@@ -89,22 +90,32 @@
             <i class="el-icon-close icon2"></i>
           </div>
         </div>
-        <el-form :model="new_meeting_form" label-width="100px">
-          <el-form-item label="会议名称">
+        <el-form :model="new_meeting_form" :rules="new_rule" ref="new_meeting" label-width="100px">
+          <el-form-item label="会议名称" prop="name">
             <el-input v-model="new_meeting_form.name"></el-input>
           </el-form-item>
 
-          <el-form-item label="预约时间">
+          <el-form-item label="预约时间" required>
             <div style="display: flex;">
-              <el-date-picker v-model="new_meeting_form.date" type="date" class="margin" @change="change_reserve_type">
-              </el-date-picker>
-              <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type" class="margin"
-                :picker-options="{start: '06:00',step: '00:30',end: '23:00'}" placeholder="选择起始时间">
-              </el-time-select>
+              <el-form-item prop="date" class="margin" style="width: 140px;">
+                <el-date-picker v-model="new_meeting_form.date" type="date" @change="change_reserve_type"
+                  style="width: 140px;">
+                </el-date-picker>
+              </el-form-item>
+              <el-form-item prop="time_start" class="margin" style="width: 100px;">
+                <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type"
+                  style="width: 100px;"
+                  :picker-options="{start: '06:00',step: '00:30',end: '23:00',maxTime:new_meeting_form.time_end}"
+                  placeholder="选择起始时间">
+                </el-time-select>
+              </el-form-item>
               <span class="margin">&#10140</span>
-              <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type" class="margin"
-                :picker-options="{start: '06:00',step: '00:30',end: '23:00'}" placeholder="选择结束时间">
-              </el-time-select>
+              <el-form-item prop="time_end" class="margin" style="width: 100px;">
+                <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type" style="width: 100px;"
+                  :picker-options="{start: '06:00',step: '00:30',end: '23:00',minTime: new_meeting_form.time_start}"
+                  placeholder="选择结束时间">
+                </el-time-select>
+              </el-form-item>
             </div>
           </el-form-item>
 
@@ -114,7 +125,7 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item v-show="new_meeting_form.method==5" label="自定义星期">
+          <el-form-item v-if="new_meeting_form.method==5" label="自定义星期" prop="cus_week">
             <el-select v-model="new_meeting_form.cus_week" multiple>
               <el-option v-for="item,index in html.week_options" :label="item" :value="index+1">
               </el-option>
@@ -127,7 +138,7 @@
             </el-date-picker>
           </el-form-item>
 
-          <el-form-item label="参会人员">
+          <el-form-item label="参会人员" prop="search_person">
             <el-select v-model="new_meeting_form.search_person" filterable multiple placeholder="搜索"
               style="width: 100%;">
               <el-option v-for="item in conferee_list" :label="item.username" :value="item.id">

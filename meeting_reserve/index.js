@@ -13,11 +13,12 @@ new Vue({
 		token: '',
 		html: {
 			block_list: [], //会议室方块状态
+			block_list2: [], //选中渲染列表
 			year: '', //页面显示时间
 			month: '',
 			day: '',
 			week: '',
-			date: new Date(),
+			date: '',
 			search_meeting: '', //搜索会议名
 			new_meeting: false, //新增会议弹窗
 			form_loading: false, // 提交表单时加载遮罩
@@ -29,6 +30,7 @@ new Vue({
 			meeting_info_show: false, //会议信息显示
 			meeting_infos: ['会议主题', '开始时间', '结束时间', '类型'],
 			info_type: ['站内消息', '微信公众号', '微信小程序', '钉钉', '短信', '邮件', 'APP'], // 通知方式
+			boundary_display: false, //只有当天需要计算边界线
 		},
 		place_list: [], // 会议室及会议列表
 		// 新建会议表单
@@ -62,6 +64,15 @@ new Vue({
 			url: upload_files, //上传地址
 			list: [], //文件列表
 		},
+		// 新建预约会议验证规则
+		new_rule: {
+			name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+			date: [{ type: 'date', required: true, message: '请选择日期', trigger: 'change' }],
+			time_start: [{ required: true, message: '必须选择时间', trigger: 'change' }],
+			time_end: [{ required: true, message: '必须选择时间', trigger: 'change' }],
+			cus_week: [{ required: true, message: '必须选择星期', trigger: 'change' }],
+			search_person: [{ required: true, message: '必须选择与会人员', trigger: 'change' }],
+		},
 	},
 	mounted() {
 		if (!location.search) {
@@ -80,10 +91,12 @@ new Vue({
 			this.boundary++;
 		}
 		// 小于当天的格子全部灰掉
+		// 改变时间后 只有当天才能显示和计算边界值 格式化当天条件为 00点
 		let t = new Date();
 		this.current_day = new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`).getTime();
+		this.html.date = new Date(this.current_day);
 		// 获取当前时间
-		this.display_time(new Date());
+		this.display_time(this.html.date);
 		window.onresize = () => {
 			this.get_boundary();
 		};
@@ -116,7 +129,10 @@ new Vue({
 			// let array = Object.entries(place_obj.meetingList)[0][1];
 			// 可能会有几种情况 变灰和灰色上同时有会议
 			let result = 0;
-			if (this.display_day < this.current_day || time_index < this.boundary) {
+			if (this.display_day < this.current_day) {
+				result = 1;
+			}
+			if (this.html.boundary_display && time_index < this.boundary) {
 				result = 1;
 			}
 			// 对单个场所下每个时间点 查找是否在任意一个会议时间段内
@@ -158,6 +174,7 @@ new Vue({
 			for (let i = 0; i < this.place_list.length; i++) {
 				let t = [];
 				let t2;
+				let t3 = [];
 				if (this.place_list[i].meetingList != null) {
 					t2 = Object.entries(this.place_list[i].meetingList)[0][1];
 				} else {
@@ -165,8 +182,10 @@ new Vue({
 				}
 				for (let j = 0; j < 34; j++) {
 					t[j] = this.query_block_status(t2, j);
+					t3[j] = 0;
 				}
 				this.html.block_list.push(t);
+				this.html.block_list2.push(t3);
 			}
 			this.$nextTick(() => {
 				// this.add_exist_meeting_style();
@@ -176,48 +195,23 @@ new Vue({
 			});
 		},
 		get_boundary() {
-			let time = new Date().toString().split(' ')[4];
-			let time_list = time.split(':');
-			let hour = +time_list[0];
-			let minute = +time_list[1];
-			// 首先找到当前时间所在方格
-			let boundary = (hour - 6) * 2;
-			// 计算分钟在一小时间隔中位置
-			let per = minute / 60;
-			let block_position = document.querySelectorAll('.time_box')[boundary].offsetLeft;
-			this.block_width = document.querySelector('.time_box').offsetWidth;
-			let offset = per * (this.block_width * 2) + block_position;
-			let dom = document.querySelector('.current_time');
-			dom.style.left = `${offset}px`;
+			if (this.html.boundary_display) {
+				let time = new Date().toString().split(' ')[4];
+				let time_list = time.split(':');
+				let hour = +time_list[0];
+				let minute = +time_list[1];
+				// 首先找到当前时间所在方格
+				let boundary = (hour - 6) * 2;
+				// 计算分钟在一小时间隔中位置
+				let per = minute / 60;
+				let block_position = document.querySelectorAll('.time_box')[boundary].offsetLeft;
+				this.block_width = document.querySelector('.time_box').offsetWidth;
+				let offset = per * (this.block_width * 2) + block_position;
+				let dom = document.querySelector('.current_time');
+				dom.style.left = `${offset}px`;
+				dom.style.height = `${100 * this.place_list.length}px`; // 100是一行高度
+			}
 		},
-		//#region
-		// add_exist_meeting_style() {
-		// 	this.dom_list = document.querySelectorAll('.time_box');
-		// 	for (let i = 0; i < this.html.block_list.length; i++) {
-		// 		let start_num = 0;
-		// 		let t = this.html.block_list[i];
-		// 		for (let j = 0; j < t.length; j++) {
-		// 			if (t[j] != start_num && t[j] != 0) {
-		// 				start_num = t[j];
-		// 				let child = this.dom_list[i * 34 + j].children;
-		// 				for (let k = 0; k < child.length; k++) {
-		// 					if (child[k].style.display != 'none') {
-		// 						child[k].classList.add('color_start');
-		// 					}
-		// 				}
-		// 			} else if (t[j] != start_num && t[j] == 0) {
-		// 				start_num = t[j];
-		// 				let child = this.dom_list[i * 34 + j - 1].children;
-		// 				for (let k = 0; k < child.length; k++) {
-		// 					if (child[k].style.display != 'none') {
-		// 						child[k].classList.add('color_end');
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// },
-		//#endregion
 		// 获取选中时间
 		display_time(date_obj) {
 			this.html.year = date_obj.getFullYear();
@@ -246,106 +240,41 @@ new Vue({
 					this.html.week = '星期六';
 					break;
 			}
+			if (date_obj.getTime() == this.current_day) {
+				this.html.boundary_display = true;
+			} else {
+				this.html.boundary_display = false;
+			}
 			this.req_room_list();
 		},
 		// 鼠标点下时 只有在当前时间后的才能框选
-		//#region
-		// area_start(e) {
-		// 	this.mouse_start = e.pageX; //鼠标只能往后拖
-		// 	let mouse_position = this.mouse_start - this.first_block_position;
-		// 	let boundary = parseInt(document.querySelector('.current_time').style.left) - 200;
-		// 	if (mouse_position >= boundary) {
-		// 		// 查看鼠标点击位置方块是否已经有值
-		// 		this.col_index_start = Math.floor(mouse_position / this.block_width);
-		// 		let parent_position = document.querySelector('.meeting_boxs').getBoundingClientRect().top;
-		// 		let mouse_y = e.pageY;
-		// 		this.row_index = Math.floor((mouse_y - parent_position) / 70);
-		// 		if (this.html.block_list[this.row_index][this.col_index_start] == 0) {
-		// 			this.start_move = true;
-		// 			// 将色块状态改为3 表示选中 在取消创建会议时恢复状态为0
-		// 			this.html.block_list[this.row_index].splice(this.col_index_start, 1, 3);
-		// 			let child = this.dom_list[this.row_index * 34 + this.col_index_start].children;
-		// 			child[2].classList.add('color_start', 'color_end');
-		// 		}
-		// 	}
-		// },
-		//#endregion
-		area_start(e) {
-			this.mouse_start = e.pageX; //鼠标只能往后拖
-			let mouse_position = this.mouse_start - this.first_block_position + 10; //10是边框带来的偏差值
-			let w = document.querySelector('.place_name').offsetWidth;
-			let boundary = parseInt(document.querySelector('.current_time').style.left) - w;
-			if (mouse_position >= boundary) {
-				// 查看鼠标点击位置方块是否已经有值
-				let col_index_start = Math.floor(mouse_position / this.block_width);
-				let parent_position = document.querySelector('.meeting_boxs').getBoundingClientRect().top;
-				let mouse_y = e.pageY;
-				let h = document.querySelector('.place').offsetHeight + 10; //10是margin-top的高度
-				this.row_index = Math.floor((mouse_y - parent_position) / h); // 从0开始
-				if (this.html.block_list[this.row_index][col_index_start] == 0) {
-					this.start_move = true;
-					this.col_index_start = col_index_start;
-					this.col_index_end = col_index_start;
-					// 将色块状态改为3 表示选中 在取消创建会议时恢复状态为0
-					this.html.block_list[this.row_index].splice(col_index_start, 1, 3);
-				}
+		area_start(row_index, col_index) {
+			if (this.html.block_list[row_index][col_index] == 0) {
+				this.start_move = true;
+				this.row_index = row_index;
+				this.col_index_start = col_index;
+				this.col_index_end = col_index;
+				// 将色块状态改为3 表示选中 在取消创建会议时恢复状态为0
+				this.html.block_list2[row_index].splice(col_index, 1, 3);
 			}
 		},
 		// 鼠标滑动时 将开始的end样式去除 给末尾的添加end样式
-		//#region
-		// area_over(e) {
-		// 	let mouse_x = e.pageX;
-		// 	if (this.start_move && mouse_x > this.mouse_start) {
-		// 		let mouse_position = mouse_x - this.first_block_position;
-		// 		this.col_index_end = Math.floor(mouse_position / this.block_width);
-		// 		let current_block_position = this.dom_list[this.row_index * 34 + this.col_index_end].getBoundingClientRect().left;
-		// 		if (current_block_position > this.mouse_start) {
-		// 			this.mouse_start = current_block_position;
-		// 			// 已经进入到了新的方块 把当前的置为3
-		// 			this.html.block_list[this.row_index].splice(this.col_index_end, 1, 3);
-		// 			let child = this.dom_list[this.row_index * 34 + this.col_index_end].children;
-		// 			child[2].classList.add('color_end');
-		// 			// 清除上一个的样式
-		// 			let child2 = this.dom_list[this.row_index * 34 + this.col_index_end - 1].children;
-		// 			child2[2].classList.remove('color_end');
-		// 		}
-		// 	}
-		// },
-		// area_over(e) {
-		// 	let mouse_x = e.pageX;
-		// 	if (this.start_move && mouse_x > this.mouse_start) {
-		// 		let mouse_position = mouse_x - this.first_block_position;
-		// 		this.col_index_end = Math.floor(mouse_position / this.block_width);
-		// 		if (this.col_index_end > this.col_index_start) {
-		// 			let child = this.dom_list[this.row_index * 34 + this.col_index_start].children;
-		// 			child[2].className = 'area_box color_start';
-		// 			let child2 = this.dom_list[this.row_index * 34 + this.col_index_end].children;
-		// 			child2[2].className = 'area_box color_end';
-		// 			let l = this.col_index_end - this.col_index_start;
-		// 			for (let i = 0; i <= l; i++) {
-		// 				if (i != 0 && i != l) {
-		// 					this.dom_list[this.row_index * 34 + this.col_index_start + i].children[2].className = 'area_box';
-		// 				}
-		// 				this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 3);
-		// 			}
-		// 		}
-		// 	}
-		// },
-		//#endregion
-		area_over(e) {
-			let mouse_x = e.pageX;
-			if (this.start_move && mouse_x > this.mouse_start) {
-				let mouse_position = mouse_x - this.first_block_position;
-				this.col_index_end = Math.floor(mouse_position / this.block_width);
-				let l = this.col_index_end - this.col_index_start;
-				for (let i = 0; i <= l; i++) {
-					this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 3);
-				}
-				if (this.col_index_end >= this.col_index_start) {
-					for (let i = 1; i < 34 - this.col_index_end; i++) {
-						if (this.html.block_list[this.row_index][this.col_index_end + i] == 3) {
-							this.html.block_list[this.row_index].splice(this.col_index_end + i, 1, 0);
+		area_enter(row_index, col_index) {
+			if (this.start_move) {
+				if (col_index >= this.col_index_start) {
+					// 再把鼠标所在的方块置为end
+					this.col_index_end = col_index;
+					this.html.block_list2 = [];
+					for (let i = 0; i < this.place_list.length; i++) {
+						let t = [];
+						for (let k = 0; k < 34; k++) {
+							t[k] = 0;
 						}
+						this.html.block_list2.push(t);
+					}
+					let l = this.col_index_end - this.col_index_start;
+					for (let i = 0; i <= l; i++) {
+						this.html.block_list2[this.row_index].splice(this.col_index_start + i, 1, 3);
 					}
 				}
 			}
@@ -419,66 +348,64 @@ new Vue({
 		},
 		// 提交新建会议表单 并刷新数据 关闭弹窗
 		new_submit(form) {
-			let data = {
-				appointmentMode: form.method,
-				reply: form.reply,
-				roomId: this.place_list[this.row_index].id,
-				sendMessage: form.sendMessage,
-				signIn: form.signIn,
-				summary: form.summary,
-				theme: form.name,
-				userIds: form.search_person,
-				meetingFiles: form.files,
-				meetingReminds: [],
-			};
-			if (form.method != 0) {
-				// 周期截止
-				let y = form.cycle_deadline.getFullYear();
-				let m = form.cycle_deadline.getMonth() + 1 < 10 ? '0' + (form.cycle_deadline.getMonth() + 1) : form.cycle_deadline.getMonth() + 1;
-				let d = form.cycle_deadline.getDate() < 10 ? '0' + form.cycle_deadline.getDate() : form.cycle_deadline.getDate();
-				data.appointmentEndTime = `${y}-${m}-${d} 23:00:00`;
-			}
-			if (form.method == 5) {
-				// 自定义周
-				let t = form.cus_week.toString();
-				data.appointmentPeriod = `${t}`;
-			}
-			// 开始结束时间
-			let m = form.date.getMonth() + 1 < 10 ? '0' + (form.date.getMonth() + 1) : form.date.getMonth() + 1;
-			let d = form.date.getDate() < 10 ? '0' + form.date.getDate() : form.date.getDate();
-			data.endTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_end}:00`;
-			data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
-			// 提醒时间
-			let t = form.time_start.split(':');
-			for (let i = 0; i < form.meetingReminds.length; i++) {
-				let t2 = {};
-				if (t[1] == 00) {
-					t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0] - 1}:${50}:00`;
-				} else {
-					t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0]}:${20}:00`;
+			this.$refs.new_meeting.validate((result) => {
+				if (result) {
+					let data = {
+						appointmentMode: form.method,
+						reply: form.reply,
+						roomId: this.place_list[this.row_index].id,
+						sendMessage: form.sendMessage,
+						signIn: form.signIn,
+						summary: form.summary,
+						theme: form.name,
+						userIds: form.search_person,
+						meetingFiles: form.files,
+						meetingReminds: [],
+					};
+					if (form.method != 0) {
+						// 周期截止
+						let y = form.cycle_deadline.getFullYear();
+						let m = form.cycle_deadline.getMonth() + 1 < 10 ? '0' + (form.cycle_deadline.getMonth() + 1) : form.cycle_deadline.getMonth() + 1;
+						let d = form.cycle_deadline.getDate() < 10 ? '0' + form.cycle_deadline.getDate() : form.cycle_deadline.getDate();
+						data.appointmentEndTime = `${y}-${m}-${d} 23:00:00`;
+					}
+					if (form.method == 5) {
+						// 自定义周
+						let t = form.cus_week.toString();
+						data.appointmentPeriod = `${t}`;
+					}
+					// 开始结束时间
+					let m = form.date.getMonth() + 1 < 10 ? '0' + (form.date.getMonth() + 1) : form.date.getMonth() + 1;
+					let d = form.date.getDate() < 10 ? '0' + form.date.getDate() : form.date.getDate();
+					data.endTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_end}:00`;
+					data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
+					// 提醒时间
+					let t = form.time_start.split(':');
+					for (let i = 0; i < form.meetingReminds.length; i++) {
+						let t2 = {};
+						if (t[1] == 00) {
+							t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0] - 1}:${50}:00`;
+						} else {
+							t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0]}:${20}:00`;
+						}
+						t2.remindType = form.meetingReminds[i].type;
+						data.meetingReminds.push(t2);
+					}
+					this.html.form_loading = true;
+					this.request('post', meeting_reserve, this.token, data, () => {
+						this.col_index_start = this.col_index_end = null;
+						this.req_room_list();
+						this.html.new_meeting = false;
+						this.html.form_loading = false;
+					});
 				}
-				t2.remindType = form.meetingReminds[i].type;
-				data.meetingReminds.push(t2);
-			}
-			this.html.form_loading = true;
-			this.request('post', meeting_reserve, this.token, data, () => {
-				this.col_index_start = this.col_index_end = null;
-				this.req_room_list();
-				this.html.new_meeting = false;
-				this.html.form_loading = false;
 			});
 		},
 		close_new() {
 			this.html.new_meeting = false;
-			//#region
-			// let child = this.dom_list[this.row_index * 34 + this.col_index_start].children;
-			// child[2].classList.remove('color_start');
-			// let child2 = this.dom_list[this.row_index * 34 + this.col_index_end].children;
-			// child2[2].classList.remove('color_end');
-			//#endregion
 			let l = this.col_index_end - this.col_index_start;
 			for (let i = 0; i <= l; i++) {
-				this.html.block_list[this.row_index].splice(this.col_index_start + i, 1, 0);
+				this.html.block_list2[this.row_index].splice(this.col_index_start + i, 1, 0);
 			}
 			this.col_index_start = this.col_index_end = null;
 		},

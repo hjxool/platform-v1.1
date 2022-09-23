@@ -127,7 +127,7 @@ new Vue({
 			if (card_obj.data_type !== 'number') {
 				return;
 			}
-			this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 999 }, (res) => {
+			this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 100 }, (res) => {
 				console.log('历史记录', res);
 				if (res.data.data.data.length == 0 || res.data.data.data == null) {
 					this.$message.info('无历史数据');

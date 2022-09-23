@@ -119,15 +119,15 @@
       </div>
       <div class="box2">
         <div class="box3" v-for="item,index in list_meeting[html.list_select]">
-          <div class="img2 center">
+          <div class="img2 center flex_shrink">
             <i class="el-icon-picture-outline icon"></i>
           </div>
           <div class="text_box">
-            <span class="text1">{{item.roomName}}</span>
+            <span class="text1 text_ellipsis">{{item.theme}}</span>
             <span class="text2">时间： {{item.html_time}}</span>
-            <span class="text2">地点：</span>
+            <span class="text2">会议室(地点)：{{item.roomName}}</span>
           </div>
-          <div class="button_box">
+          <div class="button_box flex_shrink">
             <span class="text3 button flex_shrink" v-if="html.list_select==0"
               @click="cancel_review(item.id)">撤销申请</span>
             <span class="text3 button flex_shrink" v-if="html.list_select!=1">编辑</span>

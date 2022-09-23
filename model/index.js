@@ -296,7 +296,9 @@ new Vue({
 			// 不要将展示页面和真实数据直接关联 修改完返回模板数据修改真实数据
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 				if (row_data[key] != undefined) {
 					temp[key] = row_data[key];
 				}
@@ -369,7 +371,9 @@ new Vue({
 			this.static_params.add_edit = 'check';
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 				if (row_data[key] != undefined) {
 					temp[key] = row_data[key];
 				}
@@ -388,8 +392,12 @@ new Vue({
 			this.child_count_list.push(count);
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 			}
+			temp.inputData = [];
+			temp.outputData = [];
 			temp.type = '属性';
 			//第一层数据因为是从protocol_list取值，所以索引无用不如id，但是里层嵌套的数组用索引取值更好
 			temp.index = child_index;
@@ -443,8 +451,12 @@ new Vue({
 		check_child_json(row_data) {
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 			}
+			temp.inputData = [];
+			temp.outputData = [];
 			temp.type = '属性';
 			temp.identifier = row_data.identifier;
 			temp.name = row_data.name;
@@ -481,8 +493,12 @@ new Vue({
 			this.child_count_list.push(count);
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 			}
+			temp.inputData = [];
+			temp.outputData = [];
 			temp.type = '属性';
 			temp.dataType = 'int';
 			// 数组要独一份创建
@@ -539,9 +555,9 @@ new Vue({
 					}
 					break;
 				case 'size':
-					reg = /^[1-9][0-9]{0,1}$/;
+					reg = /^[1-9][0-9]{0,4}$/;
 					if (!reg.test(value)) {
-						this.rules[flag].message = '不能为空且只能输入2位以内非0开头的整数数字';
+						this.rules[flag].message = '不能为空且只能输入5位以内非0开头的整数数字';
 						return false;
 					}
 					break;
@@ -803,7 +819,7 @@ new Vue({
 									if (e.serviceId == obj.id) {
 										e.identifier = obj.identifier;
 										e.name = obj.name;
-										e.type = obj.dataType;
+										e.method = obj.dataType;
 										e.inputData = obj.inputData || [];
 										e.outputData = obj.outputData || [];
 										this.request('put', `${protocol_service}/${this.model_id}`, this.token, e, () => {
@@ -903,8 +919,12 @@ new Vue({
 			this.child_count_list[this.child_count_list.length - 1]++;
 			let temp = {};
 			for (let key in this.single_setting) {
-				temp[key] = this.single_setting[key];
+				if (key != 'inputData' && key != 'outputData') {
+					temp[key] = this.single_setting[key];
+				}
 			}
+			temp.inputData = [];
+			temp.outputData = [];
 			temp.type = '属性';
 			temp.dataType = 'int';
 			this.form_list.push(temp);

@@ -76,7 +76,7 @@
             <div class="ctrl">
               <img v-show="item.statusValue==1" src="./img/online.png" class="icon">
               <img v-show="item.statusValue==2" src="./img/offline.png" class="icon">
-              <img src="./img/button.png" class="icon2">
+              <img @click="turn_to_device(item)" src="./img/button.png" class="icon2">
             </div>
           </div>
           <!-- 绝对定位的设备分配框 -->

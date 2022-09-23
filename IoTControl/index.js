@@ -4,6 +4,10 @@ let update_rule = `${url}api-portal/online-check-rule/saveOrUpdate`;
 let device_list = `${url}api-portal/room/device`;
 let room_search = `${url}api-portal/room/search`;
 let model_server_search = `${url}api-device/protocol/current/services`;
+let joint_rule_enable = `${url}api-portal/online-check-rule/start`;
+let joint_rule_disable = `${url}api-portal/online-check-rule/stop`;
+let joint_rule_del = `${url}api-portal/online-check-rule/delete`;
+let record_search = `${url}api-portal/online-check-record/search`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -11,8 +15,7 @@ new Vue({
 	mixins: [common_functions],
 	data: {
 		html: {
-			page_options: ['设备管理', '设备联检', '设备巡检', '情景模式'],
-			page_select: 0, // 页面选择
+			page_select: '1', // 页面选择
 			page_loading: true, // 加载大页面时loading遮罩
 			popup_loading: false, // 加载二级弹窗loading遮罩
 		},
@@ -23,12 +26,10 @@ new Vue({
 			list_empty: false, //设备列表为空时显示
 		},
 		joint: {
-			options: ['联检规则', '联检记录'],
-			select: 0, // 设备联检选择
-			table1_height: 0, // 联检表格高度
+			table_height: 0, // 联检表格高度
 			log_search: '', // 记录搜索
-			table2_height: 0, // 记录表格高度
 			add_rule_display: false, // 添加规则表单
+			record_detail_display: false, //记录详情
 			form: {
 				name: '',
 				date: [], // 日期范围 数组
@@ -39,14 +40,14 @@ new Vue({
 				device_selected: [], // 勾选的设备
 				model_server_list: [], // 物模型服务列表
 			},
+			record_devices: [],
 			rule_list: [], // 联检规则表
+			record_list: [], // 联检记录表
 		},
 		polling: {
-			options: ['巡检计划', '巡检规则', '巡检记录'],
-			select: 0, // 设备巡检选择
 			apply_place: '', // 应用会议室
 			log_select: 0, //全部 待巡检 正常完成
-			table3_height: 0, // 表格高度
+			table_height: 0, // 表格高度
 		},
 		tableData: [{ a: 1, b: 2, c: 3, d: 4 }],
 		option1: [1, 2, 3, 4],
@@ -69,14 +70,13 @@ new Vue({
 				}
 				this.place_list = res.data.data.data;
 				this.place_id = this.place_list[0].id;
-				this.page_switch(0);
+				this.place_change();
 			});
 		},
-		// 页面选择
-		page_switch(page_index) {
-			this.html.page_select = page_index;
-			this.device.list = [];
+		// 场所一切换 设备列表就要更新
+		place_change() {
 			this.html.page_loading = true;
+			this.device.list = [];
 			this.request('post', `${device_list}/${this.place_id}`, this.token, { condition: {}, pageNum: 1, pageSize: 999999 }, (res) => {
 				console.log('设备列表', res);
 				this.html.page_loading = false;
@@ -91,85 +91,83 @@ new Vue({
 				}
 				this.device.list_empty = false;
 			});
-			if (page_index == 1) {
-				this.joint_select(this.joint.select);
-			} else if (page_index == 2) {
-				this.polling_select(this.polling.select);
+			this.page_switch(this.html.page_select);
+		},
+		// 页面选择
+		page_switch(page_index) {
+			this.html.page_select = page_index;
+			let type = page_index.split('-')[0];
+			if (type == 2) {
+				this.joint_select();
+			} else if (type == 3) {
+				this.polling_select();
 			}
 		},
 		// 联检选择
-		joint_select(index) {
-			this.html.page_loading = true;
-			this.joint.select = index;
-			if (index == 0) {
-				this.request('post', rule_search, this.token, { condition: { placeId: this.place_id }, pageNum: 1, pageSize: 99999999 }, (res) => {
+		joint_select() {
+			if (this.html.page_select == '2-1') {
+				this.html.page_loading = true;
+				this.request('post', rule_search, this.token, { condition: { placeId: this.place_id }, pageNum: 1, pageSize: 100 }, (res) => {
 					console.log('联检规则表', res);
 					this.html.page_loading = false;
 					if (Object.entries(res.data.data).length == 0) {
 						return;
 					}
 					this.joint.rule_list = res.data.data.data;
-					this.$nextTick(() => {
-						this.joint.table1_height = document.querySelector('.page2_1').clientHeight;
-					});
 				});
-			} else if (index == 1) {
-				this.$nextTick(() => {
-					this.joint.table2_height = document.querySelector('.table2').clientHeight;
-				});
+			} else if (this.html.page_select == '2-2') {
+				this.search_record('');
 			}
+			this.$nextTick(() => {
+				this.joint.table_height = document.querySelector('.joint_table').clientHeight;
+			});
 		},
-		// 添加规则
+		// 添加联检规则
 		add_joint_rules() {
+			this.joint.rule_id = null;
 			this.joint.add_rule_display = true;
 			this.html.popup_loading = false;
-			this.clean_form(this.joint.form);
+			this.joint.form.date = [];
+			for (let key in this.joint.form) {
+				if (key != 'date') {
+					this.joint.form[key] = '';
+				}
+			}
 			for (let i = 0; i < this.device.list.length; i++) {
 				this.device.list[i].selected = false;
 				this.device.list[i].server_select = '';
 			}
 		},
-		// 巡检选择
-		polling_select(index) {
-			this.polling.select = index;
-			this.$nextTick(() => {
-				this.polling.table3_height = document.querySelector('.table3').clientHeight;
-			});
-		},
-		// 清空表单项
-		clean_form(obj) {
-			for (let key in obj) {
-				switch (typeof obj[key]) {
-					case 'string':
-						obj[key] = '';
-						break;
-					case 'number':
-						obj[key] = 0;
-						break;
-					case 'boolean':
-						obj[key] = false;
-						break;
-					default:
-						switch (obj[key].constructor) {
-							case Array:
-								if (typeof obj[key][0] == 'object') {
-									for (let value of obj[key]) {
-										this.clean_form(value);
-									}
-								} else {
-									obj[key] = [];
-								}
-								break;
-							case Object:
-								this.clean_form(obj[key]);
-								break;
-							case Date:
-								obj[key] = '';
-								break;
-						}
-						break;
+		// 编辑联检规则
+		edit_joint_rule(rule_obj) {
+			// 判断规则id是不是null来区分是编辑还是新增
+			this.joint.rule_id = rule_obj.id;
+			this.joint.add_rule_display = true;
+			this.html.popup_loading = false;
+			this.joint.form.name = rule_obj.onlineCheckName;
+			this.joint.form.date = [new Date(rule_obj.planDatetimeStart.split(' ')[0]), new Date(rule_obj.planDatetimeEnd.split(' ')[0])];
+			this.joint.form.cycle_week = JSON.parse(rule_obj.executePeriodDays);
+			this.joint.form.select_time = new Date(rule_obj.executeTime);
+			for (let i = 0; i < this.device.list.length; i++) {
+				let find = false;
+				for (let j = 0; j < rule_obj.devicesVOS.length; j++) {
+					if (this.device.list[i].id == rule_obj.devicesVOS[j].deviceId) {
+						find = true;
+						this.device.list[i].selected = true;
+						this.device.list[i].server_select = rule_obj.devicesVOS[j].serviceIdentifier;
+					}
+				}
+				if (!find) {
+					this.device.list[i].selected = false;
+					this.device.list[i].server_select = '';
 				}
 			}
+		},
+		// 巡检选择
+		polling_select() {
+			this.$nextTick(() => {
+				this.polling.table_height = document.querySelector('.polling_table').clientHeight;
+			});
 		},
 		// 全选传入的数组
 		check_all(check_flag) {
@@ -201,15 +199,15 @@ new Vue({
 			return row.status == 0 ? '关闭' : '开启';
 		},
 		// 规则提交
-		joint_rule_submit(form, status, rule_id) {
+		joint_rule_submit(form, status) {
 			this.html.popup_loading = true;
 			let t_s = form.date[0];
 			let t_e = form.date[1];
 			let data = {
 				onlineCheckName: form.name,
 				placeId: this.place_id,
-				planDatetimeStart: `${t_s.getFullYear()}-${t_s.getMonth() + 1 < 10 ? '0' + (t_s.getMonth() + 1) : t_s.getMonth() + 1}-${t_s.getDate()} 06:00:00`,
-				planDatetimeEnd: `${t_e.getFullYear()}-${t_e.getMonth() + 1 < 10 ? '0' + (t_e.getMonth() + 1) : t_e.getMonth() + 1}-${t_e.getDate()} 23:00:00`,
+				planDatetimeStart: `${t_s.getFullYear()}-${t_s.getMonth() + 1 < 10 ? '0' + (t_s.getMonth() + 1) : t_s.getMonth() + 1}-${t_s.getDate() < 10 ? '0' + t_s.getDate() : t_s.getDate()} 06:00:00`,
+				planDatetimeEnd: `${t_e.getFullYear()}-${t_e.getMonth() + 1 < 10 ? '0' + (t_e.getMonth() + 1) : t_e.getMonth() + 1}-${t_e.getDate() < 10 ? '0' + t_e.getDate() : t_e.getDate()} 23:00:00`,
 				status: status,
 				executeTime: form.select_time.toString().split(' ')[4],
 				executePeriodDays: JSON.stringify(form.cycle_week),
@@ -219,17 +217,67 @@ new Vue({
 				let t = {
 					deviceId: form.device_selected[i].id,
 					deviceName: form.device_selected[i].deviceName,
-					serviceIdentifier: form.server_select,
+					serviceIdentifier: form.device_selected[i].server_select,
 				};
 				data.devicesDTOList.push(t);
 			}
-			if (typeof rule_id != 'undefined') {
-				data.id = rule_id;
+			if (this.joint.rule_id != null) {
+				data.id = this.joint.rule_id;
 			}
 			this.request('post', update_rule, this.token, data, () => {
 				this.html.popup_loading = false;
 				this.joint_select(0);
 			});
+		},
+		// 切换联检规则开关
+		switch_joint_rule_status(rule_obj) {
+			// change事件时状态值已经变了
+			if (rule_obj.status == 1) {
+				this.request('post', joint_rule_enable, this.token, [rule_obj.id]);
+			} else if (rule_obj.status == 0) {
+				this.request('post', joint_rule_disable, this.token, [rule_obj.id]);
+			}
+		},
+		// 删除联检规则
+		del_joint_rule(rule_obj) {
+			this.request('post', joint_rule_del, this.token, [rule_obj.id], () => {
+				this.joint_select(0);
+			});
+		},
+		// 搜索联检记录
+		search_record(input) {
+			this.html.page_loading = true;
+			this.request('post', record_search, this.token, { condition: { placeId: this.place_id, onlineCheckName: input }, pageNum: 1, pageSize: 100 }, (res) => {
+				console.log('联检记录表', res);
+				this.html.page_loading = false;
+				if (Object.entries(res.data.data).length == 0) {
+					return;
+				}
+				this.joint.record_list = res.data.data.data;
+			});
+		},
+		// 查看联检记录
+		check_record(row_data) {
+			this.joint.record_devices = [];
+			for (let i = 0; i < row_data.deviceInfoRecords.length; i++) {
+				let t4 = row_data.deviceInfoRecords[i];
+				let t = {
+					name: t4.deviceName || '',
+					time: t4.checkTime || '',
+					status: t4.statusDesc || '',
+					item: [],
+				};
+				for (let k = 0; k < t4.itemRecords.length; k++) {
+					let t3 = t4.itemRecords[k];
+					let t2 = {
+						describe: t3.itemDesc || '',
+						value: t3.itemValue || '',
+						status: t3.qualified || '',
+					};
+					t.item.push(t2);
+				}
+				this.joint.record_devices.push(t);
+			}
 		},
 	},
 });

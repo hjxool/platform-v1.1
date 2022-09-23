@@ -75,20 +75,19 @@
               <el-form-item label="条件表达式" size="medium">
                 <el-input style="width: 80%;" type="textarea" autosize v-model="form.exp" placeholder="请输入表达式">
                 </el-input>
-                <el-button type="warning" size="mini" round @click="identify_symbol(form.exp,'trigger')">检测</el-button>
+                <el-button type="warning" size="mini" round
+                  @click="identify_symbol(form.exp,'trigger',form.condition.length)">检测</el-button>
               </el-form-item>
               <el-form-item label="条件字段" size="medium">
-                <el-input class="form_input" v-for="item in form.condition" v-model="item.field" placeholder="请输入字段名称">
-                </el-input>
-                <!-- <div v-for="item in form.condition">
-                  <el-input class="form_input" v-model="item.field" placeholder="请输入字段名称">
+                <div class="fields_layout">
+                  <el-input class="input flex_shrink" v-for="item in form.condition" v-model="item.field"
+                    placeholder="请输入字段名称" type="textarea">
                   </el-input>
-                  <div class="verify_text" v-show="item.show">{{item.message}}</div>
-                </div> -->
+                </div>
               </el-form-item>
               <el-form-item label="默认值" size="medium">
-                <el-input class="form_input" v-for="item in form.condition" v-model="item.default_value"
-                  placeholder="请设置默认值">
+                <el-input class="input flex_shrink" v-for="item in form.condition" v-model="item.default_value"
+                  placeholder="请设置默认值" type="textarea">
                 </el-input>
               </el-form-item>
               <el-form-item class="button_layout">
@@ -165,19 +164,23 @@
                 <el-input style="width: 70%;" type="textarea" autosize v-model="event_form.template"
                   placeholder="请输入告警内容模板">
                 </el-input>
-                <el-button type="warning" size="mini" round @click="identify_symbol(event_form.template,'event')">检测
+                <el-button type="warning" size="mini" round
+                  @click="identify_symbol(event_form.template,'event',event_form.fields.length)">检测
                 </el-button>
               </el-form-item>
               <el-form-item label="变量路径" size="medium">
-                <el-input class="form_input" v-for="item in event_form.fields" v-model="item.field"
-                  placeholder="输入取值路径">
-                </el-input>
+                <div class="fields_layout">
+                  <el-input class="input flex_shrink" v-for="item in event_form.fields" v-model="item.field"
+                    placeholder="输入取值路径" type="textarea">
+                  </el-input>
+                </div>
               </el-form-item>
               <el-form-item label="通知方式" size="medium">
-                <el-radio-group v-model="event_form.info_type">
-                  <el-radio :label="type.val" v-for="type in html.info_type_options" :disabled="type.ban">{{type.name}}
-                  </el-radio>
-                </el-radio-group>
+                <el-select v-model="event_form.info_type" size="small">
+                  <el-option v-for="type in html.info_type_options" :label="type.name" :value="type.val"
+                    :disabled="type.ban">
+                  </el-option>
+                </el-select>
               </el-form-item>
               <template v-if="event_form.info_type==1">
                 <el-form-item label="用户名" size="medium">

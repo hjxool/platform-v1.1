@@ -274,5 +274,11 @@ new Vue({
 		product_click(index) {
 			this.html.product_focus = index == this.html.product_focus ? -1 : index;
 		},
+		// 跳转到设备页面
+		turn_to_device(device_obj) {
+			if (device_obj.productUrl) {
+				window.open(`${device_obj.productUrl}?token=${this.token}&id=${device_obj.id}`);
+			}
+		},
 	},
 });

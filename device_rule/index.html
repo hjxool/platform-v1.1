@@ -90,7 +90,7 @@
             <span>{{trigger_form.exp}}</span>
           </el-form-item>
           <el-form-item label="条件字段" size="medium">
-            <span v-for="item in trigger_form.field">{{item}}</span>
+            <span v-for="item in trigger_form.fields">{{item}}</span>
           </el-form-item>
           <el-form-item label="参数" size="medium">
             <el-input style="width: 200px;" v-for="item in trigger_form.params" v-model="item.value"
@@ -147,13 +147,16 @@
               <el-form-item label="内容模板" size="medium">
                 <el-input style="width: 70%;" type="textarea" autosize v-model="event_form.template"
                   placeholder="请输入告警内容模板"></el-input>
-                <el-button type="warning" size="mini" round @click="identify_symbol(event_form.template,'event')">检测
+                <el-button type="warning" size="mini" round
+                  @click="identify_symbol(event_form.template,'event',event_form.fields.length)">检测
                 </el-button>
               </el-form-item>
               <el-form-item label="变量路径" size="medium">
-                <el-input style="width: 200px;" v-for="item in event_form.field" v-model="item.value"
-                  placeholder="输入取值路径">
-                </el-input>
+                <div class="fields_layout">
+                  <el-input class="input flex_shrink" v-for="item in event_form.fields" v-model="item.value"
+                    placeholder="输入取值路径" type="textarea">
+                  </el-input>
+                </div>
               </el-form-item>
               <el-form-item class="button_layout">
                 <el-button type="primary" @click="event_submit">保存</el-button>

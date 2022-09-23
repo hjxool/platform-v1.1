@@ -32,7 +32,7 @@ new Vue({
 			enable: false,
 			name: '',
 			exp: '',
-			field: [],
+			fields: [],
 			params: [],
 		},
 		// 事件表单
@@ -40,7 +40,7 @@ new Vue({
 			enable: false,
 			name: '',
 			template: '',
-			field: [],
+			fields: [],
 		},
 		// 事件触发
 		event_trigger_form: {
@@ -321,7 +321,7 @@ new Vue({
 				this.trigger_form.enable = node_list.enabled;
 				this.trigger_form.name = node_list.nodeName || '';
 				this.trigger_form.exp = node_list.conf.exp || '';
-				this.trigger_form.field = node_list.conf.conditionFields || [];
+				this.trigger_form.fields = node_list.conf.conditionFields || [];
 				this.trigger_form.params = [];
 				if (Object.keys(node_list).indexOf('custom_conf') != -1) {
 					node_list.custom_conf.defaultValues.forEach((e) => {
@@ -338,18 +338,18 @@ new Vue({
 			} else if (node_list.type == '响应事件') {
 				this.event_form.enable = node_list.enabled;
 				this.event_form.name = node_list.nodeName || '';
-				this.event_form.field = [];
+				this.event_form.fields = [];
 				if (Object.keys(node_list).indexOf('customConf') != -1) {
 					this.event_form.template = node_list.custom_conf.template || '';
 					node_list.custom_conf.fields.forEach((e) => {
 						let t = { value: e };
-						this.event_form.field.push(t);
+						this.event_form.fields.push(t);
 					});
 				} else {
 					this.event_form.template = node_list.conf.template || '';
 					node_list.conf.fields.forEach((e) => {
 						let t = { value: e };
-						this.event_form.field.push(t);
+						this.event_form.fields.push(t);
 					});
 				}
 				this.html.event_form = true;
@@ -397,26 +397,52 @@ new Vue({
 			}
 		},
 		// 检测规则表达式里的特殊符号 并动态生成元素
-		identify_symbol(input, flag, index) {
+		identify_symbol(input, flag, last_length, index, count) {
+			//#region
+			// if (index == undefined) {
+			// 	index = 0;
+			// 	if (flag == 'trigger') {
+			// 		this.trigger_form.fields = [];
+			// 		this.trigger_form.params = [];
+			// 	} else if (flag == 'event') {
+			// 		this.event_form.fields = [];
+			// 	}
+			// }
+			// index = input.indexOf('%s', index);
+			// if (index != -1) {
+			// 	if (flag == 'trigger') {
+			// 		let t = { value: '' };
+			// 		this.trigger_form.params.push(t);
+			// 	} else if (flag == 'event') {
+			// 		let t = { value: '' };
+			// 		this.event_form.fields.push(t);
+			// 	}
+			// 	this.identify_symbol(input, flag, index + 2);
+			// }
+			//#endregion
+
 			if (index == undefined) {
 				index = 0;
-				if (flag == 'trigger') {
-					this.trigger_form.field = [];
-					this.trigger_form.params = [];
-				} else if (flag == 'event') {
-					this.event_form.field = [];
-				}
+				count = 0;
 			}
 			index = input.indexOf('%s', index);
 			if (index != -1) {
-				if (flag == 'trigger') {
-					let t = { value: '' };
-					this.trigger_form.params.push(t);
-				} else if (flag == 'event') {
-					let t = { value: '' };
-					this.event_form.fields.push(t);
+				count++;
+				this.identify_symbol(input, flag, last_length, index + 2, count);
+			} else {
+				// last_length不等于0 则说明之前有值 新数组需要根据旧数组截取
+				if (last_length > count) {
+					if (flag == 'event') {
+						this.event_form.fields.splice(count);
+					}
+				} else if (last_length < count) {
+					if (flag == 'event') {
+						for (let i = 0; i < count - last_length; i++) {
+							let t = { value: '' };
+							this.event_form.fields.push(t);
+						}
+					}
 				}
-				this.identify_symbol(input, flag, index + 2);
 			}
 		},
 		// 事件保存
@@ -431,7 +457,7 @@ new Vue({
 				},
 			];
 			let array = [];
-			this.event_form.field.forEach((e) => {
+			this.event_form.fields.forEach((e) => {
 				array.push(e.value);
 			});
 			t2[0].condition.fields = array;

@@ -55,7 +55,8 @@ new Vue({
 					url = `./my_booking/index.html?token=${this.token}`;
 					return url;
 				case 'workbench':
-					return;
+					url = `./workbench/index.html?token=${this.token}`;
+					return url;
 				case 'IoTControl':
 					url = `./IoTControl/index.html?token=${this.token}`;
 					return url;

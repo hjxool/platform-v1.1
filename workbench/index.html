@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <div class="layout1 layout_bg">
+      <img src="./img/饼图.png" class="icon_big">
+      <div class="text_box" style="margin-left: auto;">
+        <div class="center">
+          <img src="./img/icon1.png" class="icon">
+          <span class="title">全部资产</span>
+        </div>
+        <span class="text center">306</span>
+        <div class="line"></div>
+      </div>
+      <div class="text_box" style="margin-left: 7.27%;">
+        <div class="center">
+          <img src="./img/icon2.png" class="icon">
+          <span class="title">智能设备</span>
+        </div>
+        <span class="text center">38</span>
+        <div class="line"></div>
+      </div>
+      <div class="text_box" style="margin-left: 7.27%;">
+        <div class="center">
+          <img src="./img/icon3.png" class="icon">
+          <span class="title">终端屏</span>
+        </div>
+        <span class="text center">9</span>
+      </div>
+    </div>
+    <div class="layout2">
+      <img src="./img/bg1.png" class="bg_img">
+      <span class="text">查看更多数据展示 >></span>
+    </div>
+    <div class="layout3 layout_bg layout_common">
+      <span class="layout_title">会议室状态占比</span>
+      <div class="center">
+        <img src="./img/img.png" style="width: 350px;height: 180px;">
+      </div>
+    </div>
+    <div class="layout4 layout_bg layout_common">
+      <span class="layout_title">资产种类占比</span>
+      <div class="center">
+        <img src="./img/img2.png" style="width: 300px;height: 120px;">
+      </div>
+    </div>
+    <div class="layout5 layout_bg layout_common">
+      <div class="head">
+        <span class="layout_title">最近故障设备</span>
+        <div class="button">
+          <span class="check_all button">查看全部</span>
+          <img src="./img/icon4.png" class="symbol1">
+        </div>
+      </div>
+      <div class="no_data">
+        <img src="./img/icon5.png" class="img">
+        暂无数据
+      </div>
+    </div>
+    <div class="layout6 layout_bg layout_common">
+      <div class="head">
+        <div class="center" @click="switch_metting_time(0)">
+          <span :class="[html.layout6_select==0?'focus':'layout_title']">总会议时长</span>
+          <div v-show="html.layout6_select==0" class="surbase"></div>
+        </div>
+        <div class="center" @click="switch_metting_time(1)">
+          <span :class="[html.layout6_select==1?'focus':'layout_title']">总会议室数量</span>
+          <div v-show="html.layout6_select==1" class="surbase"></div>
+        </div>
+      </div>
+      <div class="center">
+        <img src="./img/img3.png" style="width: 90%;height: 90%;">
+      </div>
+    </div>
+    <div class="layout7 layout_bg layout_common">
+      <div class="head">
+        <span class="layout_title">实时告警</span>
+        <div class="button">
+          <span class="check_all button">查看全部</span>
+          <img src="./img/icon4.png" class="symbol1">
+        </div>
+      </div>
+      <transition-group class="list_layout">
+        <div class="alert flex_shrink" v-for="item in html.layout7" :key="item.name">
+          <img src="./img/icon6.png" class="icon">
+          <span class="text">{{item.name}}</span>
+          <span class="text" style="margin-left: auto;margin-right: 12px;">{{item.time}}</span>
+          <img src="./img/icon4.png" class="symbol1" style="margin-right: 20px;">
+        </div>
+      </transition-group>
+    </div>
+    <div class="layout8 layout_bg layout_common">
+      <div class="head">
+        <span class="layout_title">最近报修设备</span>
+        <div class="button">
+          <span class="check_all button">查看全部</span>
+          <img src="./img/icon4.png" class="symbol1">
+        </div>
+      </div>
+      <transition-group class="list_layout">
+        <div class="alert flex_shrink" v-for="item in html.layout8" :key="item.name">
+          <img src="./img/icon7.png" class="icon">
+          <div class="column">
+            <span class="text1">{{item.name}}</span>
+            <span class="text1" style="opacity: 0.6;">{{item.room}}</span>
+          </div>
+          <span class="text" style="margin-left: auto;margin-right: 12px;">{{item.time}}</span>
+          <img src="./img/icon4.png" class="symbol1" style="margin-right: 20px;">
+        </div>
+      </transition-group>
+    </div>
+  </div>
+
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>
