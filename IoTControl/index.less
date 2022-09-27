@@ -114,8 +114,8 @@
 	position: absolute;
 	background-color: rgba(0, 0, 0, 0.2);
 	display: grid;
-	justify-content: center;
-	align-content: start;
+	justify-items: center;
+	align-items: start;
 	z-index: 990;
 	.add_rule_form {
 		width: 31.25%;
@@ -160,6 +160,7 @@
 					.text1 {
 						font-size: 16px;
 						padding: 5px 10px;
+						max-width: 60%;
 					}
 				}
 				.el-checkbox__label {
@@ -174,14 +175,26 @@
 		max-height: 90%;
 		overflow: auto;
 		margin-top: 40px;
-		display: flex;
-		flex-direction: column;
 		.form_head {
 			display: flex;
 			align-items: center;
 			height: 40px;
-			font-size: 20px;
-			font-weight: bold;
+			margin-bottom: 10px;
+			.text {
+				font-weight: bold;
+				font-size: 18px;
+			}
+			.icon {
+				width: 26px;
+				height: 26px;
+				background-color: #fdeaea;
+				border-radius: 50%;
+				margin-left: auto;
+				.icon2 {
+					font-size: 16px;
+					color: #f02424;
+				}
+			}
 		}
 	}
 }

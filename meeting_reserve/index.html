@@ -168,7 +168,8 @@
               <div v-for="item in new_meeting_form.meetingReminds" class="box1">
                 <span class="text1 center">开始前{{item.time}}提醒</span>
                 <el-select v-model="item.type" class="box2">
-                  <el-option v-for="item2,index in html.info_type" :label="item2" :value="index">
+                  <el-option v-for="item2,index in html.info_type" :label="item2" :value="index"
+                    :disabled="index!=0&&index!=2">
                   </el-option>
                 </el-select>
                 <i class="el-icon-close icon button" @click="del_alert_time"></i>

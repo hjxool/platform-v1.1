@@ -932,8 +932,15 @@ new Vue({
 		},
 		// 发布物模型
 		publish_model() {
-			this.request('get', `${protocol_publish}/${this.model_id}`, this.token, () => {
-				this.res_history_model(this.history_selected);
+			this.$confirm('一经发布不能再修改，确认发布？', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'info',
+				center: true,
+			}).then(() => {
+				this.request('get', `${protocol_publish}/${this.model_id}`, this.token, () => {
+					this.res_history_model(this.history_selected);
+				});
 			});
 		},
 		// 点击下拉框获取远程数据

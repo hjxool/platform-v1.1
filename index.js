@@ -27,6 +27,7 @@ new Vue({
 					window.sessionStorage.id = this.id;
 				} else if (key.indexOf('type') != -1) {
 					this.router = value;
+					window.sessionStorage.router = this.router;
 				}
 			});
 		},
@@ -52,7 +53,8 @@ new Vue({
 					url = `./meeting_reserve/index.html?token=${this.token}`;
 					return url;
 				case 'MyBooking':
-					url = `./my_booking/index.html?token=${this.token}`;
+				case 'ConferenceRoomUsageStatistics':
+					url = `./my_booking/index.html?token=${this.token}&type=${this.router}`;
 					return url;
 				case 'workbench':
 					url = `./workbench/index.html?token=${this.token}`;

@@ -464,7 +464,7 @@ new Vue({
 			t2[0].enabled = this.event_form.enable;
 			this.request('post', save_node, this.token, t2, () => {
 				this.edit_rule(this.rule_id);
-				this.html.trigger_form = false;
+				this.html.event_form = false;
 			});
 		},
 		// 删除节点

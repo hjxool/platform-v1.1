@@ -42,7 +42,7 @@ new Vue({
 			method: 0, // 预约方式
 			cus_week: [], //自定义周几 可多选
 			reply: 0, //是否需要回复 0否 1是
-			sendMessage: 1, //是否通知
+			sendMessage: 0, //是否通知
 			signIn: 1, //是否签到
 			summary: 1, //会议纪要
 			search_person: [], // 搜索用户名
@@ -300,7 +300,7 @@ new Vue({
 				this.new_meeting_form.method = 0;
 				this.new_meeting_form.cus_week = [];
 				this.new_meeting_form.reply = 0;
-				this.new_meeting_form.sendMessage = 1;
+				this.new_meeting_form.sendMessage = 0;
 				this.new_meeting_form.signIn = 1;
 				this.new_meeting_form.summary = 1;
 				this.new_meeting_form.search_person = [];

@@ -2,6 +2,7 @@ let url = `${我是接口地址}/`;
 let calender_search = `${url}api-portal/meeting/calender/search`;
 let meeting_search = `${url}api-portal/meeting/search`;
 let meeting_edit = `${url}api-portal/meeting`;
+let room_search = `${url}api-portal/room/search`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -12,6 +13,7 @@ new Vue({
 			date: new Date(),
 			time_option: 0, //切换显示时间周期
 			time_display: ['日', '周', '月', '列表'],
+			time_display2: ['日', '周', '月'],
 			week_date: new Date(),
 			month_date: new Date(),
 			month_block: [], //月显示时当月1号所在周到月末所在周日期
@@ -19,28 +21,55 @@ new Vue({
 			day_end: '', // 大于这个数的显示为灰色
 			list_select: 0, //列表显示下筛选条件
 			list_options: ['审核中', '审核通过', '驳回', '已撤回'],
+			meeting_detail_display: false, //会议详情查看
 		},
 		day_meeting: [], //日下的会议列表
 		week_meeting: [], //周下的会议列表
 		month_meeting: [], //月下的会议列表
 		list_meeting: [], //列表下的会议
+		place_list: [], //会议室列表
+		place_id: '', //会议室选择
+		meeting_detail: [], //会议详情
+		meeting_qr: '', // 会议室二维码
+		router: '', //区分是周统计还是我的预订
 	},
 	mounted() {
 		if (!location.search) {
 			this.token = sessionStorage.token;
+			this.router = sessionStorage.router;
 		} else {
 			this.get_token();
 		}
-		this.time_display(this.html.time_option);
+		if (this.router == 'MyBooking') {
+			this.type = 3;
+			this.list_type = 1;
+		} else {
+			this.type = 4;
+			this.list_type = 4;
+		}
+		this.get_place_list();
 	},
 	methods: {
+		// 获取会议室列表
+		get_place_list() {
+			this.request('post', room_search, this.token, { condition: {}, pageNum: 1, pageSize: 999999 }, (res) => {
+				console.log('会议室列表', res);
+				if (Object.entries(res.data.data).length == 0) {
+					return;
+				}
+				this.place_list = res.data.data.data;
+				// 保存会议室id以便全局使用
+				this.place_id = this.place_list[0].id;
+				this.time_display(this.html.time_option);
+			});
+		},
 		time_display(index) {
 			this.html.time_option = index;
 			if (index == 0) {
 				this.day_meeting = [];
 				let start_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 06:00:00`;
 				let end_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 23:00:00`;
-				this.request('post', calender_search, this.token, { queryType: 3, startTime: start_time, endTime: end_time }, (res) => {
+				this.request('post', calender_search, this.token, { queryType: this.type, startTime: start_time, endTime: end_time, roomId: this.place_id }, (res) => {
 					console.log('一天会议', res);
 					if (res.data.data == null || typeof res.data.data == 'string' || Object.entries(res.data.data).length == 0) {
 						return;
@@ -57,7 +86,7 @@ new Vue({
 				this.week_meeting = [];
 				let start_time = `${this.week_start.getFullYear()}-${this.week_start.getMonth() + 1}-${this.week_start.getDate()} 06:00:00`;
 				let end_time = `${this.week_end.getFullYear()}-${this.week_end.getMonth() + 1}-${this.week_end.getDate()} 23:00:00`;
-				this.request('post', calender_search, this.token, { queryType: 3, startTime: start_time, endTime: end_time }, (res) => {
+				this.request('post', calender_search, this.token, { queryType: this.type, startTime: start_time, endTime: end_time, roomId: this.place_id }, (res) => {
 					console.log('周会议', res);
 					if (Object.entries(res.data.data).length == 0) {
 						return;
@@ -143,7 +172,7 @@ new Vue({
 				let start_time = `${d_start.getFullYear()}-${d_start.getMonth() + 1}-${d_start.getDate()} 06:00:00`;
 				let end_day = new Date(d_start.getTime() + 34 * 24 * 60 * 60 * 1000);
 				let end_time = `${end_day.getFullYear()}-${end_day.getMonth() + 1}-${end_day.getDate()} 23:00:00`;
-				this.request('post', calender_search, this.token, { queryType: 3, startTime: start_time, endTime: end_time }, (res) => {
+				this.request('post', calender_search, this.token, { queryType: this.type, startTime: start_time, endTime: end_time, roomId: this.place_id }, (res) => {
 					console.log('月会议', res);
 					if (Object.entries(res.data.data).length == 0) {
 						return;
@@ -172,9 +201,8 @@ new Vue({
 					}
 				});
 			} else if (index == 3) {
-				// 两个数组 一个是分类保存数据 一个用于页面展示
 				this.list_meeting = [];
-				this.request('post', meeting_search, this.token, { condition: { queryType: 1 }, pageNum: 1, pageSize: 999999 }, (res) => {
+				this.request('post', meeting_search, this.token, { condition: { queryType: this.list_type, roomId: this.place_id }, pageNum: 1, pageSize: 999999 }, (res) => {
 					console.log('我的预订', res);
 					if (Object.entries(res.data.data).length == 0) {
 						return;
@@ -298,6 +326,18 @@ new Vue({
 			this.request('put', meeting_edit, this.token, { id: meeting_id, status: -1 }, () => {
 				this.time_display(this.html.time_option);
 			});
+		},
+		// 查看会议详情
+		meeting_check(data) {
+			this.html.meeting_detail_display = true;
+			this.meeting_detail = [
+				{ title: '创建人', value: data.createUserName },
+				{ title: '会议主持人', value: data.moderatorName },
+				{ title: '会议室名称', value: data.roomName },
+				{ title: '会议主题', value: data.theme },
+				{ title: '会议类型', value: data.type == 0 ? '视频会议' : data.type == 1 ? '综合会议' : '无纸化会议' },
+			];
+			this.meeting_qr = data.qrCodeUrl;
 		},
 	},
 });

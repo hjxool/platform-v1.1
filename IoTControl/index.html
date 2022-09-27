@@ -85,11 +85,12 @@
           <el-table-column prop="executeTime" label="执行时间" width="100"></el-table-column>
           <el-table-column prop="planDatetimeStart" label="开始时间" width="200"></el-table-column>
           <el-table-column prop="planDatetimeEnd" label="结束时间" width="200"></el-table-column>
-          <!-- <el-table-column prop="status" label="开启状态" :formatter="format_status"></el-table-column> -->
-          <el-table-column label="操作" width="170">
+          <el-table-column label="操作" width="220">
             <template slot-scope="scope">
               <el-button type="text" size="small" @click="edit_joint_rule(scope.row)">编辑</el-button>
-              <el-button type="text" size="small" @click="del_joint_rule(scope.row)" style="margin-right: 10px;">删除
+              <el-button type="text" size="small" @click="del_joint_rule(scope.row)">删除
+              </el-button>
+              <el-button type="text" size="small" @click="ex_joint_rule(scope.row)" style="margin-right: 10px;">执行联检
               </el-button>
               <el-switch v-model="scope.row.status" @change="switch_joint_rule_status(scope.row)" :active-value="1"
                 :inactive-value="0"></el-switch>
@@ -102,7 +103,7 @@
           <el-table-column prop="onlineCheckName" label="名称" width="200"></el-table-column>
           <el-table-column prop="placeName" label="会议室" width="200"></el-table-column>
           <el-table-column prop="resultRemark" label="联检结果"></el-table-column>
-          <el-table-column prop="resultRemark" label="检测状态" width="150"></el-table-column>
+          <el-table-column prop="statusDesc" label="检测状态" width="150"></el-table-column>
           <el-table-column prop="created" label="联检时间" sortable width="200"></el-table-column>
           <el-table-column label="操作" width="100">
             <template slot-scope="scope">
@@ -196,19 +197,19 @@
           </el-form-item>
 
           <el-form-item label="有效期">
-            <el-date-picker v-model="joint.form.date" type="daterange" range-separator="至" start-placeholder="开始日期"
-              end-placeholder="结束日期"></el-date-picker>
+            <el-date-picker v-model="joint.form.date" :picker-options="joint_date_options()" type="daterange"
+              range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
           </el-form-item>
 
           <el-form-item label="周期">
             <el-checkbox-group v-model="joint.form.cycle_week">
-              <el-checkbox label="2">周一</el-checkbox>
-              <el-checkbox label="3">周二</el-checkbox>
-              <el-checkbox label="4">周三</el-checkbox>
-              <el-checkbox label="5">周四</el-checkbox>
-              <el-checkbox label="6">周五</el-checkbox>
-              <el-checkbox label="7">周六</el-checkbox>
-              <el-checkbox label="1">周日</el-checkbox>
+              <el-checkbox :label="2">周一</el-checkbox>
+              <el-checkbox :label="3">周二</el-checkbox>
+              <el-checkbox :label="4">周三</el-checkbox>
+              <el-checkbox :label="5">周四</el-checkbox>
+              <el-checkbox :label="6">周五</el-checkbox>
+              <el-checkbox :label="7">周六</el-checkbox>
+              <el-checkbox :label="1">周日</el-checkbox>
             </el-checkbox-group>
           </el-form-item>
 
@@ -230,7 +231,7 @@
                     <el-select v-model="item.server_select" @visible-change="get_model_server($event,item.id)"
                       placeholder="选择物模型服务" size="small" style="width: 150px ;" class="flex_shrink">
                       <el-option v-for="item2 in joint.form.model_server_list" :key="item2.serviceId"
-                        :value="item2.identifier">
+                        :value="item2.identifier" :label="item2.name">
                       </el-option>
                     </el-select>
                   </div>
@@ -252,7 +253,10 @@
     <div class="popup" v-show="joint.record_detail_display">
       <el-card class="record">
         <div class="form_head">
-          设备检测结果
+          <span class="text">设备检测结果</span>
+          <div class="icon center button" @click="joint.record_detail_display=false">
+            <i class="el-icon-close icon2"></i>
+          </div>
         </div>
         <el-descriptions v-for="item in joint.record_devices" :title="item.name" direction="vertical" :column="2"
           border>
@@ -261,11 +265,13 @@
           <el-descriptions-item label="检测项目">
             <el-descriptions v-for="item2 in item.item" direction="vertical" :column="3">
               <el-descriptions-item label="项目描述">{{item2.describe}}</el-descriptions-item>
-              <el-descriptions-item label="检查项目值">{{item2.value}}</el-descriptions-item>
+              <el-descriptions-item label="物模型属性">{{item2.property}}</el-descriptions-item>
               <el-descriptions-item label="是否合格">{{item2.status}}</el-descriptions-item>
             </el-descriptions>
           </el-descriptions-item>
         </el-descriptions>
+        <el-empty v-show="joint.record_empty" description="未上线">
+        </el-empty>
       </el-card>
     </div>
   </div>

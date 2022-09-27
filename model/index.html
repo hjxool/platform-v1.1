@@ -333,6 +333,10 @@
       <!-- <template v-if="!static_params.first_load"> -->
       <el-card class="footer" v-if="history_list[history_selected].profile.published==='0'">
         <el-button type="primary" size="small" @click="publish_model">发布上线</el-button>
+
+        <span class="info">
+          注意：如物模型处于测试联调阶段，请暂时不要发布模型，更利于修改调试；如物模型已完成联调，请正常发布上线需要启用的物模型
+        </span>
       </el-card>
       <!-- </template> -->
     </div>

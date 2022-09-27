@@ -463,14 +463,14 @@ new Vue({
 			if (this.add_edit == 'add') {
 				this.request('post', trigger_add, this.token, t, () => {
 					this.html.trigger_config = false;
-					this.trigger_event_conf = false;
+					this.html.trigger_event_conf = false;
 					this.check_rule(this.rule_id);
 				});
 			} else {
 				t.nodeId = flag == 0 ? this.form.id : this.event_trigger_form.id;
 				this.request('put', trigger_edit, this.token, t, () => {
 					this.html.trigger_config = false;
-					this.trigger_event_conf = false;
+					this.html.trigger_event_conf = false;
 					this.check_rule(this.rule_id);
 				});
 			}

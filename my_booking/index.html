@@ -15,6 +15,9 @@
   <div id="index" v-cloak>
     <!-- 日期及选项切换 -->
     <div class="header">
+      <el-select v-model="place_id" style="margin: 0 20px;" size="small" @change="time_display(html.time_option)">
+        <el-option v-for="item,index in place_list" :label="item.roomName" :value="item.id"></el-option>
+      </el-select>
       <div class="box1">
         <div v-show="html.time_option<3" class="icon1 center button" @click="pre_date(html.time_option)">
           <i class="el-icon-arrow-left icon2"></i>
@@ -32,7 +35,7 @@
           <i class="el-icon-arrow-right icon2"></i>
         </div>
       </div>
-      <div v-for="item,index in html.time_display" @click="time_display(index)"
+      <div v-for="item,index in router=='MyBooking'?html.time_display:html.time_display2" @click="time_display(index)"
         :class="['box2','center','button',html.time_option==index?'box_light':'box_dark']">{{item}}</div>
     </div>
     <!-- 不同时间选项 不同页面 -->
@@ -131,10 +134,36 @@
             <span class="text3 button flex_shrink" v-if="html.list_select==0"
               @click="cancel_review(item.id)">撤销申请</span>
             <span class="text3 button flex_shrink" v-if="html.list_select!=1">编辑</span>
-            <span class="text3 button flex_shrink" v-if="html.list_select==1">查看</span>
+            <span class="text3 button flex_shrink" v-if="html.list_select==1" @click="meeting_check(item)">查看</span>
           </div>
         </div>
+        <el-empty v-show="list_meeting.length==0||list_meeting[html.list_select].length==0" description="无数据"
+          style="width: 100%;height: 100%;">
+        </el-empty>
       </div>
+    </div>
+    <!-- 弹窗 -->
+    <div class="popover" v-show="html.meeting_detail_display">
+      <el-card class="form_box" shadow="never">
+        <div class="form_head">
+          <span class="text">会议详情</span>
+          <div class="icon center button" @click="html.meeting_detail_display=false">
+            <i class="el-icon-close icon2"></i>
+          </div>
+        </div>
+        <div class="box1">
+          <div class="left">
+            <div class="box2 flex_shrink" v-for="item in meeting_detail">
+              <span class="title flex_shrink">{{item.title}}</span>
+              <span class="text flex_shrink">{{item.value}}</span>
+            </div>
+          </div>
+          <div class="right">
+            <span class="title">二维码</span>
+            <img :src="meeting_qr" class="icon">
+          </div>
+        </div>
+      </el-card>
     </div>
   </div>
 

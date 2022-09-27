@@ -13,6 +13,9 @@ const common_functions = {
 				} else if (e.indexOf('id') != -1) {
 					this.id = e.split('=')[1];
 					window.sessionStorage.id = this.id;
+				} else if (e.indexOf('type') != -1) {
+					this.router = e.split('=')[1];
+					window.sessionStorage.router = this.router;
 				}
 			});
 			let url = location.href.split('?')[0];
