@@ -60,25 +60,27 @@
             v-show="item.statusValue!=0">
             <img v-show="item.statusValue==1" src="./img/deviceBg.png" class="bg_img">
             <img v-show="item.statusValue!=1" src="./img/设备卡片报警.png" class="bg_img">
-            <div class="type center">
-              <img src="./img/bgicon.png" class="bg_img">
-              <span v-if="item.productType==1" class="text">{{html.product_type[0]}}</span>
-              <span v-if="item.productType==2" class="text">{{html.product_type[1]}}</span>
-              <span v-if="item.productType==3" class="text">{{html.product_type[2]}}</span>
+            <div class="img">
+              <div class="bg"></div>
+              <img :src="item.pictureUrl" class="bg_img" style="z-index: 0;">
             </div>
-            <div class="info">
-              <div class="icon">
-                <div class="bg"></div>
-                <img :src="item.pictureUrl" class="bg_img" style="z-index: 0;">
+            <div class="type">
+              <img v-if="item.statusValue==2" src="./img/offline.png" class="icon flex_shrink">
+              <div class="box1 flex_shrink center">
+                {{item.productType==1?html.product_type[0]:item.productType==2?html.product_type[1]:html.product_type[2]}}
               </div>
-              <span class="name text_ellipsis">{{item.deviceName}}</span>
             </div>
-            <div class="ctrl">
-              <img v-show="item.statusValue==1" src="./img/online.png" class="icon">
-              <img v-show="item.statusValue==2" src="./img/offline.png" class="icon">
-              <img @click="turn_to_device(item)" src="./img/button.png" class="icon2">
+            <div class="name_box">
+              <div class="name text_ellipsis" :title="item.deviceName">{{item.deviceName}}</div>
+              <div class="status">
+                <div class="flex_shrink icon" :style="{backgroundColor:item.statusValue==1?'#00FFA2':'#F6B63C'}"></div>
+                <span class="flex_shrink text"
+                  :style="{color:item.statusValue==1?'#00FFA2':'#F6B63C'}">{{item.statusValue==1?'在线':'离线'}}</span>
+              </div>
             </div>
+            <img @click="turn_to_device(item)" src="./img/button.png" class="button">
           </div>
+
           <!-- 绝对定位的设备分配框 -->
           <el-collapse-transition>
             <div class="user_device_layout" v-show="html.user_device_show" v-loading="html.load_user_device"

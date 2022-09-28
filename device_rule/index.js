@@ -1,6 +1,5 @@
 let url = `${我是接口地址}/`;
 let rule_list = `${url}api-device/rule/device/list`;
-let rule_del = `${url}api-device/rule/device`;
 let rule_add = `${url}api-device/rule/device/add`;
 let trigger_list = `${url}api-device/rule/device/conf/trigger/list`;
 let event_list = `${url}api-device/rule/device/conf/action/list`;
@@ -137,32 +136,26 @@ new Vue({
 		select_node(val) {
 			this.node_selected = val;
 		},
-		// 删除规则
-		del_rule(rule_list) {
-			this.$confirm(`确认删除？`, '提示', {
-				confirmButtonText: '确定',
-				cancelButtonText: '取消',
-				type: 'info',
-				center: true,
-			}).then(() => {
-				this.request('delete', `${rule_del}?deviceId=${this.id}&ruleId=${rule_list.ruleId}`, this.token, () => {
-					this.req_rule_list();
-				});
-			});
-		},
 		// 保存并修改每条规则状态
 		save_rule() {
 			let selected = [];
 			this.rule_selected.forEach((e) => {
 				selected.push(e.ruleId);
 			});
+			let data = [];
 			this.rule_list.forEach((e) => {
+				let t = {
+					deviceId: this.id,
+					ruleId: e.ruleId,
+				};
 				if (selected.indexOf(e.ruleId) != -1) {
-					this.request('post', rule_add, this.token, { deviceId: this.id, enabled: 1, ruleId: e.ruleId });
+					t.enabled = 1;
 				} else {
-					this.request('post', rule_add, this.token, { deviceId: this.id, enabled: 0, ruleId: e.ruleId });
+					t.enabled = 0;
 				}
+				data.push(t);
 			});
+			this.request('post', rule_add, this.token, data);
 		},
 		// 编辑查看规则下节点
 		edit_rule(rule_id) {
@@ -312,7 +305,10 @@ new Vue({
 				}
 				t.push(t2);
 			});
-			this.request('post', save_node, this.token, t);
+			this.request('post', save_node, this.token, t, () => {
+				this.req_rule_list();
+				this.html.rule_config = false;
+			});
 		},
 		// 编辑节点
 		edit_node(node_list, node_index) {

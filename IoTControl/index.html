@@ -258,13 +258,11 @@
             <i class="el-icon-close icon2"></i>
           </div>
         </div>
-        <el-descriptions v-for="item in joint.record_devices" :title="item.name" direction="vertical" :column="2"
+        <el-descriptions v-for="item in joint.record_devices" :title="item.name" direction="vertical" :column="1"
           border>
           <el-descriptions-item label="项目检测状态">{{item.status}}</el-descriptions-item>
-          <el-descriptions-item label="检测时间">{{item.checkTime}}</el-descriptions-item>
-          <el-descriptions-item label="检测项目">
-            <el-descriptions v-for="item2 in item.item" direction="vertical" :column="3">
-              <el-descriptions-item label="项目描述">{{item2.describe}}</el-descriptions-item>
+          <el-descriptions-item label="检测项目" v-if="item.items.length>0">
+            <el-descriptions v-for="item2 in item.items" direction="vertical" :column="2">
               <el-descriptions-item label="物模型属性">{{item2.property}}</el-descriptions-item>
               <el-descriptions-item label="是否合格">{{item2.status}}</el-descriptions-item>
             </el-descriptions>

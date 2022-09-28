@@ -16,6 +16,11 @@ const common_functions = {
 				} else if (e.indexOf('type') != -1) {
 					this.router = e.split('=')[1];
 					window.sessionStorage.router = this.router;
+				} else if (e.indexOf('device_name') != -1) {
+					console.log(e.split('=')[1]);
+					this.device_name = decodeURIComponent(e.split('=')[1]);
+					// cookie里只能存编码后的中文字符
+					window.sessionStorage.device_name = e.split('=')[1];
 				}
 			});
 			let url = location.href.split('?')[0];

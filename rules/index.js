@@ -13,6 +13,7 @@ let event_edit = `${url}api-device/rule/conf/action/edit`;
 let product_detail = `${url}api-device/product`;
 let property_list = `${url}api-device/protocol/property/list`;
 let check_model = `${url}api-device/protocol/view`;
+let del_rule = `${url}api-device/rule/base/delete`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -35,6 +36,7 @@ new Vue({
 				{ name: '发邮件', val: 3, ban: true },
 				{ name: '设备联动操作', val: 4, ban: true },
 			],
+			rule_type: '', // 规则类型 显示按钮功能不同
 		},
 		rule_list: [], //规则列表
 		trigger_and_event_list: [], //事件和条件列表
@@ -201,19 +203,40 @@ new Vue({
 			});
 		},
 		// 查看单条规则下的事件和条件
-		check_rule(rule_id) {
+		check_rule(rule_id, type) {
 			this.rule_id = rule_id;
-			this.trigger_and_event_list = [];
-			this.request('get', `${trigger_list}?ruleId=${rule_id}`, this.token, (res) => {
-				console.log('触发条件列表', res);
-				this.request('get', `${action_list}?ruleId=${rule_id}`, this.token, (res) => {
-					console.log('响应事件列表', res);
-					this.html.loading_rule_detail = false;
+			this.html.rule_type = type;
+			if (type == 'alert') {
+				this.trigger_and_event_list = [];
+				this.request('get', `${trigger_list}?ruleId=${rule_id}`, this.token, (res) => {
+					console.log('触发条件列表', res);
+					this.request('get', `${action_list}?ruleId=${rule_id}`, this.token, (res) => {
+						console.log('响应事件列表', res);
+						this.html.loading_rule_detail = false;
+						if (res.data.data == null) {
+							return;
+						}
+						res.data.data.forEach((e) => {
+							let table = { type: '响应事件' };
+							for (let key in e) {
+								if (e[key] != null) {
+									table[key] = e[key];
+								}
+							}
+							this.trigger_and_event_list.push(table);
+						});
+						console.log(this.trigger_and_event_list);
+					});
 					if (res.data.data == null) {
 						return;
 					}
 					res.data.data.forEach((e) => {
-						let table = { type: '响应事件' };
+						let table = {};
+						if (e.confType == 0) {
+							table.type = '属性触发条件';
+						} else if (e.confType == 1) {
+							table.type = '事件触发条件';
+						}
 						for (let key in e) {
 							if (e[key] != null) {
 								table[key] = e[key];
@@ -221,28 +244,24 @@ new Vue({
 						}
 						this.trigger_and_event_list.push(table);
 					});
-					console.log(this.trigger_and_event_list);
 				});
-				if (res.data.data == null) {
-					return;
-				}
-				res.data.data.forEach((e) => {
-					let table = {};
-					if (e.confType == 0) {
-						table.type = '属性触发条件';
-					} else if (e.confType == 1) {
-						table.type = '事件触发条件';
-					}
-					for (let key in e) {
-						if (e[key] != null) {
-							table[key] = e[key];
-						}
-					}
-					this.trigger_and_event_list.push(table);
-				});
-			});
+			}
 			this.html.rule_config = true;
 			this.html.loading_rule_detail = true;
+		},
+		// 删除规则
+		del_rule(rule_id) {
+			this.$confirm('确认删除？', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'info',
+				center: true,
+			}).then(() => {
+				this.request('delete', `${del_rule}/${rule_id}`, this.token, () => {
+					this.html.loading = true;
+					this.req_rule_list();
+				});
+			});
 		},
 		// 关闭页面任意
 		close_page(flag) {

@@ -276,8 +276,15 @@ new Vue({
 		},
 		// 跳转到设备页面
 		turn_to_device(device_obj) {
+			if (device_obj.statusValue == 2) {
+				this.$message('设备不在线！');
+				return;
+			}
 			if (device_obj.productUrl) {
-				window.open(`${device_obj.productUrl}?token=${this.token}&id=${device_obj.id}`);
+				let name = encodeURIComponent(device_obj.deviceName);
+				window.open(`${device_obj.productUrl}?token=${this.token}&id=${device_obj.id}&device_name=${name}`);
+			} else {
+				this.$message('请配置产品Url后再试');
 			}
 		},
 	},

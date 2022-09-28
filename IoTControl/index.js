@@ -288,19 +288,17 @@ new Vue({
 				let t4 = row_data.deviceInfoRecords[i];
 				let t = {
 					name: t4.deviceName || '',
-					time: t4.checkTime || '',
 					status: t4.statusDesc || '',
-					item: [],
+					items: [],
 				};
 				if (t4.itemRecords != null) {
 					for (let k = 0; k < t4.itemRecords.length; k++) {
 						let t3 = t4.itemRecords[k];
 						let t2 = {
-							describe: t3.itemDesc || '',
 							property: t3.itemName || '',
 							status: t3.qualified ? '是' : '否',
 						};
-						t.item.push(t2);
+						t.items.push(t2);
 					}
 				}
 				this.joint.record_devices.push(t);
