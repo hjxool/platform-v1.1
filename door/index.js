@@ -4,6 +4,7 @@ let place_list = `${url}api-portal/place`;
 let device_list = `${url}api-portal/place/device`;
 let place_add_device = `${url}api-portal/place/add`;
 let place_del_device = `${url}api-portal/place/delete`;
+let place_type_url = `${url}api-portal/place/placeType`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -24,11 +25,13 @@ new Vue({
 			user_device_show: false, //租户下可分配设备列表
 			product_focus: -1, //可分配设备列表下选中的产品
 			load_user_device: false, //查找租户下设备时遮罩
+			place_type_select: 1, //编辑场所时所选的场所类型
 		},
 		user_list: [], //租户列表
 		place_list: [], //场所列表
 		device_list: [], // 设备列表
 		product_list: [], // 根据产品分类的设备列表
+		place_type_list: [], //场所类型
 	},
 	mounted() {
 		if (!location.search) {
@@ -37,6 +40,7 @@ new Vue({
 			this.get_token();
 		}
 		this.req_user_list();
+		this.get_place_type();
 	},
 	methods: {
 		// 租户列表
@@ -69,6 +73,13 @@ new Vue({
 				});
 			}
 		},
+		// 场所类型获取
+		get_place_type() {
+			this.request('get', place_type_url, this.token, (res) => {
+				console.log('场所类型', res);
+				this.place_type_list = res.data.data;
+			});
+		},
 		// 选中场所 查看场景或设备
 		select_place(index) {
 			if (this.place_list.length > 0) {
@@ -94,7 +105,7 @@ new Vue({
 				confirmButtonText: '确定',
 				cancelButtonText: '取消',
 			}).then(({ value }) => {
-				this.request('post', `${place_list}/${user_id}/add`, this.token, { placeName: value, placeType: 1 }, () => {
+				this.request('post', `${place_list}/${user_id}/add`, this.token, { placeName: value, placeType: this.place_type_select }, () => {
 					if (index == this.user_focus) {
 						this.refresh_place_list();
 					} else {
@@ -108,8 +119,8 @@ new Vue({
 			this.$prompt('请输入场所名称', '提示', {
 				confirmButtonText: '确定',
 				cancelButtonText: '取消',
-			}).then(({ val }) => {
-				this.request('post', `${place_list}/${user_id}/update`, this.token, { id: place_id, placeName: val, placeType: 1 }, () => {
+			}).then(({ value }) => {
+				this.request('put', `${place_list}/${user_id}/update`, this.token, { id: place_id, placeName: value, placeType: this.place_type_select }, () => {
 					this.refresh_place_list();
 				});
 			});
@@ -229,8 +240,10 @@ new Vue({
 				});
 			} else {
 				this.request('put', `${place_add_device}/${this.user_id}/${this.place_id}`, this.token, [device.id], () => {
-					this.req_device_list();
-					device.check = true;
+					if (res.data.head.code == 200) {
+						this.req_device_list();
+						device.check = true;
+					}
 				});
 			}
 		},
@@ -276,10 +289,10 @@ new Vue({
 		},
 		// 跳转到设备页面
 		turn_to_device(device_obj) {
-			if (device_obj.statusValue == 2) {
-				this.$message('设备不在线！');
-				return;
-			}
+			// if (device_obj.statusValue == 2) {
+			// 	this.$message('设备不在线！');
+			// 	return;
+			// }
 			if (device_obj.productUrl) {
 				let name = encodeURIComponent(device_obj.deviceName);
 				window.open(`${device_obj.productUrl}?token=${this.token}&id=${device_obj.id}&device_name=${name}`);

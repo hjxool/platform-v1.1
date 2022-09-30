@@ -82,13 +82,15 @@
 		min-height: 400px;
 		overflow: hidden;
 		display: grid;
-		grid-template-columns: 1fr 20px 1fr;
+		grid-template-columns: 1fr 30px 1fr;
 		.box2_1 {
 			padding: 10px;
 			overflow-y: hidden;
 			overflow-x: auto;
 			display: grid;
+			grid-auto-flow: column;
 			grid-template-columns: repeat(8, 1fr);
+			grid-auto-columns: 100px;
 			.slider {
 				min-width: 100px;
 				display: flex;
@@ -199,6 +201,7 @@
 			flex-direction: column;
 			align-items: center;
 			justify-content: space-between;
+			margin-left: 10px;
 			.icon {
 				width: 14px;
 				height: 14px;

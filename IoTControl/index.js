@@ -39,7 +39,6 @@ new Vue({
 				isIndeterminate: false, //不全选样式
 				checkAll: false, //全选
 				device_selected: [], // 勾选的设备
-				model_server_list: [], // 物模型服务列表
 			},
 			record_devices: [],
 			rule_list: [], // 联检规则表
@@ -53,6 +52,13 @@ new Vue({
 		},
 		tableData: [{ a: 1, b: 2, c: 3, d: 4 }],
 		option1: [1, 2, 3, 4],
+		joint_rules: {
+			name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+			date: [{ type: 'array', required: true, message: '请选择日期', trigger: 'change' }],
+			cycle_week: [{ type: 'array', required: true, message: '至少选择一个星期', trigger: 'change' }],
+			select_time: [{ type: 'date', required: true, message: '请选择日期', trigger: 'change' }],
+			device_selected: { show: false, message: '' },
+		},
 	},
 	mounted() {
 		if (!location.search) {
@@ -89,6 +95,16 @@ new Vue({
 				this.device.list = res.data.data.data;
 				for (let i = 0; i < this.device.list.length; i++) {
 					this.$set(this.device.list[i], 'server_select', '');
+				}
+				for (let val of this.device.list) {
+					// 为每个设备添加可选服务列表
+					val.server_list = [];
+					this.request('post', `${model_server_search}/${val.id}`, this.token, (res) => {
+						if (res.data.data == null || res.data.data.length == 0) {
+							return;
+						}
+						val.server_list = res.data.data;
+					});
 				}
 				this.device.list_empty = false;
 			});
@@ -129,6 +145,7 @@ new Vue({
 			this.joint.rule_id = null;
 			this.joint.add_rule_display = true;
 			this.html.popup_loading = false;
+			this.joint_rules.device_selected.show = false; // 验证提示隐藏
 			for (let key in this.joint.form) {
 				if (typeof this.joint.form[key] == 'boolean') {
 					this.joint.form[key] = false;
@@ -152,6 +169,7 @@ new Vue({
 			this.joint.rule_id = rule_obj.id;
 			this.joint.add_rule_display = true;
 			this.html.popup_loading = false;
+			this.joint_rules.device_selected.show = false; // 验证提示隐藏
 			this.joint.form.name = rule_obj.onlineCheckName;
 			this.joint.form.date = [new Date(rule_obj.planDatetimeStart.split(' ')[0]), new Date(rule_obj.planDatetimeEnd.split(' ')[0])];
 			// s注意传过来的数组元素是数字 而label是字符串
@@ -191,63 +209,76 @@ new Vue({
 			this.joint.form.checkAll = count == this.device.list.length;
 			this.joint.form.isIndeterminate = count > 0 && count < this.device.list.length;
 		},
-		// 显示/隐藏下拉框时 加载物模型服务
-		get_model_server(display, device_id) {
-			if (display) {
-				this.request('post', `${model_server_search}/${device_id}`, this.token, (res) => {
-					console.log('物模型服务列表', res);
-					if (res.data.data == null || res.data.data.length == 0) {
-						return;
-					}
-					this.joint.form.model_server_list = res.data.data;
-				});
-			} else {
-				this.joint.form.model_server_list = [];
-			}
-		},
 		// 格式化开关状态
 		format_status(row, col) {
 			return row.status == 0 ? '关闭' : '开启';
 		},
 		// 规则提交
 		joint_rule_submit(form, status) {
-			this.html.popup_loading = true;
-			let t_s = form.date[0];
-			let t_e = form.date[1];
-			let data = {
-				onlineCheckName: form.name,
-				placeId: this.place_id,
-				planDatetimeStart: `${t_s.getFullYear()}-${t_s.getMonth() + 1 < 10 ? '0' + (t_s.getMonth() + 1) : t_s.getMonth() + 1}-${t_s.getDate() < 10 ? '0' + t_s.getDate() : t_s.getDate()} 06:00:00`,
-				planDatetimeEnd: `${t_e.getFullYear()}-${t_e.getMonth() + 1 < 10 ? '0' + (t_e.getMonth() + 1) : t_e.getMonth() + 1}-${t_e.getDate() < 10 ? '0' + t_e.getDate() : t_e.getDate()} 23:00:00`,
-				status: status,
-				executeTime: form.select_time.toString().split(' ')[4],
-				executePeriodDays: JSON.stringify(form.cycle_week),
-				devicesDTOList: [],
-			};
-			for (let i = 0; i < form.device_selected.length; i++) {
-				let t = {
-					deviceId: form.device_selected[i].id,
-					deviceName: form.device_selected[i].deviceName,
-					serviceIdentifier: form.device_selected[i].server_select,
-				};
-				data.devicesDTOList.push(t);
-			}
-			if (this.joint.rule_id != null) {
-				data.id = this.joint.rule_id;
-			}
-			this.request('post', update_rule, this.token, data, () => {
-				this.joint.add_rule_display = false;
-				this.html.popup_loading = false;
-				this.joint_select(0);
+			this.$refs.joint_form.validate((valid) => {
+				let result = false;
+				// 有一个false就不能通过 因此就找那一个false 而不需要对每一个结果进行遍历
+				for (let value of this.joint.form.device_selected) {
+					if (value.server_select) {
+						result = true;
+					} else {
+						result = false;
+						this.joint_rules.device_selected.show = true;
+						this.joint_rules.device_selected.message = '所选设备必须选择物模型服务';
+						break;
+					}
+				}
+				if (this.joint.form.device_selected.length == 0) {
+					this.joint_rules.device_selected.show = true;
+					this.joint_rules.device_selected.message = '必须勾选设备';
+				}
+				if (result) {
+					this.joint_rules.device_selected.show = false;
+				}
+				if (valid && result) {
+					this.html.popup_loading = true;
+					let t_s = form.date[0];
+					let t_e = form.date[1];
+					let data = {
+						onlineCheckName: form.name,
+						placeId: this.place_id,
+						planDatetimeStart: `${t_s.getFullYear()}-${t_s.getMonth() + 1 < 10 ? '0' + (t_s.getMonth() + 1) : t_s.getMonth() + 1}-${t_s.getDate() < 10 ? '0' + t_s.getDate() : t_s.getDate()} 06:00:00`,
+						planDatetimeEnd: `${t_e.getFullYear()}-${t_e.getMonth() + 1 < 10 ? '0' + (t_e.getMonth() + 1) : t_e.getMonth() + 1}-${t_e.getDate() < 10 ? '0' + t_e.getDate() : t_e.getDate()} 23:00:00`,
+						status: status,
+						executeTime: form.select_time.toString().split(' ')[4],
+						executePeriodDays: JSON.stringify(form.cycle_week),
+						devicesDTOList: [],
+					};
+					for (let i = 0; i < form.device_selected.length; i++) {
+						let t = {
+							deviceId: form.device_selected[i].id,
+							deviceName: form.device_selected[i].deviceName,
+							serviceIdentifier: form.device_selected[i].server_select,
+						};
+						data.devicesDTOList.push(t);
+					}
+					if (this.joint.rule_id != null) {
+						data.id = this.joint.rule_id;
+					}
+					this.request('post', update_rule, this.token, data, () => {
+						this.joint.add_rule_display = false;
+						this.html.popup_loading = false;
+						this.joint_select(0);
+					});
+				}
 			});
 		},
 		// 切换联检规则开关
 		switch_joint_rule_status(rule_obj) {
 			// change事件时状态值已经变了
 			if (rule_obj.status == 1) {
-				this.request('post', joint_rule_enable, this.token, [rule_obj.id]);
+				this.request('post', joint_rule_enable, this.token, [rule_obj.id], () => {
+					this.joint_select();
+				});
 			} else if (rule_obj.status == 0) {
-				this.request('post', joint_rule_disable, this.token, [rule_obj.id]);
+				this.request('post', joint_rule_disable, this.token, [rule_obj.id], () => {
+					this.joint_select();
+				});
 			}
 		},
 		// 删除联检规则

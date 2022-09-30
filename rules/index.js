@@ -143,9 +143,14 @@ new Vue({
 		},
 		// 物模型事件列表
 		req_protocol() {
+			this.event_list = [];
 			this.request('get', `${product_detail}/${this.id}`, this.token, (res) => {
 				this.request('get', `${check_model}/${res.data.data.currentModelId}`, this.token, (res) => {
 					res.data.data.events.forEach((e) => {
+						let t = { name: e.identifier };
+						this.event_list.push(t);
+					});
+					res.data.data.services.forEach((e) => {
 						let t = { name: e.identifier };
 						this.event_list.push(t);
 					});
@@ -206,6 +211,8 @@ new Vue({
 		check_rule(rule_id, type) {
 			this.rule_id = rule_id;
 			this.html.rule_type = type;
+			this.html.rule_config = true;
+			this.html.loading_rule_detail = true;
 			if (type == 'alert') {
 				this.trigger_and_event_list = [];
 				this.request('get', `${trigger_list}?ruleId=${rule_id}`, this.token, (res) => {
@@ -246,8 +253,6 @@ new Vue({
 					});
 				});
 			}
-			this.html.rule_config = true;
-			this.html.loading_rule_detail = true;
 		},
 		// 删除规则
 		del_rule(rule_id) {
@@ -323,6 +328,7 @@ new Vue({
 				this.form.id = list_data.nodeId;
 				this.form.name = list_data.nodeName;
 				this.form.exp = list_data.expression;
+				this.form.enable = list_data.defaultEnabled;
 				this.form.condition = [];
 				list_data.conditionFields.forEach((e) => {
 					let t = { field: e };
@@ -336,6 +342,7 @@ new Vue({
 				this.event_form.id = list_data.nodeId;
 				this.event_form.name = list_data.nodeName;
 				this.event_form.template = list_data.template;
+				this.event_form.enable = list_data.defaultEnabled;
 				this.event_form.fields = [];
 				list_data.fields.forEach((e) => {
 					let t = { field: e };
@@ -357,8 +364,10 @@ new Vue({
 				this.html.event_config = true;
 			} else if (list_data.type == '事件触发条件') {
 				this.event_trigger_form.id = list_data.nodeId;
+				this.event_trigger_form.name = list_data.nodeName;
 				this.event_trigger_form.exp = 'event.identifier == %s';
 				this.event_trigger_form.field = 'event.identifier';
+				this.event_trigger_form.enable = list_data.defaultEnabled;
 				this.event_trigger_form.value = list_data.defaultValues[0];
 				this.html.trigger_event_conf = true;
 			}
@@ -373,11 +382,11 @@ new Vue({
 			}).then(() => {
 				if (list_data.type == '属性触发条件' || list_data.type == '事件触发条件') {
 					this.request('put', trigger_delete, this.token, { baseId: this.rule_id, nodeId: list_data.nodeId }, () => {
-						this.check_rule(this.rule_id);
+						this.check_rule(this.rule_id, 'alert');
 					});
 				} else {
 					this.request('put', event_delete, this.token, { baseId: this.rule_id, nodeId: list_data.nodeId }, () => {
-						this.check_rule(this.rule_id);
+						this.check_rule(this.rule_id, 'alert');
 					});
 				}
 			});
@@ -483,14 +492,14 @@ new Vue({
 				this.request('post', trigger_add, this.token, t, () => {
 					this.html.trigger_config = false;
 					this.html.trigger_event_conf = false;
-					this.check_rule(this.rule_id);
+					this.check_rule(this.rule_id, 'alert');
 				});
 			} else {
 				t.nodeId = flag == 0 ? this.form.id : this.event_trigger_form.id;
 				this.request('put', trigger_edit, this.token, t, () => {
 					this.html.trigger_config = false;
 					this.html.trigger_event_conf = false;
-					this.check_rule(this.rule_id);
+					this.check_rule(this.rule_id, 'alert');
 				});
 			}
 		},
@@ -516,13 +525,13 @@ new Vue({
 			if (this.add_edit == 'add') {
 				this.request('post', event_add, this.token, t, () => {
 					this.html.event_config = false;
-					this.check_rule(this.rule_id);
+					this.check_rule(this.rule_id, 'alert');
 				});
 			} else {
 				t.nodeId = this.event_form.id;
 				this.request('put', event_edit, this.token, t, () => {
 					this.html.event_config = false;
-					this.check_rule(this.rule_id);
+					this.check_rule(this.rule_id, 'alert');
 				});
 			}
 		},

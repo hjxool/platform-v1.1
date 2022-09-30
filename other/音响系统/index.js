@@ -58,6 +58,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.data_ready = false; // 数据结构是否完成了
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符
 			this[`first_load${i}`] = true;
@@ -67,41 +68,68 @@ new Vue({
 		for (let i = 1; i <= 2; i++) {
 			this[`echarts${i}`] = echarts.init(dom[i - 1]); //动态创建对象属性并赋值
 		}
+		this.ws_link = null;
 		this.switch_option(0);
 		this.history_timer = setInterval(() => {
 			this.history_switch(this.history.history_data_option);
 		}, 600000);
-		// websocket获取DSP页面数据
-		this.ws_link = new WebSocket(`${ws_url}`);
-		this.ws_link.onmessage = (res) => {
-			let data = JSON.parse(res.data);
-			console.log('websocket', data);
-			if (data.contents != null || data.contents.length > 0) {
-				for (let i = 0; i < data.contents.length; i++) {
-					let t = data.contents[i];
-					if (t.deviceId == this.id) {
-						// websocket会推多种类型消息 要筛选出其中要的设备
-						for (let key in t.attributes) {
-							if (key == 'out1_th') {
-								this.dsp_option.output[0].limit_threshold = t.attributes[key];
+	},
+	methods: {
+		// stomp连接成功的回调
+		on_message() {
+			this.request('put', `${sendCmdtoDevice}?topicId=11&fieldPath=level_switch&closeValue=0`, this.token, {
+				contentType: 2,
+				contents: [{ deviceId: this.id, identifier: 'level_report_enable', attributes: { level_switch: 1 } }],
+			});
+			this.stomp_link.subscribe(
+				`/exchange/device-report/device-report.${this.id}`,
+				(res) => {
+					if (!this.data_ready) {
+						return;
+					}
+					let data = JSON.parse(res.body);
+					let data_list = Object.entries(data.contents[0].attributes);
+					for (let array of data_list) {
+						if (array[0] == 'dev_state') {
+							for (let i = 0; i < 2; i++) {
+								this.sys_option.status[i].splice(i, 1, array[1][`out${i + 1}`]);
 							}
-							if (key == 'out2_th') {
-								this.dsp_option.output[1].limit_threshold = t.attributes[key];
+						} else if (array[0] == 'in1_gain') {
+							this.dsp_option.input.gain = array[1];
+						} else if (array[0] == 'in1_mute') {
+							this.dsp_option.input.mute = array[1];
+						} else if (array[0] == 'level') {
+							this.dsp_option.input.level = array[1].in1;
+							this.dsp_option.output[0].level = array[1].out1;
+							this.dsp_option.output[1].level = array[1].out2;
+						} else if (array[0].substring(0, 3) == 'out') {
+							let index = array[0].substring(3, 4); // 截取序列号
+							let key = array[0].substring(5); // 截取键名
+							switch (key) {
+								case 'gain':
+								case 'mute':
+									this.dsp_option.output[index - 1][key] = array[1];
+									break;
+								case 'th':
+									this.dsp_option.output[index - 1].limit_threshold = array[1];
+									break;
+								case 'th_dyn':
+									this.dsp_option.output[index - 1].limit_enable = array[1];
+									break;
+								default:
+									// 只剩下geq 提出索引
+									let index2 = key.substring(3, 4);
+									this.dsp_option.output[index - 1].geq_list[index2 - 1].gain = array[1];
+									break;
 							}
 						}
 					}
-				}
-			}
-			// 	this.$message.info(data.message);
-		};
-		this.ws_link.onerror = (res) => {
-			this.$message.error(res.message);
-		};
-		this.ws_link.onopen = (res) => {
-			console.log('连接成功');
-		};
-	},
-	methods: {
+				},
+				{ 'auto-delete': true }
+			);
+		},
+		// stomp连接失败的回调
+		on_error(error) {},
 		// 总选项选中样式
 		option_style(index) {
 			let style = {
@@ -115,6 +143,10 @@ new Vue({
 		switch_option(index) {
 			switch (index) {
 				case 0:
+					if (this.ws_link != null) {
+						this.ws_link.close();
+						this.ws_link = null;
+					}
 					this.history_switch(0);
 					this.option_focus = index;
 					break;
@@ -132,6 +164,12 @@ new Vue({
 			this.sys_option.status = [];
 			this.request('get', `${getChannelDetail}/${this.id}`, this.token, (res) => {
 				console.log('dsp数据', res);
+				if (this.ws_link == null) {
+					this.ws_link = new WebSocket(`${ws_url}`);
+					this.stomp_link = Stomp.over(this.ws_link);
+					this.stomp_link.debug = null;
+					this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
+				}
 				this.option_focus = index;
 				if (res.data.data == null) {
 					return;
@@ -182,6 +220,7 @@ new Vue({
 					spk_sta: res.data.data.properties.dev_state.propertyValue.out2.propertyValue.spk_sta.propertyValue,
 				};
 				this.sys_option.status.push(t3, t4);
+				this.data_ready = true;
 			});
 		},
 		// 历史记录选中样式

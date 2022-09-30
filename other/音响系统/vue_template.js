@@ -97,7 +97,7 @@ Vue.component('single-slider', {
 				} else if (Number(this.channel.gain) > 8) {
 					this.sliderNum_temp = this.sliderNum = 8;
 				} else {
-					this.sliderNum_temp = this.sliderNum = Number(this.channel.gain);
+					this.sliderNum_temp = this.sliderNum = Math.floor(this.channel.gain * 10 + 0.5) / 10;
 				}
 			} else {
 				if (this.in_or_out == 1) {
@@ -106,7 +106,7 @@ Vue.component('single-slider', {
 					} else if (Number(this.channel.limit_threshold) > Number(this.slider_max)) {
 						this.sliderNum_temp = this.sliderNum = Number(this.slider_max);
 					} else {
-						this.sliderNum_temp = this.sliderNum = Number(this.channel.limit_threshold);
+						this.sliderNum_temp = this.sliderNum = Math.floor(this.channel.limit_threshold * 10 + 0.5) / 10;
 					}
 				} else {
 					if (Number(this.channel.gain) < Number(this.slider_min)) {
@@ -114,7 +114,7 @@ Vue.component('single-slider', {
 					} else if (Number(this.channel.gain) > Number(this.slider_max)) {
 						this.sliderNum_temp = this.sliderNum = Number(this.slider_max);
 					} else {
-						this.sliderNum_temp = this.sliderNum = Number(this.channel.gain);
+						this.sliderNum_temp = this.sliderNum = Math.floor(this.channel.gain * 10 + 0.5) / 10;
 					}
 				}
 			}

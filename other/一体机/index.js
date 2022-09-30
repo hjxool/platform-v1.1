@@ -27,12 +27,71 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.data_ready = false; // 数据结构是否完成了
 		window.onresize = () => {
 			this.button_h = document.querySelector('.slider_button').offsetHeight;
 		};
 		this.get_device_status();
+		// this.ws_link = new WebSocket(`${ws_url}`);
+		// this.stomp_link = Stomp.over(this.ws_link);
+		// this.stomp_link.debug = null;
+		// this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
 	},
 	methods: {
+		// stomp连接成功的回调
+		on_message() {
+			this.request('put', `${sendCmdtoDevice}/11`, this.token, { contentType: 2, contents: [{ deviceId: this.id, identifier: 'level_report_enable', attributes: { level_switch: 1 } }] });
+			this.stomp_link.subscribe(
+				`/exchange/device-report/device-report.${this.id}`,
+				(res) => {
+					if (!this.data_ready) {
+						return;
+					}
+					let data = JSON.parse(res.body);
+					let data_list = Object.entries(data.contents[0].attributes);
+					for (let array of data_list) {
+						if (array[0] == 'dev_state') {
+							for (let i = 0; i < 2; i++) {
+								this.sys_option.status[i].splice(i, 1, array[1][`out${i + 1}`]);
+							}
+						} else if (array[0] == 'in1_gain') {
+							this.dsp_option.input.gain = array[1];
+						} else if (array[0] == 'in1_mute') {
+							this.dsp_option.input.mute = array[1];
+						} else if (array[0] == 'level') {
+							this.dsp_option.input.level = array[1].in1;
+							this.dsp_option.output[0].level = array[1].out1;
+							this.dsp_option.output[1].level = array[1].out2;
+						} else if (array[0].substring(0, 3) == 'out') {
+							let index = array[0].substring(3, 4); // 截取序列号
+							let key = array[0].substring(5); // 截取键名
+							switch (key) {
+								case 'gain':
+								case 'mute':
+									this.dsp_option.output[index - 1][key] = array[1];
+									break;
+								case 'th':
+									this.dsp_option.output[index - 1].limit_threshold = array[1];
+									break;
+								case 'th_dyn':
+									this.dsp_option.output[index - 1].limit_enable = array[1];
+									break;
+								default:
+									// 只剩下geq 提出索引
+									let index2 = key.substring(3, 4);
+									this.dsp_option.output[index - 1].geq_list[index2 - 1].gain = array[1];
+									break;
+							}
+						}
+					}
+				},
+				{ 'auto-delete': true }
+			);
+		},
+		// stomp连接失败的回调
+		on_error(error) {
+			this.$message.error(error.headers.message);
+		},
 		// 获取页面参数
 		get_device_status() {
 			this.matrix = [];
@@ -45,7 +104,7 @@ new Vue({
 				}
 				let data = res.data.data.properties;
 				for (let i = 0; i < data.input_gain.propertyValue.length; i++) {
-					let t = data.input_gain.propertyValue[i];
+					let t = Math.floor(data.input_gain.propertyValue[i] * 10 + 0.5) / 10;
 					let t2 = data.input_level.propertyValue[i];
 					let t3 = data.input_mute.propertyValue[i];
 					let t4 = {
@@ -56,7 +115,7 @@ new Vue({
 					this.input.push(t4);
 				}
 				for (let i = 0; i < data.output_gain.propertyValue.length; i++) {
-					let t = data.output_gain.propertyValue[i];
+					let t = Math.floor(data.output_gain.propertyValue[i] * 10 + 0.5) / 10;
 					let t2 = data.output_level.propertyValue[i];
 					let t3 = data.output_mute.propertyValue[i];
 					let t4 = {
@@ -83,10 +142,12 @@ new Vue({
 					this.matrix.push(t);
 				}
 				this.html.config_select = data.scene_call.propertyValue;
+				this.data_ready = true;
 				this.$nextTick(() => {
 					// this.level_h = document.querySelector('.level').offsetHeight - 4; //图片偏差
 					// this.gain_h = document.querySelector('.gain').offsetHeight - 5;
 					this.button_h = document.querySelector('.slider_button').offsetHeight;
+					this.$forceUpdate();
 				});
 			});
 		},

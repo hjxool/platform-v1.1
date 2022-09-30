@@ -183,7 +183,7 @@
     <div class="page4 flex_grow" v-show="html.page_select=='4'"></div>
 
     <!-- 添加/编辑规则弹窗 -->
-    <div class="popup" v-show="joint.add_rule_display">
+    <div class="popup" v-if="joint.add_rule_display">
       <el-card class="add_rule_form">
         <div class="form_head">
           <span class="text">{{joint.rule_id?'编辑':'添加'}}规则</span>
@@ -191,17 +191,18 @@
             <i class="el-icon-close icon2"></i>
           </div>
         </div>
-        <el-form :model="joint.form" label-width="100px" v-loading="html.popup_loading">
-          <el-form-item label="规则名称">
+        <el-form :model="joint.form" :rules="joint_rules" ref="joint_form" label-width="100px"
+          v-loading="html.popup_loading">
+          <el-form-item label="规则名称" prop="name">
             <el-input v-model="joint.form.name" style="width: 250px;"></el-input>
           </el-form-item>
 
-          <el-form-item label="有效期">
+          <el-form-item label="有效期" prop="date">
             <el-date-picker v-model="joint.form.date" :picker-options="joint_date_options()" type="daterange"
               range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
           </el-form-item>
 
-          <el-form-item label="周期">
+          <el-form-item label="周期" prop="cycle_week">
             <el-checkbox-group v-model="joint.form.cycle_week">
               <el-checkbox :label="2">周一</el-checkbox>
               <el-checkbox :label="3">周二</el-checkbox>
@@ -213,30 +214,32 @@
             </el-checkbox-group>
           </el-form-item>
 
-          <el-form-item label="时间">
+          <el-form-item label="时间" prop="select_time">
             <el-time-picker v-model="joint.form.select_time" style="width: 150px;"></el-time-picker>
           </el-form-item>
 
           <el-form-item label="联检设备">
             <div class="box1">
               <el-checkbox class="flex_shrink" :indeterminate="joint.form.isIndeterminate" v-model="joint.form.checkAll"
-                @change="check_all" v-if="!device.list_empty">全选
+                @change="check_all" v-if="!device.list_empty" style="align-self: start;">全选
               </el-checkbox>
               <el-checkbox-group v-if="!device.list_empty" class="flex_shrink" v-model="joint.form.device_selected"
-                @change="check_change">
+                style="max-height: 210px;overflow-x: hidden;" @change="check_change">
                 <el-checkbox class="box2" v-for="item in device.list" :label="item" :key="item.id"
                   style="margin-bottom: 10px;">
                   <div class="box2 box3">
                     <span class="text1 text_ellipsis">{{item.deviceName}}</span>
-                    <el-select v-model="item.server_select" @visible-change="get_model_server($event,item.id)"
-                      placeholder="选择物模型服务" size="small" style="width: 150px ;" class="flex_shrink">
-                      <el-option v-for="item2 in joint.form.model_server_list" :key="item2.serviceId"
-                        :value="item2.identifier" :label="item2.name">
+                    <el-select v-model="item.server_select" placeholder="选择物模型服务" size="small" style="width: 150px ;"
+                      class="flex_shrink">
+                      <el-option v-for="item2 in item.server_list" :key="item2.serviceId" :value="item2.identifier"
+                        :label="item2.name">
                       </el-option>
                     </el-select>
                   </div>
                 </el-checkbox>
               </el-checkbox-group>
+              <span class="verify_text"
+                v-show="joint_rules.device_selected.show">{{joint_rules.device_selected.message}}</span>
               <el-empty v-show="device.list_empty" description="会议室下无设备">
               </el-empty>
             </div>
