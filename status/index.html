@@ -17,7 +17,7 @@
     <el-empty style="height: 100%;" description="未设置属性" :image-size="300" v-show="html.empty"></el-empty>
     <!-- 卡片布局 -->
     <div class="detail" v-for="page in page_list" ref="detail"
-      :style="{gridTemplateRows:page.first_page?'100%':'70px auto'}">
+      :style="{gridTemplateRows:page.first_page?'100%':page.is_history?'70px 40px auto':'70px auto'}">
       <div class="detail_header" v-show="!page.first_page">
         <el-page-header @back="back" :content="!page.is_history?'详情页面':'历史数据'"></el-page-header>
       </div>
@@ -54,6 +54,8 @@
         </el-card>
       </div>
       <!-- 历史数据 -->
+      <el-date-picker v-model="html.history_time" v-if="page.is_history" @change="select_time" type="week"
+        format="yyyy 第 WW 周" placeholder="选择周"></el-date-picker>
       <div id="history" v-if="page.is_history"></div>
     </div>
   </div>

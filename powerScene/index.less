@@ -1,0 +1,158 @@
+#index {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	display: flex;
+	flex-direction: column;
+}
+.row_layout {
+	display: flex;
+	align-items: center;
+}
+.flex_grow {
+	flex-grow: 1;
+}
+.header {
+	height: 60px;
+	flex-shrink: 0;
+	padding: 0 20px;
+	.button1 {
+		border: none;
+		margin: 0;
+	}
+	.button2 {
+		margin-left: 50px;
+	}
+}
+.page1 {
+	flex-grow: 1;
+	padding-left: 20px;
+	display: grid;
+	grid-template-rows: 40px 1fr 40px 1fr;
+	overflow: hidden;
+	padding-bottom: 20px;
+	.type_text {
+		font-size: 16px;
+		color: #fff;
+		justify-self: start;
+		background: #6495ed;
+		padding: 0 20px;
+		border-radius: 10px;
+	}
+	.page1_box {
+		width: 50%;
+		min-width: 400px;
+		overflow-x: hidden;
+		padding-right: 10px;
+		.text1 {
+			font-size: 16px;
+			color: #fff;
+		}
+		.text2 {
+			margin: 0 auto;
+			max-width: 550px;
+			font-size: 14px;
+			color: #fff;
+		}
+		.icon1 {
+			height: 28px;
+			width: 28px;
+			object-fit: contain;
+			margin-right: 20px;
+		}
+		.button2 {
+			width: 30px;
+			height: 30px;
+			background: #1e90ff;
+			border-radius: 6px;
+			margin: 0 10px;
+			.icon2 {
+				font-size: 16px;
+				color: #fff;
+			}
+		}
+	}
+}
+.scene_box {
+	margin: 10px 0;
+	border: 1px solid #6495ed;
+	padding: 10px;
+	max-width: 93%;
+}
+.box1 {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	.head {
+		align-self: start;
+		.search {
+			width: 150px;
+			margin-left: 20px;
+		}
+	}
+	.overflow1 {
+		overflow-x: hidden;
+		max-height: 200px;
+		padding-right: 10px;
+		.place_box {
+			height: 50px;
+			cursor: pointer;
+			.icon {
+				font-size: 14px;
+				margin-right: 10px;
+			}
+			.text {
+				font-size: 14px;
+				max-width: 200px;
+			}
+		}
+		.device_box {
+			height: 40px;
+			.text {
+				font-size: 14px;
+				max-width: 200px;
+				margin-right: auto;
+				cursor: pointer;
+			}
+		}
+	}
+}
+.sub_buttons {
+	display: flex;
+	justify-content: end;
+}
+.server_box1 {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	.box2 {
+		align-self: start;
+	}
+	.overflow1 {
+		overflow-x: hidden;
+		max-height: 400px;
+		padding-right: 10px;
+		.text {
+			font-size: 14px;
+			max-width: 200px;
+			margin-right: auto;
+			cursor: pointer;
+		}
+	}
+}
+
+::-webkit-scrollbar {
+	/*滚动条整体样式*/
+	width: 5px; /*高宽分别对应横竖滚动条的尺寸*/
+	height: 5px;
+}
+::-webkit-scrollbar-thumb {
+	/*滚动条里面小方块*/
+	border-radius: 5px;
+	background: #82a3f7;
+}
+::-webkit-scrollbar-track {
+	/*滚动条里面轨道*/
+	border-radius: 5px;
+	background: #404755;
+}

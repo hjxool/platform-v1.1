@@ -219,30 +219,49 @@
           </el-form-item>
 
           <el-form-item label="联检设备">
-            <div class="box1">
-              <el-checkbox class="flex_shrink" :indeterminate="joint.form.isIndeterminate" v-model="joint.form.checkAll"
-                @change="check_all" v-if="!device.list_empty" style="align-self: start;">全选
-              </el-checkbox>
-              <el-checkbox-group v-if="!device.list_empty" class="flex_shrink" v-model="joint.form.device_selected"
-                style="max-height: 210px;overflow-x: hidden;" @change="check_change">
-                <el-checkbox class="box2" v-for="item in device.list" :label="item" :key="item.id"
-                  style="margin-bottom: 10px;">
-                  <div class="box2 box3">
-                    <span class="text1 text_ellipsis">{{item.deviceName}}</span>
-                    <el-select v-model="item.server_select" placeholder="选择物模型服务" size="small" style="width: 150px ;"
-                      class="flex_shrink">
-                      <el-option v-for="item2 in item.server_list" :key="item2.serviceId" :value="item2.identifier"
-                        :label="item2.name">
-                      </el-option>
-                    </el-select>
-                  </div>
+            <div class="box1" v-if="joint.device_list.length>0">
+              <div class="box1_head">
+                <el-checkbox class="flex_shrink" :indeterminate="joint.form.isIndeterminate"
+                  v-model="joint.form.checkAll" @change="check_all">全选
                 </el-checkbox>
-              </el-checkbox-group>
+                <el-input class="search" placeholder="模糊搜索" v-model="joint.form.search" size="mini"
+                  @keydown.enter="get_user_all_device(joint.form.search)"
+                  @change="get_user_all_device(joint.form.search)" clearable>
+                  <i slot="suffix" class="el-input__icon el-icon-search button"
+                    @click="get_user_all_device(joint.form.search)"></i>
+                </el-input>
+              </div>
+              <div class="overflow">
+                <div v-for="item in joint.device_list">
+                  <div class="place_box" @click="click_joint_place(item)">
+                    <i class="el-icon-caret-right icon" v-show="joint.form.place_id!=item.placeId"></i>
+                    <i class="el-icon-caret-bottom icon" v-show="joint.form.place_id==item.placeId"></i>
+                    <span class="text text_ellipsis" :title="item.name">{{item.name}}</span>
+                  </div>
+                  <el-collapse-transition>
+                    <div style="padding-left: 20px;" v-show="joint.form.place_id==item.placeId">
+                      <div class="device_box" v-for="item2 in item.devices">
+                        <div class="icon" @click="check_change(item2)">
+                          <i class="el-icon-check icon2" v-show="item2.selected"></i>
+                        </div>
+                        <span class="text text_ellipsis" @click="check_change(item2)"
+                          :title="item2.deviceName">{{item2.deviceName}}</span>
+                        <el-select v-model="item2.server_select" multiple collapse-tags placeholder="选择物模型服务"
+                          size="mini" style="width: 150px;" class="flex_shrink">
+                          <el-option v-for="item3 in item2.server_list" :key="item3.serviceId" :value="item3.identifier"
+                            :label="item3.name">
+                          </el-option>
+                        </el-select>
+                      </div>
+                    </div>
+                  </el-collapse-transition>
+                </div>
+              </div>
               <span class="verify_text"
                 v-show="joint_rules.device_selected.show">{{joint_rules.device_selected.message}}</span>
-              <el-empty v-show="device.list_empty" description="会议室下无设备">
-              </el-empty>
             </div>
+            <el-empty v-show="joint.device_list.length==0" description="会议室下无设备" style="width: 100%;">
+            </el-empty>
           </el-form-item>
 
           <el-form-item class="buttons">

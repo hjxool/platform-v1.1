@@ -165,14 +165,17 @@
           </el-form-item>
           <el-form-item label="&#128276;" v-show="new_meeting_form.meetingReminds.length>0">
             <div class="alert_box">
-              <div v-for="item in new_meeting_form.meetingReminds" class="box1">
-                <span class="text1 center">开始前{{item.time}}提醒</span>
+              <div v-for="item,index in new_meeting_form.meetingReminds" class="box1">
+                <el-time-select v-model="item.alert_time" style="margin-right: 10px;width: 150px;"
+                  :picker-options="{start: '06:00',step: '00:15',end: '23:00',maxTime:new_meeting_form.time_start}"
+                  placeholder="选择提醒时间">
+                </el-time-select>
                 <el-select v-model="item.type" class="box2">
                   <el-option v-for="item2,index in html.info_type" :label="item2" :value="index"
                     :disabled="index!=0&&index!=2">
                   </el-option>
                 </el-select>
-                <i class="el-icon-close icon button" @click="del_alert_time"></i>
+                <i class="el-icon-close icon button" @click="del_alert_time(index)"></i>
               </div>
             </div>
           </el-form-item>

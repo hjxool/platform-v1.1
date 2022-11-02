@@ -13,7 +13,11 @@ new Vue({
 			option_focus: 0, //总选项卡选中
 			// DSP参数
 			dsp_option: {
-				input: '',
+				input: {
+					level: 0,
+					mute: 0,
+					gain: 0,
+				},
 				output: [],
 				geq_title_list: ['60Hz', '230Hz', '910Hz', '4000Hz', '14000Hz'], //geq通道名称
 				// limit1_flag: false, //压限打开时轮询标识
@@ -48,6 +52,7 @@ new Vue({
 				display_unit: '',
 			},
 			device_name: '', //显示在页面上的设备名
+			data_ready: false, // 数据结构是否完成了
 		};
 	},
 	mounted() {
@@ -58,7 +63,6 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		this.data_ready = false; // 数据结构是否完成了
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符
 			this[`first_load${i}`] = true;

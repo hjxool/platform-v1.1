@@ -99,3 +99,24 @@ body {
 	color: #f02424;
 	flex-shrink: 0;
 }
+.verify_text {
+	color: red;
+	font-size: 12px;
+	position: relative;
+	height: 12px;
+	top: -10px;
+}
+.check_box {
+	width: 16px;
+	height: 16px;
+	border: 1px solid;
+	position: relative;
+	margin-right: 20px;
+	cursor: pointer;
+}
+.check_box .icon {
+	position: absolute;
+	bottom: -2px;
+	right: -8px;
+	font-size: 24px;
+}

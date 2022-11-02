@@ -480,5 +480,16 @@ new Vue({
 		close_page() {
 			this.html.rule_config = false;
 		},
+		// 复制内容
+		copy_path(path) {
+			// navigator.clipboard.writeText(path);
+			let temp = document.createElement('textarea');
+			temp.innerText = path;
+			document.body.appendChild(temp);
+			temp.select();
+			document.execCommand('copy');
+			document.body.removeChild(temp);
+			this.$message.success('已复制到剪贴板');
+		},
 	},
 });

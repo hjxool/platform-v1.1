@@ -111,8 +111,8 @@ new Vue({
 			this.request('post', room_list, this.token, { roomName: meeting_name || '', startTime: `${t4} 06:00:00`, endTime: `${t4} 23:00:00` }, (res) => {
 				console.log('会议室及会议', res);
 				this.html.loading = false;
-				if (res.data == null || res.data.data == null || typeof res.data.data == 'string') {
-					this.$message.info('当前用户下无会议室');
+				if (res.data.data.length == 0) {
+					this.$message('当前用户下无会议室');
 					return;
 				}
 				this.place_list = res.data.data;
@@ -169,6 +169,7 @@ new Vue({
 		// 组装二维矩阵 控制方块显示
 		block_status() {
 			this.html.block_list = [];
+			this.html.block_list2 = [];
 			// 当前选择时间
 			this.display_day = this.html.date.getTime();
 			for (let i = 0; i < this.place_list.length; i++) {
@@ -349,7 +350,33 @@ new Vue({
 		// 提交新建会议表单 并刷新数据 关闭弹窗
 		new_submit(form) {
 			this.$refs.new_meeting.validate((result) => {
-				if (result) {
+				let result2 = true;
+				if (form.sendMessage == 1) {
+					if (form.meetingReminds.length == 0) {
+						result2 = false;
+						this.$message.error('请添加提醒时间');
+					} else {
+						for (let i = 0; i < form.meetingReminds.length; i++) {
+							if (!form.meetingReminds[i].alert_time) {
+								this.$message.error('提醒时间不能为空');
+								result2 = false;
+								break;
+							} else {
+								for (let k = i + 1; k < form.meetingReminds.length; k++) {
+									if (form.meetingReminds[i].alert_time == form.meetingReminds[k].alert_time) {
+										this.$message.error('提醒时间不能重复');
+										result2 = false;
+										break;
+									}
+								}
+								if (!result2) {
+									break;
+								}
+							}
+						}
+					}
+				}
+				if (result && result2) {
 					let data = {
 						appointmentMode: form.method,
 						reply: form.reply,
@@ -380,19 +407,15 @@ new Vue({
 					data.endTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_end}:00`;
 					data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
 					// 提醒时间
-					let t = form.time_start.split(':');
 					for (let i = 0; i < form.meetingReminds.length; i++) {
 						let t2 = {};
-						if (t[1] == 00) {
-							t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0] - 1}:${50}:00`;
-						} else {
-							t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t[0]}:${20}:00`;
-						}
-						t2.remindType = form.meetingReminds[i].type;
+						let t3 = form.meetingReminds[i];
+						t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t3.alert_time}:00`;
+						t2.remindType = t3.type;
 						data.meetingReminds.push(t2);
 					}
 					this.html.form_loading = true;
-					this.request('post', meeting_reserve, this.token, data, () => {
+					this.request('post', meeting_reserve, this.token, data, (res) => {
 						this.col_index_start = this.col_index_end = null;
 						this.req_room_list();
 						this.html.new_meeting = false;
@@ -515,6 +538,9 @@ new Vue({
 		},
 		// 鼠标移出位置时关闭弹窗
 		close_meeting_info_box(event) {
+			if (this.place_list.length == 0) {
+				return;
+			}
 			if (event.clientX < this.first_block_position) {
 				this.html.meeting_info_show = false;
 				return;
@@ -535,17 +561,17 @@ new Vue({
 		},
 		// 添加提醒时间、方式
 		add_alert_time() {
-			if (this.new_meeting_form.meetingReminds.length == 0) {
+			if (this.new_meeting_form.meetingReminds.length < 3) {
 				let t = {
-					time: '10分钟',
+					alert_time: '',
 					type: 0,
 				};
 				this.new_meeting_form.meetingReminds.push(t);
 			}
 		},
 		// 删除提醒
-		del_alert_time() {
-			this.new_meeting_form.meetingReminds.pop();
+		del_alert_time(index) {
+			this.new_meeting_form.meetingReminds.splice(index, 1);
 		},
 		// 改变是否提醒 清空数组
 		change_info() {

@@ -32,15 +32,26 @@ new Vue({
 			this.button_h = document.querySelector('.slider_button').offsetHeight;
 		};
 		this.get_device_status();
-		// this.ws_link = new WebSocket(`${ws_url}`);
-		// this.stomp_link = Stomp.over(this.ws_link);
-		// this.stomp_link.debug = null;
-		// this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
+		this.ws_link = new WebSocket(`${我是websocket地址}`);
+		this.stomp_link = Stomp.over(this.ws_link);
+		this.stomp_link.debug = null;
+		this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
 	},
 	methods: {
 		// stomp连接成功的回调
 		on_message() {
-			this.request('put', `${sendCmdtoDevice}/11`, this.token, { contentType: 2, contents: [{ deviceId: this.id, identifier: 'level_report_enable', attributes: { level_switch: 1 } }] });
+			this.request('put', `${sendCmdtoDevice}/11`, this.token, {
+				contentType: 2,
+				contents: [
+					{
+						deviceId: this.id,
+						identifier: 'LRPTSRV',
+						attributes: {
+							LRPT: [1],
+						},
+					},
+				],
+			});
 			this.stomp_link.subscribe(
 				`/exchange/device-report/device-report.${this.id}`,
 				(res) => {
@@ -50,38 +61,42 @@ new Vue({
 					let data = JSON.parse(res.body);
 					let data_list = Object.entries(data.contents[0].attributes);
 					for (let array of data_list) {
-						if (array[0] == 'dev_state') {
-							for (let i = 0; i < 2; i++) {
-								this.sys_option.status[i].splice(i, 1, array[1][`out${i + 1}`]);
+						if (array[0] == 'ILEVEL') {
+							for (let i = 0; i < this.input.length; i++) {
+								this.input[i].level = array[1][i] / 100;
 							}
-						} else if (array[0] == 'in1_gain') {
-							this.dsp_option.input.gain = array[1];
-						} else if (array[0] == 'in1_mute') {
-							this.dsp_option.input.mute = array[1];
-						} else if (array[0] == 'level') {
-							this.dsp_option.input.level = array[1].in1;
-							this.dsp_option.output[0].level = array[1].out1;
-							this.dsp_option.output[1].level = array[1].out2;
-						} else if (array[0].substring(0, 3) == 'out') {
-							let index = array[0].substring(3, 4); // 截取序列号
-							let key = array[0].substring(5); // 截取键名
-							switch (key) {
-								case 'gain':
-								case 'mute':
-									this.dsp_option.output[index - 1][key] = array[1];
-									break;
-								case 'th':
-									this.dsp_option.output[index - 1].limit_threshold = array[1];
-									break;
-								case 'th_dyn':
-									this.dsp_option.output[index - 1].limit_enable = array[1];
-									break;
-								default:
-									// 只剩下geq 提出索引
-									let index2 = key.substring(3, 4);
-									this.dsp_option.output[index - 1].geq_list[index2 - 1].gain = array[1];
-									break;
+						} else if (array[0] == 'OLEVEL') {
+							for (let i = 0; i < this.output.length; i++) {
+								this.output[i].level = array[1][i] / 100;
 							}
+						} else if (array[0] == 'INGS') {
+							for (let i = 0; i < this.input.length; i++) {
+								this.input[i].gain = Math.floor(array[1][i] / 10 + 0.5) / 10;
+							}
+						} else if (array[0] == 'OUTGS') {
+							for (let i = 0; i < this.output.length; i++) {
+								this.output[i].gain = Math.floor(array[1][i] / 10 + 0.5) / 10;
+							}
+						} else if (array[0] == 'INMS') {
+							for (let i = 0; i < this.input.length; i++) {
+								this.input[i].mute = array[1][i];
+							}
+						} else if (array[0] == 'OUTMS') {
+							for (let i = 0; i < this.output.length; i++) {
+								this.output[i].mute = array[1][i];
+							}
+						} else if (array[0] == 'MIXS') {
+							for (let i = 0; i < 9; i++) {
+								this.matrix = [];
+								let t = (array[1][i * 2] >>> 0).toString(2).split('').reverse();
+								let t2 = 12 - t.length;
+								for (let k = 0; k < t2; k++) {
+									t.push('0');
+								}
+								this.matrix.push(t);
+							}
+						} else if (array[0] == 'SCALL') {
+							this.html.config_select = array[1][0];
 						}
 					}
 				},
@@ -99,49 +114,33 @@ new Vue({
 			this.output = [];
 			this.request('get', `${getChannelDetail}/${this.id}`, this.token, (res) => {
 				console.log('一体机数据', res);
-				if (res.data.data == null) {
+				if (res.data.head.code != 200) {
 					return;
 				}
 				let data = res.data.data.properties;
-				for (let i = 0; i < data.input_gain.propertyValue.length; i++) {
-					let t = Math.floor(data.input_gain.propertyValue[i] * 10 + 0.5) / 10;
-					let t2 = data.input_level.propertyValue[i];
-					let t3 = data.input_mute.propertyValue[i];
-					let t4 = {
-						gain: t,
-						level: t2,
-						mute: t3,
+				for (let i = 0; i < 8; i++) {
+					let t = {
+						gain: Math.floor(data['INGS'].propertyValue[i] / 10 + 0.5) / 10,
+						level: Math.floor(data['ILEVEL'].propertyValue[i] / 100),
+						mute: data['INMS'].propertyValue[i],
 					};
-					this.input.push(t4);
-				}
-				for (let i = 0; i < data.output_gain.propertyValue.length; i++) {
-					let t = Math.floor(data.output_gain.propertyValue[i] * 10 + 0.5) / 10;
-					let t2 = data.output_level.propertyValue[i];
-					let t3 = data.output_mute.propertyValue[i];
-					let t4 = {
-						gain: t,
-						level: t2,
-						mute: t3,
+					this.input.push(t);
+					let t2 = {
+						gain: Math.floor(data['OUTGS'].propertyValue[i] / 10 + 0.5) / 10,
+						level: Math.floor(data['OLEVEL'].propertyValue[i] / 100),
+						mute: data['OUTMS'].propertyValue[i],
 					};
-					this.output.push(t4);
+					this.output.push(t2);
 				}
-				for (let i = 0; i < data.mixer.propertyValue.length; i++) {
-					let t = [];
-					let t2 = data.mixer.propertyValue[i];
-					let t3;
-					if (t2 == 0) {
-						for (let i = 0; i < 12; i++) {
-							t.push('0');
-						}
-					} else {
-						t3 = (t2 >>> 0).toString(2);
-						for (let k = 0; k < 12; k++) {
-							t.push(t3[k]);
-						}
+				for (let i = 0; i < 9; i++) {
+					let t = (data['MIXS'].propertyValue[i * 2] >>> 0).toString(2).split('').reverse(); //转换到二进制 切分成数组 反转数组 补零
+					let t2 = 12 - t.length;
+					for (let k = 0; k < t2; k++) {
+						t.push('0');
 					}
 					this.matrix.push(t);
 				}
-				this.html.config_select = data.scene_call.propertyValue;
+				this.html.config_select = data['SCALL'].propertyValue[0];
 				this.data_ready = true;
 				this.$nextTick(() => {
 					// this.level_h = document.querySelector('.level').offsetHeight - 4; //图片偏差
@@ -203,56 +202,53 @@ new Vue({
 				return;
 			}
 			let attributes = {};
-			if (key == 'mixer') {
+			if (key == 'MIXS') {
 				this.matrix[params[1]].splice(params[2], 1, Number(params[0]) ? '0' : '1');
 				let t = [];
 				for (let i = 0; i < this.matrix.length; i++) {
-					let t2 = this.matrix[i];
-					let t3 = '';
-					for (let k = 0; k < t2.length; k++) {
-						if (k > 11) {
-							t3 += '0';
-						} else {
-							t3 += t2[k];
-						}
+					let t4 = [];
+					for (let val of this.matrix[i]) {
+						t4.push(val);
 					}
-					let t4 = parseInt(t3, 2) >> 0;
-					t.push(t4);
+					// 将数组反转 合并成字符串 用parseInt舍去前面的0 转换为number类型 再转进制
+					let t2 = parseInt(t4.reverse().join(''));
+					let t3 = parseInt(t2, 2) >> 0;
+					t.push(t3, 0);
 				}
 				attributes[key] = t;
-			} else if (key == 'input_mute') {
+			} else if (key == 'INMS') {
 				params[0].mute = params[0].mute ? 0 : 1;
 				let t = [];
 				for (let i = 0; i < this.input.length; i++) {
 					t.push(this.input[i].mute);
 				}
 				attributes[key] = t;
-			} else if (key == 'output_mute') {
+			} else if (key == 'OUTMS') {
 				params[0].mute = params[0].mute ? 0 : 1;
 				let t = [];
 				for (let i = 0; i < this.output.length; i++) {
 					t.push(this.output[i].mute);
 				}
 				attributes[key] = t;
-			} else if (key == 'input_gain') {
+			} else if (key == 'INGS') {
 				let t = [];
 				for (let i = 0; i < this.input.length; i++) {
 					t.push(this.input[i].gain);
 				}
 				attributes[key] = t;
-			} else if (key == 'output_gain') {
+			} else if (key == 'OUTGS') {
 				let t = [];
 				for (let i = 0; i < this.output.length; i++) {
 					t.push(this.output[i].gain);
 				}
 				attributes[key] = t;
-			} else if (key == 'scene_call') {
-				attributes[key] = this.html.config_select;
-			} else if (key == 'scene_save') {
-				attributes[key] = this.html.config_select;
+			} else if (key == 'SCALL') {
+				attributes[key] = [this.html.config_select];
+			} else if (key == 'SSAVE') {
+				attributes[key] = [this.html.config_select];
 			}
 			this.request('put', `${sendCmdtoDevice}/8`, this.token, { contentType: 0, contents: [{ deviceId: this.id, attributes: attributes }] }, (res) => {
-				if (key == 'scene_call') {
+				if (key == 'SCALL') {
 					this.get_device_status();
 				}
 			});

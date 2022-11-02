@@ -14,6 +14,7 @@ let protocol_unit_add = `${url}api-device/protocol/unit`;
 let protocol_unit_delete = `${url}api-device/protocol/delete`;
 let product_model = `${url}api-device/product/model`;
 let current_model = `${url}api-device/protocol/current`;
+let default_property_url = `${url}api-device/protocol/property/default/list/`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -97,7 +98,7 @@ new Vue({
 			},
 			// 表单数组
 			form_list: [],
-			// 计算点下编辑后经过了几次新增
+			// 计算点下编辑后经过了几次新增 因为新增是初始化数据结构 而编辑是找对应属性去覆写
 			child_count_list: [],
 			// 自定义表单验证
 			rules: {
@@ -112,6 +113,7 @@ new Vue({
 				symbol: { show: false, message: '' },
 				typeName: { show: false, message: '' },
 			},
+			default_property: [], //默认属性列表
 		};
 	},
 	mounted() {
@@ -123,6 +125,7 @@ new Vue({
 		}
 		this.res_history_model(0);
 		this.get_unit();
+		this.get_default_property();
 	},
 	methods: {
 		// 页面加载时历史版本
@@ -202,77 +205,6 @@ new Vue({
 				this.protocol_list.push(table);
 			});
 		},
-		//#region
-		// 取出属性列表 便于查询ID
-		// copy_struct_array(target, source) {
-		// 	if (source.constructor === Array && typeof source[0] != 'object') {
-		// 		source.forEach((e) => {
-		// 			target.push(e);
-		// 		});
-		// 	} else if (source.constructor === Array && typeof source[0] === 'object') {
-		// 		source.forEach((e) => {
-		// 			if (e != null) {
-		// 				let t = {};
-		// 				target.push(t);
-		// 				this.copy_struct_array(t, e);
-		// 			} else {
-		// 				target.push(null);
-		// 			}
-		// 		});
-		// 	} else if (source.constructor === Object) {
-		// 		for (let key in source) {
-		// 			if (typeof source[key] != 'object') {
-		// 				target[key] = source[key];
-		// 			} else {
-		// 				if (source[key] != null) {
-		// 					target[key] = {};
-		// 					this.copy_struct_array(target[key], source[key]);
-		// 				} else {
-		// 					target[key] = null;
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// },
-		//#endregion
-		//#region
-		// 构建属性树
-		// property_tree(obj, target, parent_index) {
-		// 	if (obj.dataType.type == 'array' || obj.dataType.type == 'struct') {
-		// 		let properties;
-		// 		switch (obj.dataType.type) {
-		// 			case 'array':
-		// 				properties = obj.dataType.specs.item.properties;
-		// 				break;
-		// 			case 'struct':
-		// 				properties = obj.dataType.properties;
-		// 				break;
-		// 		}
-		// 		for (let index = 0; index < properties.length; index++) {
-		// 			let property = properties[index];
-		// 			let temp = {
-		// 				id: property.propertyId,
-		// 				parent_index: `${parent_index}-${index}`,
-		// 				type: '属性',
-		// 				child: [],
-		// 				data: {
-		// 					name: property.name,
-		// 					identifier: property.identifier,
-		// 					dataType: property.dataType.type,
-		// 					min: property.dataType.type != 'struct' ? property.dataType.specs.min : '',
-		// 					max: property.dataType.type != 'struct' ? property.dataType.specs.max : '',
-		// 					step: property.dataType.type != 'struct' ? property.dataType.specs.step : '',
-		// 					unit: property.dataType.type != 'struct' ? (property.dataType.specs.unitName == null ? '' : `${property.dataType.specs.unitName} / ${property.dataType.specs.unit}`) : '',
-		// 					size: property.dataType.type === 'array' ? property.dataType.specs.size : '',
-		// 				},
-		// 			};
-		// 			target.push(temp);
-		// 			// 找到child里的子节点 再往里遍历
-		// 			this.property_tree(property, target[index].child, temp.parent_index);
-		// 		}
-		// 	}
-		// },
-		//#endregion
 		// 新建物模型
 		new_ver_model() {
 			this.$confirm('确认以当前所选物模型版本新建物模型？', '提示', {
@@ -486,7 +418,7 @@ new Vue({
 			}
 			this.form_list.push(temp);
 		},
-		// 添加标准功能按钮
+		// 添加自定义功能按钮
 		add_protocol() {
 			this.static_params.add_edit = 'add';
 			let count = 0;
@@ -1152,6 +1084,57 @@ new Vue({
 			if (!flag) {
 				this.static_params.current_version = '未设置启用模型';
 			}
+		},
+		//获取默认属性列表
+		get_default_property() {
+			this.request('post', default_property_url, this.token, (res) => {
+				console.log('默认属性', res);
+				if (res.data.head.code != 200) {
+					return;
+				}
+				this.default_property = res.data.data;
+			});
+		},
+		// 查询默认属性
+		property_search(search, callback) {
+			let result = search ? this.default_property.filter(this.property_search_filter(search)) : this.default_property;
+			callback(result);
+		},
+		// 过滤器回调
+		property_search_filter(search) {
+			return (e) => {
+				return e.name.toLowerCase().indexOf(search.toLowerCase()) != -1;
+			};
+		},
+		// 选中默认推荐属性后修改表单参数
+		init_default_property(select_obj, form_obj) {
+			form_obj.name = select_obj.name;
+			form_obj.identifier = select_obj.identifier;
+			form_obj.dataType = select_obj.dataType.type;
+			switch (form_obj.dataType) {
+				case 'text':
+					form_obj.textLength = select_obj.dataType.specs.length;
+					break;
+				case 'date':
+					break;
+				case 'struct':
+					form_obj.struct_array = JSON.parse(JSON.stringify(select_obj.dataType.properties));
+					break;
+				case 'array':
+					form_obj.size = select_obj.dataType.specs.size;
+					form_obj.itemType = select_obj.dataType.specs.item.type;
+					if (form_obj.itemType == 'struct') {
+						form_obj.struct_array = JSON.parse(JSON.stringify(select_obj.dataType.specs.item.properties));
+					}
+					break;
+				default:
+					form_obj.min = select_obj.dataType.specs.min || 0;
+					form_obj.max = select_obj.dataType.specs.max || 0;
+					form_obj.step = select_obj.dataType.specs.step || 0;
+					form_obj.unit = `${select_obj.dataType.specs.unitName} / ${select_obj.dataType.specs.unit}`;
+					break;
+			}
+			this.form_verify(form_obj.name, 'name');
 		},
 	},
 });

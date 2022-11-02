@@ -12,6 +12,7 @@ new Vue({
 		html: {
 			loading: true, //页面初加载遮罩
 			empty: '', //无数据显示内容
+			history_time: '', //选择的历史记录时间
 		},
 		page_list: [], //弹窗页面数据数组
 	},
@@ -122,38 +123,88 @@ new Vue({
 				dom[dom.length - 1].className = 'detail unfold';
 			});
 		},
+		// 选择时间段查询历史记录
+		select_time() {
+			let w = this.html.history_time.getDay();
+			let t = this.html.history_time.getTime();
+			let t2 = t - w * 24 * 60 * 60 * 1000;
+			let start = new Date(t2);
+			let t3 = t2 + 6 * 24 * 60 * 60 * 1000;
+			let end = new Date(t3);
+			let s_time = `${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()} 06:00:00`;
+			let e_time = `${end.getFullYear()}-${end.getMonth() + 1}-${end.getDate()} 23:00:00`;
+			this.get_history(this.card_obj, s_time, e_time);
+		},
 		// 查询历史详情
-		get_history(card_obj) {
+		get_history(card_obj, s_time, e_time) {
 			if (card_obj.data_type !== 'number') {
 				return;
 			}
-			this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 100 }, (res) => {
-				console.log('历史记录', res);
-				if (res.data.data.data.length == 0 || res.data.data.data == null) {
-					this.$message.info('无历史数据');
-					return;
-				}
-				let page = {
-					first_page: false,
-					is_history: true,
-				};
-				this.page_list.push(page);
-				this.time_list = [];
-				this.history_value = [];
-				this.propertyName = res.data.data.data[0].propertyName;
-				if (res.data.data.data[0].unit != null) {
-					this.unit = `${res.data.data.data[0].unit}/${res.data.data.data[0].unitName}`;
-				} else {
-					this.unit = '';
-				}
-				res.data.data.data.forEach((e) => {
-					this.time_list.push(e.created);
-					this.history_value.push(e.propertyValue);
+			if (typeof s_time == 'undefined') {
+				this.card_obj = card_obj;
+				this.request('post', device_status_history, this.token, { condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 10 }, (res) => {
+					console.log('历史记录', res);
+					let data = res.data.data.data;
+					if (data.length == 0 || data == null) {
+						this.history = null;
+						this.$message.info('无历史数据');
+						return;
+					}
+					//首次查询不能根据时间 而是查最近的100条 然后获取有记录的时间作为显示时间
+					this.html.history_time = new Date(data[data.length - 1].created);
+					let page = {
+						first_page: false,
+						is_history: true,
+					};
+					this.page_list.push(page);
+					this.time_list = [];
+					this.history_value = [];
+					this.propertyName = data[0].propertyName;
+					if (data[0].unit != null) {
+						this.unit = `${data[0].unit}/${data[0].unitName}`;
+					} else {
+						this.unit = '';
+					}
+					data.forEach((e) => {
+						this.time_list.push(e.created);
+						this.history_value.push(e.propertyValue);
+					});
+					this.$nextTick(() => {
+						this.init_echarts();
+					});
 				});
-				this.$nextTick(() => {
-					this.init_echarts();
-				});
-			});
+			} else {
+				this.request(
+					'post',
+					device_status_history,
+					this.token,
+					{ condition: { deviceId: this.id, fieldPath: card_obj.path }, pageNum: 1, pageSize: 99999, startTime: s_time, endTime: e_time },
+					(res) => {
+						console.log('历史记录', res);
+						let data = res.data.data.data;
+						if (data.length == 0 || data == null) {
+							this.history = null;
+							this.$message.info('无历史数据');
+							return;
+						}
+						this.time_list = [];
+						this.history_value = [];
+						this.propertyName = data[0].propertyName;
+						if (data[0].unit != null) {
+							this.unit = `${data[0].unit}/${data[0].unitName}`;
+						} else {
+							this.unit = '';
+						}
+						data.forEach((e) => {
+							this.time_list.push(e.created);
+							this.history_value.push(e.propertyValue);
+						});
+						this.$nextTick(() => {
+							this.init_echarts();
+						});
+					}
+				);
+			}
 		},
 		// echarts初始设置
 		init_echarts() {

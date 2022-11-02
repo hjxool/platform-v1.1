@@ -22,8 +22,8 @@ const common_functions = {
 					window.sessionStorage.device_name = e.split('=')[1];
 				}
 			});
-			let url = location.href.split('?')[0];
-			history.replaceState('', '', url);
+			// let url = location.href.split('?')[0];
+			// history.replaceState('', '', url);
 		},
 		//封装的请求方法
 		request(method, url, token, data, func) {

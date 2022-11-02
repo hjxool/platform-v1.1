@@ -71,9 +71,20 @@
             <!-- 属性设置 -->
             <template v-if="card.type=='属性'">
               <el-form-item label="属性名称" size="medium">
-                <el-input class="form_input" v-model="card.name" placeholder="请输入属性名称"
-                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')">
-                </el-input>
+                <el-input v-if="index!=0" class="form_input" v-model="card.name"
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')"
+                  placeholder="请输入属性名称"></el-input>
+                <!-- 仅有第一层设置属性需要推荐 -->
+                <el-autocomplete v-if="index==0" class="form_input" v-model="card.name"
+                  :disabled="static_params.add_edit=='check'" @blur="form_verify(card.name,'name')"
+                  :fetch-suggestions="property_search" placeholder="请输入属性名称"
+                  @select="init_default_property($event,card)" popper-class="autocomplete">
+                  <template slot-scope="{item}">
+                    <div class="default_text text_ellipsis" :title="item.name">{{item.name}}
+                    </div>
+                    <span class="default_text">标识符:{{item.identifier}}</span>
+                  </template>
+                </el-autocomplete>
                 <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
                 <div class="verify_text" v-show="rules.name.show">{{rules.name.message}}</div>
               </el-form-item>

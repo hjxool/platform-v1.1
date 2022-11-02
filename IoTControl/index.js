@@ -9,6 +9,7 @@ let joint_rule_disable = `${url}api-portal/online-check-rule/stop`;
 let joint_rule_del = `${url}api-portal/online-check-rule/delete`;
 let joint_rule_execute = `${url}api-portal/online-check-rule/execute`;
 let record_search = `${url}api-portal/online-check-record/search`;
+let all_device_url = `${url}api-device/device/search`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -38,12 +39,14 @@ new Vue({
 				select_time: '', // 选择时间 注意是Date对象
 				isIndeterminate: false, //不全选样式
 				checkAll: false, //全选
-				device_selected: [], // 勾选的设备
+				search: '', //检索设备名称
+				place_id: '', //选择展开的会议室
 			},
 			record_devices: [],
 			rule_list: [], // 联检规则表
 			record_list: [], // 联检记录表
 			record_empty: false, //记录表为空
+			device_list: [], //联检查询所有设备列表
 		},
 		polling: {
 			apply_place: '', // 应用会议室
@@ -85,30 +88,20 @@ new Vue({
 		place_change() {
 			this.html.page_loading = true;
 			this.device.list = [];
-			this.request('post', `${device_list}/${this.place_id}`, this.token, { condition: {}, pageNum: 1, pageSize: 999999 }, (res) => {
+			this.request('post', `${device_list}/${this.place_id}`, this.token, { condition: {} }, (res) => {
 				console.log('设备列表', res);
 				this.html.page_loading = false;
-				if (Object.entries(res.data.data).length == 0 || res.data.data.data == null) {
+				if (Object.entries(res.data).length == 0 || res.data.data == null) {
 					this.device.list_empty = true;
 					return;
 				}
-				this.device.list = res.data.data.data;
-				for (let i = 0; i < this.device.list.length; i++) {
-					this.$set(this.device.list[i], 'server_select', '');
-				}
-				for (let val of this.device.list) {
-					// 为每个设备添加可选服务列表
-					val.server_list = [];
-					this.request('post', `${model_server_search}/${val.id}`, this.token, (res) => {
-						if (res.data.data == null || res.data.data.length == 0) {
-							return;
-						}
-						val.server_list = res.data.data;
-					});
-				}
+				this.device.list = res.data.data;
 				this.device.list_empty = false;
 			});
-			this.page_switch(this.html.page_select);
+			let type = this.html.page_select.split('-')[0];
+			if (type != 2) {
+				this.page_switch(this.html.page_select);
+			}
 		},
 		// 页面选择
 		page_switch(page_index) {
@@ -116,6 +109,7 @@ new Vue({
 			let type = page_index.split('-')[0];
 			if (type == 2) {
 				this.joint_select();
+				this.get_user_all_device();
 			} else if (type == 3) {
 				this.polling_select();
 			}
@@ -125,7 +119,7 @@ new Vue({
 			if (this.html.page_select == '2-1') {
 				this.html.page_loading = true;
 				this.joint.rule_list = [];
-				this.request('post', rule_search, this.token, { condition: { placeId: this.place_id }, pageNum: 1, pageSize: 100 }, (res) => {
+				this.request('post', rule_search, this.token, { condition: {}, pageNum: 1, pageSize: 100 }, (res) => {
 					console.log('联检规则表', res);
 					this.html.page_loading = false;
 					if (Object.entries(res.data.data).length == 0) {
@@ -138,6 +132,61 @@ new Vue({
 			}
 			this.$nextTick(() => {
 				this.joint.table_height = document.querySelector('.joint_table').clientHeight;
+			});
+		},
+		// 联检获取租户下所有设备列表
+		get_user_all_device(input) {
+			let data = {};
+			data.condition = {};
+			data.pageNum = 1;
+			data.pageSize = 999;
+			if (input) {
+				data.keyword = input;
+			}
+			this.request('post', all_device_url, this.token, data, (res) => {
+				console.log('所有设备', res);
+				let data = res.data.data.data;
+				if (data == null || data.length == 0) {
+					return;
+				}
+				let array = [];
+				this.joint.devices_length = data.length; // 记录下设备列表长度 勾选时会用
+				for (let i = 0; i < data.length; i++) {
+					data[i].server_select = []; // 赋值给data中的响应式数据后会自动添加响应式
+					data[i].server_list = [];
+					data[i].selected = false; // 选中标识
+					this.request('post', `${model_server_search}/${data[i].id}`, this.token, (res) => {
+						if (res.data.data == null || res.data.data.length == 0) {
+							return;
+						}
+						data[i].server_list = res.data.data;
+					});
+					if (i == 0) {
+						let t = {
+							name: data[i].placeName || '场所名为空',
+							placeId: data[i].placeId,
+							devices: [data[i]],
+						};
+						array.push(t);
+					} else {
+						let find = false;
+						for (let val of array) {
+							if (data[i].placeId == val.placeId) {
+								find = true;
+								val.devices.push(data[i]);
+							}
+						}
+						if (!find) {
+							let t = {
+								name: data[i].placeName || '场所名为空',
+								placeId: data[i].placeId,
+								devices: [data[i]],
+							};
+							array.push(t);
+						}
+					}
+				}
+				this.joint.device_list = array;
 			});
 		},
 		// 添加联检规则
@@ -159,8 +208,11 @@ new Vue({
 					this.joint.form[key] = '';
 				}
 			}
-			for (let i = 0; i < this.device.list.length; i++) {
-				this.device.list[i].server_select = '';
+			for (let val of this.joint.device_list) {
+				for (let val2 of val.devices) {
+					val2.server_select = [];
+					val2.selected = false;
+				}
 			}
 		},
 		// 编辑联检规则
@@ -177,17 +229,15 @@ new Vue({
 			// executeTime是时分秒 不能直接转换成Date对象
 			let t = new Date();
 			this.joint.form.select_time = new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()} ${rule_obj.executeTime}`);
-			this.joint.form.device_selected = [];
-			for (let i = 0; i < this.device.list.length; i++) {
-				for (let j = 0; j < rule_obj.devicesVOS.length; j++) {
-					let find = false;
-					if (this.device.list[i].id == rule_obj.devicesVOS[j].deviceId) {
-						find = true;
-						this.device.list[i].server_select = rule_obj.devicesVOS[j].serviceIdentifier;
-						this.joint.form.device_selected.push(this.device.list[i]);
-					}
-					if (!find) {
-						this.device.list[i].server_select = '';
+			for (let val of this.joint.device_list) {
+				for (let val2 of val.devices) {
+					val2.selected = false;
+					val2.server_select = [];
+					for (let val3 of rule_obj.devicesVOS) {
+						if (val2.id == val3.deviceId) {
+							val2.selected = true;
+							val2.server_select = val3.serviceIdentifier;
+						}
 					}
 				}
 			}
@@ -200,14 +250,37 @@ new Vue({
 		},
 		// 全选传入的数组
 		check_all(check_flag) {
-			this.joint.form.device_selected = check_flag ? this.device.list : [];
+			this.joint.device_selected = [];
+			if (check_flag) {
+				for (let val of this.joint.device_list) {
+					for (let val2 of val.devices) {
+						val2.selected = true;
+						this.joint.device_selected.push(val2);
+					}
+				}
+			} else {
+				for (let val of this.joint.device_list) {
+					for (let val2 of val.devices) {
+						val2.selected = false;
+					}
+				}
+			}
 			this.joint.form.isIndeterminate = false;
 		},
 		// 多选改变时
-		check_change(selected_array) {
-			let count = selected_array.length;
-			this.joint.form.checkAll = count == this.device.list.length;
-			this.joint.form.isIndeterminate = count > 0 && count < this.device.list.length;
+		check_change(device_obj) {
+			device_obj.selected = !device_obj.selected;
+			this.joint.device_selected = [];
+			for (let val of this.joint.device_list) {
+				for (let val2 of val.devices) {
+					if (val2.selected) {
+						this.joint.device_selected.push(val2);
+					}
+				}
+			}
+			let count = this.joint.device_selected.length;
+			this.joint.form.checkAll = count == this.joint.devices_length;
+			this.joint.form.isIndeterminate = count > 0 && count < this.joint.devices_length;
 		},
 		// 格式化开关状态
 		format_status(row, col) {
@@ -216,19 +289,18 @@ new Vue({
 		// 规则提交
 		joint_rule_submit(form, status) {
 			this.$refs.joint_form.validate((valid) => {
-				let result = false;
+				let result = true;
 				// 有一个false就不能通过 因此就找那一个false 而不需要对每一个结果进行遍历
-				for (let value of this.joint.form.device_selected) {
-					if (value.server_select) {
-						result = true;
-					} else {
+				for (let value of this.joint.device_selected) {
+					if (value.server_select.length == 0) {
 						result = false;
 						this.joint_rules.device_selected.show = true;
 						this.joint_rules.device_selected.message = '所选设备必须选择物模型服务';
 						break;
 					}
 				}
-				if (this.joint.form.device_selected.length == 0) {
+				if (this.joint.device_selected.length == 0) {
+					result = false;
 					this.joint_rules.device_selected.show = true;
 					this.joint_rules.device_selected.message = '必须勾选设备';
 				}
@@ -241,7 +313,6 @@ new Vue({
 					let t_e = form.date[1];
 					let data = {
 						onlineCheckName: form.name,
-						placeId: this.place_id,
 						planDatetimeStart: `${t_s.getFullYear()}-${t_s.getMonth() + 1 < 10 ? '0' + (t_s.getMonth() + 1) : t_s.getMonth() + 1}-${t_s.getDate() < 10 ? '0' + t_s.getDate() : t_s.getDate()} 06:00:00`,
 						planDatetimeEnd: `${t_e.getFullYear()}-${t_e.getMonth() + 1 < 10 ? '0' + (t_e.getMonth() + 1) : t_e.getMonth() + 1}-${t_e.getDate() < 10 ? '0' + t_e.getDate() : t_e.getDate()} 23:00:00`,
 						status: status,
@@ -249,21 +320,23 @@ new Vue({
 						executePeriodDays: JSON.stringify(form.cycle_week),
 						devicesDTOList: [],
 					};
-					for (let i = 0; i < form.device_selected.length; i++) {
+					for (let i = 0; i < this.joint.device_selected.length; i++) {
 						let t = {
-							deviceId: form.device_selected[i].id,
-							deviceName: form.device_selected[i].deviceName,
-							serviceIdentifier: form.device_selected[i].server_select,
+							deviceId: this.joint.device_selected[i].id,
+							deviceName: this.joint.device_selected[i].deviceName,
+							serviceIdentifier: this.joint.device_selected[i].server_select,
 						};
 						data.devicesDTOList.push(t);
 					}
 					if (this.joint.rule_id != null) {
 						data.id = this.joint.rule_id;
 					}
-					this.request('post', update_rule, this.token, data, () => {
-						this.joint.add_rule_display = false;
+					this.request('post', update_rule, this.token, data, (res) => {
 						this.html.popup_loading = false;
-						this.joint_select(0);
+						if (res.data.head.code == 200) {
+							this.joint.add_rule_display = false;
+							this.joint_select(0);
+						}
 					});
 				}
 			});
@@ -290,14 +363,18 @@ new Vue({
 		// 手动执行联检
 		ex_joint_rule(rule_obj) {
 			this.request('post', `${joint_rule_execute}/${rule_obj.id}`, this.token, (res) => {
-				this.$message.success(`${res.data.head.message}`);
+				if (res.data.head.code == 200) {
+					this.$message.success(`${res.data.head.message}`);
+				} else {
+					this.$message.error(`${res.data.head.message}`);
+				}
 			});
 		},
 		// 搜索联检记录
 		search_record(input) {
 			this.html.page_loading = true;
 			this.joint.record_list = [];
-			this.request('post', record_search, this.token, { condition: { placeId: this.place_id, onlineCheckName: input }, pageNum: 1, pageSize: 100 }, (res) => {
+			this.request('post', record_search, this.token, { condition: { onlineCheckName: input }, pageNum: 1, pageSize: 100 }, (res) => {
 				console.log('联检记录表', res);
 				this.html.page_loading = false;
 				if (Object.entries(res.data.data).length == 0) {
@@ -343,6 +420,10 @@ new Vue({
 					return time.getTime() < new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`).getTime();
 				},
 			};
+		},
+		// 点击联检规则里的场所列表 折叠或显示
+		click_joint_place(place_obj) {
+			this.joint.form.place_id = this.joint.form.place_id == place_obj.placeId ? '' : place_obj.placeId;
 		},
 	},
 });
