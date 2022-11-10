@@ -14,10 +14,15 @@
 <body>
   <div id="index" v-cloak v-loading="html.page_loading">
     <div class="header row_layout">
-      <el-button class="button1" v-for="item,index in html.options" :type="html.select==index?'primary':''"
+      <!-- <el-button class="button1" v-for="item,index in html.options" :type="html.select==index?'primary':''"
         @click="switch_options(index)" v-show="index!=0">
-        {{item}}</el-button>
-      <el-button class="button2" v-show="html.select==1" @click="add_scene">+ 新建场景</el-button>
+        {{item}}</el-button> -->
+      <div class="button1 button" @click="switch_options(1)">
+        <img src="./img/icon5.png" class="bg_img">
+      </div>
+      <div class="button2 button" v-show="html.select==1" @click="add_scene">
+        <img src="./img/icon7.png" class="bg_img">
+      </div>
     </div>
     <!-- 推荐 -->
     <div class="page1" v-show="html.select==0">
@@ -38,38 +43,47 @@
     </div>
     <!-- 自定义 -->
     <div class="page1" v-show="html.select==1">
-      <div class="type_text center">自动场景</div>
+      <div class="type_box">
+        <div class="type_text center">自动场景</div>
+      </div>
       <div class="page1_box">
         <div class="row_layout" v-for="item in auto_scene">
           <div class="scene_box row_layout flex_shrink flex_grow">
             <img src="./img/icon1.png" class="icon1">
             <span class="text1 text_ellipsis" :title="item.sceneName">{{item.sceneName}}</span>
-            <span class="text2 text_ellipsis" v-text="place_device_text(item)"></span>
-            <el-switch v-model="item.status" @change="switch_scene(item)" :active-value="1" :inactive-value="0">
-            </el-switch>
+            <span class="text2 text_ellipsis" v-text="place_device_text(item)" :title="place_device_text(item)"></span>
+            <!-- <el-switch v-model="item.status" @change="switch_scene(item)" :active-value="1" :inactive-value="0"
+              active-color="#3475F7" inactive-color="#435386">
+            </el-switch> -->
+            <img v-show="item.status==1" @click="switch_scene(item)" src="./img/icon8.png" class="button4">
+            <img v-show="item.status==0" @click="switch_scene(item)" src="./img/icon9.png" class="button4">
           </div>
-          <div class="button2 button center" @click="edit_scene(item)">
-            <i class="el-icon-edit icon2"></i>
+          <div class="button2 button" @click="edit_scene(item)">
+            <img src="./img/icon3.png" class="bg_img">
           </div>
-          <div class="button2 button center" @click="del_scene(item)" style="background: red;">
-            <i class="el-icon-delete icon2"></i>
+          <div class="button2 button" @click="del_scene(item)">
+            <img src="./img/icon4.png" class="bg_img">
           </div>
         </div>
       </div>
-      <div class="type_text center">手动场景</div>
+      <div class="type_box">
+        <div class="type_text center">手动场景</div>
+      </div>
       <div class="page1_box">
         <div class="row_layout" v-for="item in manual_scene">
           <div class="scene_box row_layout flex_shrinkt flex_grow">
             <img src="./img/icon2.png" class="icon1">
             <span class="text1 text_ellipsis" :title="item.sceneName">{{item.sceneName}}</span>
-            <span class="text2 text_ellipsis" v-text="place_device_text(item)"></span>
-            <el-button @click="ex_scene(item)" size="mini" round>执行</el-button>
+            <span class="text2 text_ellipsis" v-text="place_device_text(item)" :title="place_device_text(item)"></span>
+            <div class="button3 button" @click="ex_scene(item)">
+              <img src="./img/icon6.png" class="bg_img">
+            </div>
           </div>
-          <div class="button2 button center" @click="edit_scene(item)">
-            <i class="el-icon-edit icon2"></i>
+          <div class="button2 button" @click="edit_scene(item)">
+            <img src="./img/icon3.png" class="bg_img">
           </div>
-          <div class="button2 button center" @click="del_scene(item)" style="background: red;">
-            <i class="el-icon-delete icon2"></i>
+          <div class="button2 button" @click="del_scene(item)">
+            <img src="./img/icon4.png" class="bg_img">
           </div>
         </div>
       </div>
@@ -85,8 +99,8 @@
             <i class="el-icon-close icon"></i>
           </div>
         </div>
-        <el-form ref="scene_form" :model="edit_scene_form" :rules="edit_scene_rule" label-width="80px"
-          style="overflow: auto;max-height: 80vh;">
+        <el-form ref="scene_form" :model="edit_scene_form" :rules="edit_scene_rule" label-width="auto"
+          style="overflow: auto;max-height: 80vh;padding-right: 10px;">
           <el-form-item label="场景名称" prop="name">
             <el-input v-model="edit_scene_form.name" size="small" clearable></el-input>
           </el-form-item>
@@ -175,7 +189,7 @@
             <i class="el-icon-close icon"></i>
           </div>
         </div>
-        <el-form ref="server_form" :model="edit_server_form" :rules="edit_server_rule" label-width="80px"
+        <el-form ref="server_form" :model="edit_server_form" :rules="edit_server_rule" label-width="auto"
           style="overflow: auto;max-height: 80vh;">
           <el-form-item label="执行顺序" prop="order">
             <el-input v-model="edit_server_form.order" size="small" clearable></el-input>

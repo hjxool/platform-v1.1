@@ -2,7 +2,6 @@
 // let url = 'http://182.150.116.22:13001/';
 let url = `${我是接口地址}/`;
 let protocol_list = `${url}api-device/protocol/list`;
-let protocol_view = `${url}api-device/protocol/view/`;
 let protocol_newVersion = `${url}api-device/protocol/newVersion`;
 let protocol_properties = `${url}api-device/protocol/properties`;
 let protocol_property = `${url}api-device/protocol/property`;
@@ -13,7 +12,6 @@ let protocol_units = `${url}api-device/protocol/units`;
 let protocol_unit_add = `${url}api-device/protocol/unit`;
 let protocol_unit_delete = `${url}api-device/protocol/delete`;
 let product_model = `${url}api-device/product/model`;
-let current_model = `${url}api-device/protocol/current`;
 let default_property_url = `${url}api-device/protocol/property/default/list/`;
 
 Vue.config.productionTip = false;
@@ -72,6 +70,7 @@ new Vue({
 				},
 				unit_type_options: ['自定义'],
 				current_version: '', //当前启用物模型版本
+				model_json_display: false, //当前物模型json弹窗显示
 			},
 			//历史版本列表
 			history_list: [],
@@ -114,6 +113,7 @@ new Vue({
 				typeName: { show: false, message: '' },
 			},
 			default_property: [], //默认属性列表
+			current_model: '', //当前启用物模型
 		};
 	},
 	mounted() {
@@ -1075,12 +1075,14 @@ new Vue({
 		// 页面加载时查询启用物模型版本
 		search_current_model() {
 			let flag = false;
-			this.history_list.forEach((e) => {
-				if (e.profile.isCurrentVersion == '1') {
-					this.static_params.current_version = e.profile.version;
+			for (let val of this.history_list) {
+				if (val.profile.isCurrentVersion == '1') {
+					this.static_params.current_version = val.profile.version;
+					this.current_model = JSON.stringify(val, null, 4);
 					flag = true;
+					break;
 				}
-			});
+			}
 			if (!flag) {
 				this.static_params.current_version = '未设置启用模型';
 			}
@@ -1135,6 +1137,16 @@ new Vue({
 					break;
 			}
 			this.form_verify(form_obj.name, 'name');
+		},
+		// 复制内容到剪贴板
+		copy(content) {
+			let t = document.createElement('textarea');
+			t.innerText = content;
+			document.body.appendChild(t);
+			t.select();
+			document.execCommand('copy');
+			document.body.removeChild(t);
+			this.$message.success('已复制到剪贴板');
 		},
 	},
 });

@@ -7,6 +7,8 @@ let all_device_url = `${url}api-portal/place/search/devices`;
 let set_place_url = `${url}api-portal/place/set`;
 let curent_user_name_url = `${url}api-auth/oauth/user/tenant`;
 let unbind_device_url = `${url}api-portal/place/delete`;
+let devices_status_info_url = `${url}api-portal/deviceAnalyse/ops/search/devices`;
+let edit_device_url = `${url}api-device/device`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -70,6 +72,10 @@ new Vue({
 		}
 		this.get_place_type();
 		this.option_switch(0);
+		window.onresize = () => {
+			let dom = document.querySelector('.all_device');
+			this.devices.table_h = dom.offsetHeight - 20;
+		};
 	},
 	methods: {
 		// 租户列表
@@ -181,14 +187,15 @@ new Vue({
 			});
 		},
 		// 删除场所
-		del_place(place_id) {
-			this.$confirm('确定删除场所?', '提示', {
+		del_place(place_obj) {
+			let text = `${place_obj.placeTypeValue}正在使用该场所，删除场所后，场所内设备将变成未分配，是否确认删除？`;
+			this.$confirm(text, '提示', {
 				confirmButtonText: '确定',
 				cancelButtonText: '取消',
 				type: 'info',
 				center: true,
 			}).then(() => {
-				this.request('delete', `${place_list}/${this.status.user_id}/${place_id}`, this.token, () => {
+				this.request('delete', `${place_list}/${this.status.user_id}/${place_obj.id}`, this.token, () => {
 					this.req_place_list();
 				});
 			});
@@ -250,6 +257,7 @@ new Vue({
 		option_switch(index) {
 			this.html.option_focus = index;
 			if (index == 0) {
+				this.get_all_devices_status_info();
 				this.get_all_user_devices();
 				this.request('get', user_list, this.token, (res) => {
 					console.log('租户', res);
@@ -293,13 +301,16 @@ new Vue({
 				console.log('所有设备', res);
 				this.html.page_loading = false;
 				let data = res.data.data;
-				if (data == null || res.data.head.code != 200) {
-					this.devices.type = 0;
-					this.devices.search = '';
-					this.get_all_user_devices();
+				if (res.data.head.code != 200) {
 					return;
 				}
-				this.devices.list = data.data;
+				// if (res.data.head.code == 200 && data.data.length==0) {
+				// 	this.devices.type = 0;
+				// 	this.devices.search = '';
+				// 	this.get_all_user_devices();
+				// 	return;
+				// }
+				this.devices.list = data.data || [];
 				this.devices.total = data.total;
 			});
 		},
@@ -352,6 +363,10 @@ new Vue({
 		},
 		// 分配场所
 		distribute_place() {
+			if (this.devices.select_list.length == 0) {
+				this.$message('必须勾选设备');
+				return;
+			}
 			this.html.distribute_place_display = true;
 			this.status.user_id = '';
 			this.status.place_id = '';
@@ -376,10 +391,6 @@ new Vue({
 		},
 		// 分配未绑定设备到场所 提交按钮
 		distribute_sub() {
-			if (this.devices.select_list.length == 0) {
-				this.$message('必须勾选设备');
-				return;
-			}
 			this.html.popover_loading = true;
 			let array = [];
 			for (let val of this.devices.select_list) {
@@ -395,7 +406,30 @@ new Vue({
 		},
 		// 修改设备名称
 		edit_device_name(row_data) {
-			this.$prompt('请输入名称');
+			this.$prompt('请输入名称', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+			}).then(({ value }) => {
+				this.request('put', edit_device_url, this.token, { deviceName: value, id: row_data.id, productId: row_data.productId }, (res) => {
+					if (res.data.head.code == 200) {
+						this.get_all_user_devices();
+					}
+				});
+			});
+		},
+		// 获取用户下所有设备状态统计
+		get_all_devices_status_info() {
+			this.request('get', devices_status_info_url, this.token, (res) => {
+				console.log('设备状态统计', res);
+				if (res.data.head.code != 200) {
+					return;
+				}
+				let data = res.data.data;
+				this.devices.type_total = data.all;
+				this.devices.type_online = data.online;
+				this.devices.type_offline = data.offline;
+				this.devices.type_unbinding = data.initial;
+			});
 		},
 	},
 });

@@ -13,31 +13,42 @@
 	flex-grow: 1;
 }
 .header {
-	height: 60px;
 	flex-shrink: 0;
-	padding: 0 20px;
+	padding: 16px 20px;
 	.button1 {
-		border: none;
-		margin: 0;
+		// border: none;
+		// margin: 0;
+		width: 170px;
+		height: 50px;
+		position: relative;
 	}
 	.button2 {
 		margin-left: 50px;
+		width: 170px;
+		height: 50px;
+		position: relative;
 	}
 }
 .page1 {
 	flex-grow: 1;
 	padding-left: 20px;
 	display: grid;
-	grid-template-rows: 40px 1fr 40px 1fr;
+	grid-template-rows: 60px 1fr 60px 1fr;
 	overflow: hidden;
 	padding-bottom: 20px;
-	.type_text {
-		font-size: 16px;
-		color: #fff;
-		justify-self: start;
-		background: #6495ed;
-		padding: 0 20px;
-		border-radius: 10px;
+	.type_box {
+		width: calc(50% - 100px);
+		min-width: 300px;
+		display: flex;
+		justify-content: end;
+		margin: 10px 0;
+		.type_text {
+			font-size: 16px;
+			color: #fff;
+			padding: 0 40px;
+			background: #40425b;
+			border-radius: 8px;
+		}
 	}
 	.page1_box {
 		width: 50%;
@@ -46,13 +57,16 @@
 		padding-right: 10px;
 		.text1 {
 			font-size: 16px;
-			color: #fff;
+			color: rgba(255, 255, 255, 0.8);
 		}
 		.text2 {
+			background: #1a222f;
+			border-radius: 20px;
 			margin: 0 auto;
-			max-width: 550px;
+			padding: 10px 20px;
+			max-width: 50%;
 			font-size: 14px;
-			color: #fff;
+			color: #c9b8b8;
 		}
 		.icon1 {
 			height: 28px;
@@ -63,21 +77,27 @@
 		.button2 {
 			width: 30px;
 			height: 30px;
-			background: #1e90ff;
-			border-radius: 6px;
 			margin: 0 10px;
-			.icon2 {
-				font-size: 16px;
-				color: #fff;
-			}
+		}
+		.button3 {
+			width: 76px;
+			height: 38px;
+			position: relative;
+		}
+		.button4 {
+			width: 44px;
+			height: 22px;
+			object-fit: contain;
+			cursor: pointer;
 		}
 	}
 }
 .scene_box {
 	margin: 10px 0;
-	border: 1px solid #6495ed;
 	padding: 10px;
-	max-width: 93%;
+	max-width: calc(100% - 100px);
+	background: #252f3f;
+	border: 1px solid #3a485e;
 }
 .box1 {
 	width: 100%;
@@ -139,6 +159,9 @@
 			cursor: pointer;
 		}
 	}
+}
+.bg_img {
+	object-fit: contain;
 }
 
 ::-webkit-scrollbar {

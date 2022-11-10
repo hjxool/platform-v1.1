@@ -408,18 +408,20 @@ new Vue({
 		},
 		// 切换自动场景开关
 		switch_scene(scene_obj) {
-			if (scene_obj.status == 1) {
+			if (scene_obj.status == 0) {
 				this.request('post', open_scene_url, this.token, [scene_obj.id], (res) => {
 					if (res.data.head.code == 200) {
+						scene_obj.status = 1;
 						this.$message.success('指令下发成功');
 					} else {
 						this.$message.error('指令下发失败');
 						scene_obj.status = 0;
 					}
 				});
-			} else if (scene_obj.status == 0) {
+			} else if (scene_obj.status == 1) {
 				this.request('post', end_scene_url, this.token, [scene_obj.id], (res) => {
 					if (res.data.head.code == 200) {
+						scene_obj.status = 0;
 						this.$message.success('指令下发成功');
 					} else {
 						this.$message.error('指令下发失败');
@@ -485,7 +487,26 @@ new Vue({
 					}
 				}
 			}
-			return;
+			let text = '';
+			let index = 0;
+			for (let val of list) {
+				if (index == 0) {
+					text = `${val.name}:`;
+				} else {
+					text = `${text} ${val.name}:`;
+				}
+				let index2 = 1;
+				for (let val2 of val.devices) {
+					if (index2 == val.devices.length) {
+						text = `${text} ${val2.name}`;
+					} else {
+						text = `${text} ${val2.name},`;
+					}
+					index2++;
+				}
+				index++;
+			}
+			return text;
 		},
 	},
 });

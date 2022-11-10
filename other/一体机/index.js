@@ -86,8 +86,8 @@ new Vue({
 								this.output[i].mute = array[1][i];
 							}
 						} else if (array[0] == 'MIXS') {
+							this.matrix = [];
 							for (let i = 0; i < 9; i++) {
-								this.matrix = [];
 								let t = (array[1][i * 2] >>> 0).toString(2).split('').reverse();
 								let t2 = 12 - t.length;
 								for (let k = 0; k < t2; k++) {
@@ -216,6 +216,7 @@ new Vue({
 					t.push(t3, 0);
 				}
 				attributes[key] = t;
+				console.log(this.matrix);
 			} else if (key == 'INMS') {
 				params[0].mute = params[0].mute ? 0 : 1;
 				let t = [];

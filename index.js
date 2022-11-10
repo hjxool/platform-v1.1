@@ -2,8 +2,10 @@ new Vue({
 	el: '#index',
 	data: {
 		url: '',
+		// path: `http://${我是ip地址}:80`,
 	},
 	mounted() {
+		this.path = 候工链接.replace(/dlc/i, 'dlc2');
 		if (!location.search) {
 			this.token = window.sessionStorage.token;
 			this.userName = window.sessionStorage.userName;
@@ -87,8 +89,11 @@ new Vue({
 				case 'Wisdom_Scene':
 					this.url = `./powerScene/index.html?token=${this.token}`;
 					return;
+				case 'UpgradeManagement':
+					this.url = `./upgradeManager/index.html?token=${this.token}`;
+					return;
 				default:
-					this.url = `../dlc2/index.html?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
+					this.url = `${this.path}?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
 						typeof this.device_name == 'string' ? `&device_name=${this.device_name}` : ''
 					}${typeof this.userName == 'string' ? `&userName=${this.userName}` : ''}`;
 					return;

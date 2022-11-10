@@ -29,6 +29,8 @@
         <el-button @click="new_ver_model" :disabled="history_list.length == 0">新增版本</el-button>
         <el-button type="primary" round @click="set_product_model" :disabled="history_list.length == 0">启用当前物模型
         </el-button>
+        <el-button @click="static_params.model_json_display=true" :disabled="history_list.length == 0">物模型 TSL
+        </el-button>
         <div class="current_model">
           <span>当前启用物模型版本：</span>
           <span style="padding-left: 20px;">{{static_params.current_version}}</span>
@@ -339,9 +341,24 @@
           </el-form>
         </el-card>
       </div>
+      <!-- 查看当前物模型JSON -->
+      <div class="popover" v-show="static_params.model_json_display">
+        <el-card class="form_layout" shadow="never" style="width: 500px;overflow: hidden;">
+          <div class="form_head">
+            <span class="text">物模型JSON</span>
+            <div class="button" @click="static_params.model_json_display=false">
+              <i class="el-icon-close icon"></i>
+            </div>
+          </div>
+          <el-input type="textarea" v-model="current_model" readonly style="height:400px;display: grid;">
+          </el-input>
+          <div class="button_layout" style="margin-top: 10px;">
+            <el-button type="primary" @click="copy(current_model)">复制JSON</el-button>
+          </div>
+        </el-card>
+      </div>
 
       <!-- 临时 发布物模型按钮 用绝对定位先弄个死的 -->
-      <!-- <template v-if="!static_params.first_load"> -->
       <el-card class="footer" v-if="history_list[history_selected].profile.published==='0'">
         <el-button type="primary" size="small" @click="publish_model">发布上线</el-button>
 
@@ -349,7 +366,6 @@
           注意：如物模型处于测试联调阶段，请暂时不要发布模型，更利于修改调试；如物模型已完成联调，请正常发布上线需要启用的物模型
         </span>
       </el-card>
-      <!-- </template> -->
     </div>
   </div>
 

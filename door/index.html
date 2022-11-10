@@ -36,7 +36,7 @@
             <el-radio :label="0">全部设备<span class="num">{{devices.type_total}}</span></el-radio>
             <el-radio :label="1">未绑定<span class="num">{{devices.type_unbinding}}</span></el-radio>
             <el-radio :label="2">在线<span class="num">{{devices.type_online}}</span></el-radio>
-            <el-radio :label="3">离线<span class="num">{{devices.type_online}}</span></el-radio>
+            <el-radio :label="3">离线<span class="num">{{devices.type_offline}}</span></el-radio>
           </el-radio-group>
           <el-button class="button1 button" @click="distribute_place" size="small">设备绑定</el-button>
         </div>
@@ -102,7 +102,7 @@
               <span :class="['text','text_ellipsis',status.place_id==item.id?'':'text_dark']"
                 :title="item.placeName">{{item.placeName}}</span>
               <img v-show="html.place_icon_display==index" src="./img/closeIcon.png" class="icon2"
-                @click.stop="del_place(item.id)">
+                @click.stop="del_place(item)">
             </div>
             <div :class="[html.place_fold?'fold':'unfold','center','button']" @click="html.place_fold=!html.place_fold">
               <div class="icon"></div>
