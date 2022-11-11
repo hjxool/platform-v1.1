@@ -52,7 +52,7 @@ new Vue({
 				display_unit: '',
 			},
 			device_name: '', //显示在页面上的设备名
-			data_ready: false, // 数据结构是否完成了
+			// data_ready: false, // 数据结构是否完成了
 		};
 	},
 	mounted() {
@@ -63,6 +63,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.get_user_info();
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符
 			this[`first_load${i}`] = true;
@@ -79,6 +80,19 @@ new Vue({
 		}, 600000);
 	},
 	methods: {
+		// 获取用户信息包括 id 连接stomp用户名和密码
+		get_user_info() {
+			this.request('get', user_info_url, this.token, (res) => {
+				console.log('用户', res);
+				if (res.data.head.code != 200) {
+					this.$message('无法获取用户信息');
+					return;
+				}
+				this.ws_name = res.data.data.mqUser;
+				this.ws_password = res.data.data.mqPassword;
+				this.user_id = res.data.data.id;
+			});
+		},
 		// stomp连接成功的回调
 		on_message() {
 			this.request('put', `${sendCmdtoDevice}?topicId=11&fieldPath=level_switch&closeValue=0`, this.token, {
@@ -131,6 +145,31 @@ new Vue({
 				},
 				{ 'auto-delete': true }
 			);
+			this.stomp_link.subscribe(
+				`/exchange/web-socket/tenant.user.${this.user_id}.#`,
+				(res) => {
+					let data = JSON.parse(res.body);
+					// 0等待 1成功 2断开 3超时 4拒绝
+					switch (data.replyType) {
+						case 0:
+							this.$message('等待连接');
+							break;
+						case 1:
+							this.$message.success('连接成功');
+							break;
+						case 2:
+							this.$message.error('断开连接');
+							break;
+						case 3:
+							this.$message('连接超时');
+							break;
+						case 4:
+							this.$message.error('连接被拒');
+							break;
+					}
+				},
+				{ 'auto-delete': true }
+			);
 		},
 		// stomp连接失败的回调
 		on_error(error) {},
@@ -172,7 +211,7 @@ new Vue({
 					this.ws_link = new WebSocket(`${ws_url}`);
 					this.stomp_link = Stomp.over(this.ws_link);
 					this.stomp_link.debug = null;
-					this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
+					this.stomp_link.connect(this.ws_name || 'admin', this.ws_password || 'admin', this.on_message, this.on_error, '/');
 				}
 				this.option_focus = index;
 				if (res.data.data == null) {

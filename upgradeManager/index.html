@@ -138,6 +138,9 @@
                 </el-checkbox-group>
               </div>
             </div>
+            <el-empty v-show="upgrade_form.list.length==0" description="无设备" :image-size="100"
+              style="width: 70%;padding: 0;">
+            </el-empty>
             <div class="verify_text" v-show="upgrade_rules.select.show">{{upgrade_rules.select.message}}</div>
           </el-form-item>
           <el-form-item>

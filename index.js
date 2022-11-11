@@ -93,7 +93,7 @@ new Vue({
 					this.url = `./upgradeManager/index.html?token=${this.token}`;
 					return;
 				default:
-					this.url = `${this.path}?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
+					location.href = `${this.path}?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
 						typeof this.device_name == 'string' ? `&device_name=${this.device_name}` : ''
 					}${typeof this.userName == 'string' ? `&userName=${this.userName}` : ''}`;
 					return;

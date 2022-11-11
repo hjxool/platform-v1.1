@@ -44,7 +44,9 @@ const common_functions = {
 					this.$alert(res.data.head.message, '提示', {
 						confirmButtonText: '确定',
 						callback: () => {
-							func(res);
+							if (typeof func === 'function') {
+								func(res);
+							}
 						},
 					});
 				}

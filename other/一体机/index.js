@@ -1,6 +1,7 @@
 let url = `${我是接口地址}/`;
 let getChannelDetail = url + 'api-device/device/status'; //查询历史记录
 let sendCmdtoDevice = url + 'api-device/device/operation'; // 下发指令
+let user_info_url = `${url}api-auth/oauth/userinfo`; //获取用户信息
 
 new Vue({
 	el: '.index',
@@ -9,7 +10,7 @@ new Vue({
 		html: {
 			config_select: 2,
 			level_max: 0,
-			level_min: -120,
+			level_min: -72,
 			gain_max: 12,
 			gain_min: -72,
 		},
@@ -27,20 +28,34 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.get_user_info();
 		this.data_ready = false; // 数据结构是否完成了
 		window.onresize = () => {
 			this.button_h = document.querySelector('.slider_button').offsetHeight;
 		};
 		this.get_device_status();
-		this.ws_link = new WebSocket(`${我是websocket地址}`);
-		this.stomp_link = Stomp.over(this.ws_link);
-		this.stomp_link.debug = null;
-		this.stomp_link.connect('admin', 'admin', this.on_message, this.on_error, '/');
 	},
 	methods: {
+		// 获取用户信息包括 id 连接stomp用户名和密码
+		get_user_info() {
+			this.request('get', user_info_url, this.token, (res) => {
+				console.log('用户', res);
+				if (res.data.head.code != 200) {
+					this.$message('无法获取用户信息');
+					return;
+				}
+				this.ws_name = res.data.data.mqUser;
+				this.ws_password = res.data.data.mqPassword;
+				this.user_id = res.data.data.id;
+				this.ws_link = new WebSocket(`${我是websocket地址}`);
+				this.stomp_link = Stomp.over(this.ws_link);
+				this.stomp_link.debug = null;
+				this.stomp_link.connect(this.ws_name, this.ws_password, this.on_message, this.on_error, '/');
+			});
+		},
 		// stomp连接成功的回调
 		on_message() {
-			this.request('put', `${sendCmdtoDevice}/11`, this.token, {
+			this.request('put', `${sendCmdtoDevice}?topicId=11&fieldPath=LRPT&closeValue=[0]`, this.token, {
 				contentType: 2,
 				contents: [
 					{
@@ -63,19 +78,41 @@ new Vue({
 					for (let array of data_list) {
 						if (array[0] == 'ILEVEL') {
 							for (let i = 0; i < this.input.length; i++) {
-								this.input[i].level = array[1][i] / 100;
+								if (array[1][i] / 100 < this.html.level_min) {
+									this.input[i].level = this.html.level_min;
+								} else if (array[1][i] / 100 > this.html.level_max) {
+									this.input[i].level = this.html.level_max;
+								} else {
+									this.input[i].level = array[1][i] / 100;
+								}
 							}
 						} else if (array[0] == 'OLEVEL') {
 							for (let i = 0; i < this.output.length; i++) {
-								this.output[i].level = array[1][i] / 100;
+								if (array[1][i] / 100 < this.html.level_min) {
+									this.output[i].level = this.html.level_min;
+								} else if (array[1][i] / 100 > this.html.level_max) {
+									this.output[i].level = this.html.level_max;
+								} else {
+									this.output[i].level = array[1][i] / 100;
+								}
 							}
 						} else if (array[0] == 'INGS') {
 							for (let i = 0; i < this.input.length; i++) {
 								this.input[i].gain = Math.floor(array[1][i] / 10 + 0.5) / 10;
+								if (this.input[i].gain < this.html.gain_min) {
+									this.input[i].gain = this.html.gain_min;
+								} else if (this.input[i].gain > this.html.gain_max) {
+									this.input[i].gain = this.html.gain_max;
+								}
 							}
 						} else if (array[0] == 'OUTGS') {
 							for (let i = 0; i < this.output.length; i++) {
 								this.output[i].gain = Math.floor(array[1][i] / 10 + 0.5) / 10;
+								if (this.output[i].gain < this.html.gain_min) {
+									this.output[i].gain = this.html.gain_min;
+								} else if (this.output[i].gain > this.html.gain_max) {
+									this.output[i].gain = this.html.gain_max;
+								}
 							}
 						} else if (array[0] == 'INMS') {
 							for (let i = 0; i < this.input.length; i++) {
@@ -102,6 +139,31 @@ new Vue({
 				},
 				{ 'auto-delete': true }
 			);
+			this.stomp_link.subscribe(
+				`/exchange/web-socket/tenant.user.${this.user_id}.#`,
+				(res) => {
+					let data = JSON.parse(res.body);
+					// 0等待 1成功 2断开 3超时 4拒绝
+					switch (data.replyType) {
+						case 0:
+							this.$message('等待连接');
+							break;
+						case 1:
+							this.$message.success('连接成功');
+							break;
+						case 2:
+							this.$message.error('断开连接');
+							break;
+						case 3:
+							this.$message('连接超时');
+							break;
+						case 4:
+							this.$message.error('连接被拒');
+							break;
+					}
+				},
+				{ 'auto-delete': true }
+			);
 		},
 		// stomp连接失败的回调
 		on_error(error) {
@@ -124,12 +186,32 @@ new Vue({
 						level: Math.floor(data['ILEVEL'].propertyValue[i] / 100),
 						mute: data['INMS'].propertyValue[i],
 					};
+					if (t.gain < this.html.gain_min) {
+						t.gain = this.html.gain_min;
+					} else if (t.gain > this.html.gain_max) {
+						t.gain = this.html.gain_max;
+					}
+					if (t.level < this.html.level_min) {
+						t.level = this.html.level_min;
+					} else if (t.level > this.html.level_max) {
+						t.level = this.html.level_max;
+					}
 					this.input.push(t);
 					let t2 = {
 						gain: Math.floor(data['OUTGS'].propertyValue[i] / 10 + 0.5) / 10,
 						level: Math.floor(data['OLEVEL'].propertyValue[i] / 100),
 						mute: data['OUTMS'].propertyValue[i],
 					};
+					if (t2.gain < this.html.gain_min) {
+						t2.gain = this.html.gain_min;
+					} else if (t2.gain > this.html.gain_max) {
+						t2.gain = this.html.gain_max;
+					}
+					if (t2.level < this.html.level_min) {
+						t2.level = this.html.level_min;
+					} else if (t2.level > this.html.level_max) {
+						t2.level = this.html.level_max;
+					}
 					this.output.push(t2);
 				}
 				for (let i = 0; i < 9; i++) {
@@ -234,13 +316,13 @@ new Vue({
 			} else if (key == 'INGS') {
 				let t = [];
 				for (let i = 0; i < this.input.length; i++) {
-					t.push(this.input[i].gain);
+					t.push(this.input[i].gain * 100);
 				}
 				attributes[key] = t;
 			} else if (key == 'OUTGS') {
 				let t = [];
 				for (let i = 0; i < this.output.length; i++) {
-					t.push(this.output[i].gain);
+					t.push(this.output[i].gain * 100);
 				}
 				attributes[key] = t;
 			} else if (key == 'SCALL') {

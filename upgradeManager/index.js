@@ -238,6 +238,15 @@ new Vue({
 					// });
 					break;
 				case 'upgrade':
+					for (let key in this.upgrade_form) {
+						if (typeof this.upgrade_form[key] == 'string') {
+							this.upgrade_form[key] = '';
+						} else if (typeof this.upgrade_form[key] == 'boolean') {
+							this.upgrade_form[key] = false;
+						} else if (typeof this.upgrade_form[key] == 'object') {
+							this.upgrade_form[key] = [];
+						}
+					}
 					this.firmware_id = row_obj.id;
 					this.html.popover_loading = true;
 					this.request('post', device_list_url, this.token, { productIds: [row_obj.productId] }, (res) => {
@@ -248,15 +257,6 @@ new Vue({
 						}
 						this.upgrade_form.list = res.data.data;
 					});
-					for (let key in this.upgrade_form) {
-						if (typeof this.upgrade_form[key] == 'string') {
-							this.upgrade_form[key] = '';
-						} else if (typeof this.upgrade_form[key] == 'boolean') {
-							this.upgrade_form[key] = false;
-						} else if (typeof this.upgrade_form[key] == 'object') {
-							this.upgrade_form[key] = [];
-						}
-					}
 					this.upgrade_rules.select.show = false;
 					this.html.upgrade_display = true;
 					break;

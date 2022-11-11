@@ -6,3 +6,4 @@ let schedule = url + 'gzdsp/cmd/schedule'; //自检指令
 // websocket电平数据
 // let ws_url = 'ws://192.168.30.66:18115/gzdsp/websocket';
 let ws_url = `${我是websocket地址}`;
+let user_info_url = `${url}api-auth/oauth/userinfo`; //获取用户信息
