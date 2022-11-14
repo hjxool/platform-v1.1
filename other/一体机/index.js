@@ -55,18 +55,24 @@ new Vue({
 		},
 		// stomp连接成功的回调
 		on_message() {
-			this.request('put', `${sendCmdtoDevice}?topicId=11&fieldPath=LRPT&closeValue=[0]`, this.token, {
-				contentType: 2,
-				contents: [
-					{
-						deviceId: this.id,
-						identifier: 'LRPTSRV',
-						attributes: {
-							LRPT: [1],
+			let d = {
+				closeValue: [0],
+				deviceMessageDTO: {
+					contentType: 2,
+					contents: [
+						{
+							deviceId: this.id,
+							identifier: 'LRPTSRV',
+							attributes: {
+								LRPT: [1],
+							},
 						},
-					},
-				],
-			});
+					],
+				},
+				fieldPath: 'LRPT',
+				topicId: 11,
+			};
+			this.request('put', sendCmdtoDevice, this.token, d);
 			this.stomp_link.subscribe(
 				`/exchange/device-report/device-report.${this.id}`,
 				(res) => {

@@ -223,19 +223,16 @@ new Vue({
 						},
 					}).then((res) => {
 						console.log('下载', res);
-						if (res.data.head.code != 200) {
-							return;
-						}
+						let b = new Blob([res.data]);
 						let a = document.createElement('a');
-						a.href = res.data.data;
-						a.target = '_blank';
+						let href = URL.createObjectURL(b);
+						a.href = href;
+						a.target = '_blank'; //空白页打开
+						a.download = href.split('/').pop(); //返回被删除末尾元素
 						document.body.appendChild(a);
 						a.click();
 						document.body.removeChild(a);
 					});
-					// this.request('get', `${export_firmware_url}/${row_obj.id}`, this.token, (res) => {
-					// 	console.log(res);
-					// });
 					break;
 				case 'upgrade':
 					for (let key in this.upgrade_form) {
