@@ -92,6 +92,9 @@ new Vue({
 				case 'UpgradeManagement':
 					this.url = `./upgradeManager/index.html?token=${this.token}`;
 					return;
+				case 'ProjectOverviewOffline':
+					this.url = `./offlinePage/index.html?token=${this.token}`;
+					return;
 				default:
 					location.href = `${this.path}?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
 						typeof this.device_name == 'string' ? `&device_name=${this.device_name}` : ''

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak>
+    <div class="box1 row_layout">
+      <img src="./img/icon1.png" class="bg_img">
+
+      <div class="row_layout">
+        <img src="./img/icon2.png" class="icon">
+        <div class="box1_1">
+          <span class="text">13</span>
+          <span class="text2">场所数量</span>
+        </div>
+      </div>
+      <div class="icon2"></div>
+      <div class="row_layout">
+        <img src="./img/icon3.png" class="icon">
+        <div class="box1_1">
+          <span class="text">16</span>
+          <span class="text2">在线设备</span>
+        </div>
+      </div>
+      <div class="icon2"></div>
+      <div class="row_layout">
+        <img src="./img/icon4.png" class="icon">
+        <div class="box1_1">
+          <span class="text">54</span>
+          <span class="text2">离线设备</span>
+        </div>
+      </div>
+      <div class="icon2"></div>
+      <div class="row_layout">
+        <img src="./img/icon5.png" class="icon">
+        <div class="box1_1">
+          <span class="text">4</span>
+          <span class="text2">设备告警</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="box2 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">实时告警</span>
+      </div>
+      <div class="box2_1">
+        <div class="box2_2 row_layout" v-for="item in 10">
+          <img src="./img/icon7.png" class="icon2">
+          <div class="box2_3">
+            <span class="text1 text_ellipsis">四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司</span>
+            <span class="text2 text_ellipsis">2022.11.08 12:22:31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box3 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">设备在线率</span>
+      </div>
+      <div class="body" style="background: red;">
+
+      </div>
+    </div>
+
+    <div class="box4 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">今日设备联检</span>
+      </div>
+      <div class="body" style="background: red;">
+
+      </div>
+    </div>
+
+    <div class="box5 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">设备分类</span>
+      </div>
+      <div class="body" style="background: red;">
+
+      </div>
+    </div>
+
+    <div class="box6 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">告警趋势</span>
+      </div>
+      <div class="body" style="background: red;">
+
+      </div>
+    </div>
+
+    <div class="box7 box_layout">
+      <div class="header row_layout flex_shrink">
+        <img src="./img/icon6.png" class="bg_img">
+        <span class="text">警情分布</span>
+      </div>
+      <div class="body" style="background: red;">
+
+      </div>
+    </div>
+
+    <div class="box8 button center">
+      <img src="./img/icon8.png" class="bg_img" draggable="false">
+      <div class="row_layout">
+        <span class="text">远程管控</span>
+        <img src="./img/icon9.png" class="icon" draggable="false">
+      </div>
+    </div>
+  </div>
+
+  <!-- <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../../js/Zhr_Basics.js"></script> -->
+  <script src="../module/vue.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

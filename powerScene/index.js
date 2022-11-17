@@ -63,7 +63,7 @@ new Vue({
 		},
 		edit_server_rule: {
 			order: [{ required: true, message: '请输入执行顺序', trigger: 'blur' }],
-			list: { show: false, message: '' },
+			list: { show: false, message: '至少选择一个服务' },
 		},
 		auto_scene: [], //自动场景列表
 		manual_scene: [], //手动场景列表
@@ -270,9 +270,9 @@ new Vue({
 					this.$message('设备下无服务可选');
 					return;
 				}
+				this.html.set_config_display = true;
 				this.edit_server_form.product_id = device_obj.productId; // 记录下所选设备属于哪个产品 从而条件渲染
 				this.handle_device = device_obj; // 记录下正在操作的设备 修改其下的对象地址
-				this.html.set_config_display = true;
 				// 对残缺的数组元素进行构造 并且因为要编辑数组元素 所以为了取消时不影响 要深拷贝一份来编辑
 				this.server_list_length = res.data.data.length; // 记录下服务列表总长 用于单选服务时判断全选渲染
 				for (let val of res.data.data) {
@@ -309,21 +309,12 @@ new Vue({
 				let result2 = false;
 				for (let val of this.edit_server_form.list) {
 					if (val.check) {
+						// JSON字符串最小长度为2
 						result2 = true;
-						if (val.input.length == 2) {
-							// JSON字符串最小长度为2
-							this.edit_server_rule.list.show = true;
-							this.edit_server_rule.list.message = '所选服务必须填写内容';
-							return;
-						}
+						break;
 					}
 				}
-				if (!result2) {
-					this.edit_server_rule.list.show = true;
-					this.edit_server_rule.list.message = '至少勾选一个服务';
-					return;
-				}
-				this.edit_server_rule.list.show = false;
+				this.edit_server_rule.list.show = !result2;
 				if (result && result2) {
 					this.handle_device.server_config = this.edit_server_form.list; //在这里是将正在编辑的数组地址值赋给了深拷贝的设备列表中的设备对象的属性
 					this.handle_device.ex_order = this.edit_server_form.order;

@@ -1,5 +1,5 @@
 let url = `${我是接口地址}/`;
-let user_list = `${url}api-portal/place/tenant/findTenantList`;
+let user_list = `${url}api-user/users/tenantSimple`;
 let place_list = `${url}api-portal/place`;
 let device_list = `${url}api-portal/place/device`;
 let place_type_url = `${url}api-portal/place/placeType`;
