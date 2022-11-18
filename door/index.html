@@ -61,8 +61,15 @@
                 <el-tag v-if="scope.row.statusValue==2" size="small" type="danger">离线</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="registerTime" label="注册/激活时间"></el-table-column>
-            <el-table-column label="操作" width="100">
+            <el-table-column label="IP">
+              <template slot-scope="scope">
+                <span style="color: #fff;font-size: 14px;">{{scope.row.deviceIp||'未配置'}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="onlineTime" label="上线时间"></el-table-column>
+            <el-table-column prop="offlineTime" label="离线时间"></el-table-column>
+            <el-table-column prop="deviceRunTime" label="累计运行时间(小时)"></el-table-column>
+            <el-table-column label="操作" width="80">
               <template slot-scope="scope">
                 <el-button @click="edit_device_name(scope.row)" type="text">改名</el-button>
               </template>
