@@ -28,6 +28,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		document.title = '一体机';
 		this.get_user_info();
 		this.data_ready = false; // 数据结构是否完成了
 		window.onresize = () => {

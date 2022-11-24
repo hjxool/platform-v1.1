@@ -63,6 +63,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		document.title = '音响系统';
 		this.get_user_info();
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符

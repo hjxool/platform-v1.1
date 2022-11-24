@@ -2,7 +2,6 @@ new Vue({
 	el: '#index',
 	data: {
 		url: '',
-		// path: `http://${我是ip地址}:80`,
 	},
 	mounted() {
 		this.path = 候工链接.replace(/dlc/i, 'dlc2');
@@ -12,10 +11,10 @@ new Vue({
 			this.id = window.sessionStorage.id;
 			this.router = window.sessionStorage.router;
 			this.device_name = window.sessionStorage.device_name;
-			this.turn_to();
 		} else {
 			this.get_token();
 		}
+		this.turn_to();
 	},
 	methods: {
 		get_token() {
@@ -40,65 +39,67 @@ new Vue({
 					window.sessionStorage.device_name = this.device_name;
 				}
 			});
-			this.turn_to();
 			let url = location.href.split('?')[0];
 			history.replaceState('', '', url);
 		},
 		turn_to() {
 			switch (this.router) {
 				case 'model':
-					this.url = `./model/index.html?id=${this.id}&token=${this.token}`;
+					location.href = `./model/index.html?id=${this.id}&token=${this.token}`;
 					return;
 				case 'DeviceStatus':
-					this.url = `./status/index.html?id=${this.id}&token=${this.token}`;
+					location.href = `./status/index.html?id=${this.id}&token=${this.token}`;
 					return;
 				case 'RulesEngine':
-					this.url = `./rules/index.html?id=${this.id}&token=${this.token}`;
+					location.href = `./rules/index.html?id=${this.id}&token=${this.token}`;
 					return;
 				case 'RulesEngine2':
-					this.url = `./device_rule/index.html?id=${this.id}&token=${this.token}`;
+					location.href = `./device_rule/index.html?id=${this.id}&token=${this.token}`;
 					return;
 				case 'OperationAndMaintenance':
-					this.url = `./door/index.html?id=${this.id}&token=${this.token}`;
+					location.href = `./door/index.html?id=${this.id}&token=${this.token}`;
 					return;
 				case 'MeetingReservation':
-					this.url = `./meeting_reserve/index.html?token=${this.token}`;
+					location.href = `./meeting_reserve/index.html?token=${this.token}`;
 					return;
 				case 'MyBooking':
 				case 'ConferenceRoomUsageStatistics':
-					this.url = `./my_booking/index.html?token=${this.token}&type=${this.router}`;
+					location.href = `./my_booking/index.html?token=${this.token}&type=${this.router}`;
 					return;
 				case 'workbench':
-					this.url = `./workbench/index.html?token=${this.token}`;
+					location.href = `./workbench/index.html?token=${this.token}`;
 					return;
 				case 'IoTControl':
-					this.url = `./IoTControl/index.html?token=${this.token}`;
+					location.href = `./IoTControl/index.html?token=${this.token}`;
 					return;
 				case 'yinxiangxitong':
-					document.title = '音响系统';
-					this.url = `./other/音响系统/index.html?token=${this.token}&id=${this.id}&device_name=${this.device_name}`;
+					location.href = `./other/音响系统/index.html?token=${this.token}&id=${this.id}&device_name=${this.device_name}`;
 					return;
 				case 'yitiji':
-					document.title = '一体机';
-					this.url = `./other/一体机/index.html?token=${this.token}&id=${this.id}&device_name=${this.device_name}`;
+					location.href = `./other/一体机/index.html?token=${this.token}&id=${this.id}&device_name=${this.device_name}`;
 					return;
 				case 'power_supply':
-					document.title = '电源设备';
-					this.url = `../湖山智慧设备/电源设备/index.html?token=${this.token}&id=${this.id}&type=${this.router}`;
+					location.href = `../湖山智慧设备/电源设备/index.html?token=${this.token}&id=${this.id}&type=${this.router}`;
 					return;
 				case 'Wisdom_Scene':
-					this.url = `./powerScene/index.html?token=${this.token}`;
+					location.href = `./powerScene/index.html?token=${this.token}`;
 					return;
 				case 'UpgradeManagement':
-					this.url = `./upgradeManager/index.html?token=${this.token}`;
+					location.href = `./upgradeManager/index.html?token=${this.token}`;
 					return;
 				case 'ProjectOverviewOffline':
-					this.url = `./offlinePage/index.html?token=${this.token}`;
+					location.href = `./offlinePage/index.html?token=${this.token}`;
+					return;
+				case 'ADKXX':
+					location.href = `./other/功放设备/index.html?token=${this.token}&id=${this.id}&device_name=${this.device_name}`;
+					return;
+				case 'ProjectOverviewOffline':
+					location.href = `./offlinePage/index.html?token=${this.token}`;
 					return;
 				default:
-					location.href = `${this.path}?token=${this.token}&type=${this.router}${typeof this.id == 'string' ? `&id=${this.id}` : ''}${
-						typeof this.device_name == 'string' ? `&device_name=${this.device_name}` : ''
-					}${typeof this.userName == 'string' ? `&userName=${this.userName}` : ''}`;
+					location.href = `${this.path}?token=${this.token}&type=${this.router}${this.id ? `&id=${this.id}` : ''}${this.device_name ? `&device_name=${this.device_name}` : ''}${
+						this.userName ? `&userName=${this.userName}` : ''
+					}`;
 					return;
 			}
 		},
