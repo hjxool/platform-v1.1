@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak :style="{background:bg}" v-loading="html.page_loading">
+    <template v-for="item in component_list">
+      <slider v-if="item.type=='slider'" :obj="item"></slider>
+      <text v-if="item.type=='text'" :obj="item"></text>
+
+
+
+      <el-image v-if="item.type=='img'" :style="style(item)" :src="item.src" :fit="item.fls?'contain':'none'">
+      </el-image>
+      <el-button v-if="item.type=='button'" :style="style(item)" round>{{item.value}}</el-button>
+      <el-switch v-if="item.type=='switch'" v-model="item" active-value="100" inactive-value="0"></el-switch>
+      <progress></progress>
+    </template>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../../js/Zhr_Basics.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="./components.js"></script>
+  <script src="./index.js"></script>
+</body>
+
+</html>

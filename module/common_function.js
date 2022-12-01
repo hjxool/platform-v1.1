@@ -3,27 +3,27 @@ const common_functions = {
 		// 获取地址栏token
 		get_token() {
 			let temp = location.search.substring(1).split('&');
-			temp.forEach((e) => {
-				if (e.indexOf('token') != -1) {
-					this.token = e.split('=')[1];
-					window.sessionStorage.token = this.token;
-				} else if (e.indexOf('userName') != -1) {
-					this.userName = e.split('=')[1];
-					window.sessionStorage.userName = this.userName;
-				} else if (e.indexOf('id') != -1) {
-					this.id = e.split('=')[1];
-					window.sessionStorage.id = this.id;
-				} else if (e.indexOf('type') != -1) {
-					this.router = e.split('=')[1];
-					window.sessionStorage.router = this.router;
-				} else if (e.indexOf('device_name') != -1) {
-					this.device_name = decodeURIComponent(e.split('=')[1]);
+			for (let val of temp) {
+				let t = val.split('=');
+				if (t[0].match(/^token$/) != null) {
+					window.sessionStorage.token = this.token = t[1];
+				} else if (t[0].match(/^userName$/) != null) {
+					window.sessionStorage.userName = this.userName = t[1];
+				} else if (t[0].match(/^id$/) != null) {
+					window.sessionStorage.id = this.id = t[1];
+				} else if (t[0].match(/^type$/) != null) {
+					window.sessionStorage.router = this.router = t[1];
+				} else if (t[0].match(/^device_name$/) != null) {
 					// cookie里只能存编码后的中文字符
-					window.sessionStorage.device_name = e.split('=')[1];
+					window.sessionStorage.device_name = this.device_name = t[1];
+				} else if (t[0].match(/^productId$/) != null) {
+					window.sessionStorage.product_id = this.product_id = t[1];
+				} else if (t[0].match(/^deviceId$/) != null) {
+					window.sessionStorage.device_id = this.device_id = t[1];
 				}
-			});
-			// let url = location.href.split('?')[0];
-			// history.replaceState('', '', url);
+			}
+			let url = location.href.split('?')[0];
+			history.replaceState('', '', url);
 		},
 		//封装的请求方法
 		request(method, url, token, data, func) {

@@ -246,6 +246,10 @@ new Vue({
 			// 	this.$message('设备不在线！');
 			// 	return;
 			// }
+			if (device_obj.id == '1595667718277664768') {
+				window.open(`../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}`);
+				return;
+			}
 			if (device_obj.productUrl) {
 				let name = encodeURIComponent(device_obj.deviceName);
 				window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
@@ -275,6 +279,7 @@ new Vue({
 		},
 		// 查询所有租户设备
 		get_all_user_devices(cur_page) {
+			this.get_all_devices_status_info();
 			let data = {
 				condition: {},
 				pageSize: 10,

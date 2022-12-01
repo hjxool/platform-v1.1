@@ -48,7 +48,7 @@
             <el-table-column prop="deviceName" label="设备名"></el-table-column>
             <el-table-column prop="productName" label="所属产品"></el-table-column>
             <el-table-column prop="productTypeValue" label="设备类型"></el-table-column>
-            <el-table-column label="所属租户|场所">
+            <el-table-column label="所属项目|场所">
               <template slot-scope="scope">
                 <span style="color: #fff;">{{scope.row.companyName}} {{scope.row.placeName?'->':''}}
                   {{scope.row.placeName||''}}</span>

@@ -1,11 +1,20 @@
+let url = `${我是接口地址}/`;
+let data_url = `${url}api-portal/place/tenant/device/analyse`;
+
 new Vue({
 	el: '#index',
 	mixins: [common_functions],
 	data: {
-		online_num: 16, //在线设备数
-		offline_num: 10, //离线设备数
-		normal_num: 16, //正常设备数
-		abnormal_num: 10, //异常设备数
+		html: {
+			scroll_num: 5, //限制滚动显示的告警条数
+		},
+		online_num: 0, //在线设备数
+		offline_num: 0, //离线设备数
+		normal_num: 0, //正常数
+		abnormal_num: 0, //异常数
+		alert_num: 0, //设备告警数
+		alert_list: [], //实时告警列表
+		place_num: 0, //场所数量
 	},
 	mounted() {
 		if (!location.search) {
@@ -15,11 +24,11 @@ new Vue({
 		}
 		// 初始化图表实例
 		let dom = document.querySelectorAll('.body');
-		for (let i = 1; i <= 5; i++) {
+		for (let i = 1; i <= 4; i++) {
 			this[`echart${i}`] = echarts.init(dom[i - 1]);
-			this.init_echarts(i);
 		}
 		window.addEventListener('resize', this.resize);
+		this.get_data();
 	},
 	methods: {
 		// 视窗大小改变根元素字体大小
@@ -36,20 +45,15 @@ new Vue({
 				dom.style.fontSize = `16px`;
 			}
 			// 更新图表
-			for (let i = 1; i <= 5; i++) {
+			for (let i = 1; i <= 4; i++) {
 				this[`echart${i}`].resize();
 			}
 		},
 		// 初始化图表
 		init_echarts(type) {
 			let option;
-			let data;
 			switch (type) {
 				case 1:
-					data = [
-						{ value: this.online_num, name: '在线设备' },
-						{ value: this.offline_num, name: '离线设备' },
-					];
 					option = {
 						legend: {
 							bottom: '5%',
@@ -77,18 +81,16 @@ new Vue({
 										formatter: '{c}',
 									},
 								},
-								data: data,
+								data: [
+									{ value: this.online_num, name: '在线设备' },
+									{ value: this.offline_num, name: '离线设备' },
+								],
 							},
 						],
 						color: ['#FAFF75', '#01B4FF'],
 					};
-					this[`echart${type}`].setOption(option);
 					break;
 				case 2:
-					data = [
-						{ value: this.normal_num, name: '正常设备' },
-						{ value: this.abnormal_num, name: '异常设备' },
-					];
 					option = {
 						legend: {
 							bottom: '5%',
@@ -122,39 +124,39 @@ new Vue({
 										color: 'rgba(255,255,255,0.5)',
 									},
 								},
-								data: data,
+								data: [
+									{ value: this.normal_num, name: '联检正常' },
+									{ value: this.abnormal_num, name: '联检异常' },
+								],
 							},
 						],
 						color: ['#025AFF', '#D15465'],
 					};
-					this[`echart${type}`].setOption(option);
 					break;
 				case 3:
-					data = [
-						{ value: 20, name: '设备1' },
-						{ value: 30, name: '设备2' },
-						{ value: 50, name: '设备3' },
-					];
 					option = {
 						tooltip: {
 							trigger: 'item',
-							formatter: '{b} : {c}%',
+							formatter: '{b} : {c}',
 						},
 						legend: {
-							data: ['设备1', '设备2', '设备3'],
+							orient: 'vertical',
+							right: '5%',
 							bottom: '5%',
+							textStyle: {
+								color: '#fff',
+							},
+							type: 'scroll',
 						},
 						series: [
 							{
 								type: 'funnel',
-								left: 'center',
-								top: 0,
-								width: '90%',
-								min: 0,
-								max: 100,
+								left: 'left',
+								width: '80%',
 								minSize: '0%',
 								maxSize: '100%',
-								sort: 'ascending',
+								sort: 'descending',
+								orient: 'horizontal',
 								label: {
 									show: false,
 									position: 'inside',
@@ -167,11 +169,10 @@ new Vue({
 										show: false,
 									},
 								},
-								data: data,
+								data: this.product_type_list,
 							},
 						],
 					};
-					this[`echart${type}`].setOption(option);
 					break;
 				case 4:
 					option = {
@@ -190,7 +191,7 @@ new Vue({
 						xAxis: {
 							type: 'category',
 							boundaryGap: false,
-							data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+							data: this.alert_time_list,
 							splitLine: {
 								show: true,
 								lineStyle: {
@@ -241,7 +242,7 @@ new Vue({
 						},
 						series: [
 							{
-								data: [820, 932, 901, 934, 1290, 1330, 1320],
+								data: this.alert_num_list,
 								type: 'line',
 								areaStyle: {
 									color: {
@@ -269,9 +270,64 @@ new Vue({
 							},
 						],
 					};
-					this[`echart${type}`].setOption(option);
 					break;
 			}
+			this[`echart${type}`].setOption(option);
+		},
+		// 获取页面数据
+		get_data() {
+			this.request('get', data_url, this.token, (res) => {
+				console.log('数据', res);
+				if (res.data.head.code != 200) {
+					return;
+				}
+				let data = res.data.data;
+				this.place_num = data.placeNum;
+				this.online_num = data.onlineDeviceNum;
+				this.offline_num = data.offlineDeviceNum;
+				this.alert_num = data.alarmDeviceNum;
+				this.normal_num = data.onlineCheckNormal || 0;
+				this.abnormal_num = data.onlineCheckError || 0;
+				// 只取一定数量的告警消息
+				let length = data.alarmDeviceInfo.length < this.html.scroll_num ? data.alarmDeviceInfo.length : this.html.scroll_num;
+				this.alert_list = [];
+				for (let i = 0; i < length; i++) {
+					let t = data.alarmDeviceInfo[i].split(',');
+					let t2 = {
+						time: t[3].substring(3),
+						content: `类型：${t[0]},${t[1]},${t[2]}`,
+						type: t[0].substring(2),
+					};
+					this.alert_list.push(t2);
+				}
+				// 产品类型统计
+				this.product_type_list = [];
+				let array2 = [
+					{ deviceNum: 10, productName: '产品1' },
+					{ deviceNum: 20, productName: '产品2' },
+				];
+				let array = data.productanalyseList || array2;
+				for (let val of array) {
+					let t = {
+						value: val.deviceNum || 0,
+						name: val.productName || '空',
+					};
+					this.product_type_list.push(t);
+				}
+				this.alert_time_list = data.date;
+				this.alert_num_list = data.allDeviceAlarmCount;
+				for (let i = 1; i <= 4; i++) {
+					this.init_echarts(i);
+				}
+			});
+		},
+		// 跳转到其他页面
+		trun_to_other_page(keyword) {
+			let key = keyword;
+			if (keyword == '告警' || keyword == '离线') {
+				key = `${keyword}设备下钻`;
+			}
+			window.parent.postMessage(key);
 		},
 	},
 });

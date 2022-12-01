@@ -1,6 +1,7 @@
 let url = `${我是接口地址}/`;
 let get_data_url = url + 'api-device/device/status'; //查询数据
 let sendCmdtoDevice = url + 'api-device/device/operation'; // 下发指令
+let user_info_url = `${url}api-auth/oauth/userinfo`; //获取用户信息
 
 new Vue({
 	el: '#index',
@@ -8,15 +9,15 @@ new Vue({
 	data: {
 		html: {
 			page: 0,
-			gain_min: -120,
-			gain_max: 0,
+			gain_min: -80,
+			gain_max: 12,
 			page_loading: false, //页面加载
 		},
 		device_name: '', //设备名
+		scene_select: '', //场景选择
 		status: [
 			{ title: '通道', value: ['CH1', 'CH2', 'CH3', 'CH4'] },
 			{ title: '电压', value: ['0.0', '0.0', '0.0', '0.0'] },
-			{ title: '电流', value: ['0.0', '0.0', '0.0', '0.0'] },
 			{ title: '温度', value: ['0.0', '0.0', '0.0', '0.0'] },
 			{ title: '故障', value: [1, 1, 1, 0] },
 		],
@@ -41,11 +42,118 @@ new Vue({
 			this.device_name = decodeURIComponent(window.sessionStorage.device_name);
 		} else {
 			this.get_token();
+			this.device_name = decodeURIComponent(this.device_name);
 		}
 		this.switch_page(this.html.page);
+		this.get_user_info();
+		this.resize();
 		window.onresize = this.resize;
 	},
 	methods: {
+		// 获取用户信息包括 id 连接stomp用户名和密码
+		get_user_info() {
+			this.request('get', user_info_url, this.token, (res) => {
+				console.log('用户', res);
+				if (res.data.head.code != 200) {
+					this.$message('无法获取用户信息');
+					return;
+				}
+				this.ws_name = res.data.data.mqUser;
+				this.ws_password = res.data.data.mqPassword;
+				this.user_id = res.data.data.id;
+				this.ws_link = new WebSocket(`${我是websocket地址}`);
+				this.stomp_link = Stomp.over(this.ws_link);
+				this.stomp_link.debug = null;
+				this.stomp_link.connect(this.ws_name, this.ws_password, this.on_message, this.on_error, '/');
+			});
+		},
+		// stomp连接成功的回调
+		on_message() {
+			this.stomp_link.subscribe(
+				`/exchange/device-report/device-report.${this.id}`,
+				(res) => {
+					let data = JSON.parse(res.body);
+					let data_list = Object.entries(data.contents[0].attributes);
+					for (let array of data_list) {
+						let reg = /^v\d{1}$/;
+						let reg2 = /^temp$/;
+						let reg3 = /^fault\d{1}$/;
+						let reg4 = /^gain_in\d{1}$/;
+						let reg5 = /^gain_out\d{1}$/;
+						let reg6 = /^mute_in\d{1}$/;
+						let reg7 = /^mute_out\d{1}$/;
+						if (reg.test(array[0])) {
+							let index = Number(array[0].substring(1));
+							if (index < this.ch_num) {
+								this.status[1].value.splice(index, 1, array[1]);
+							}
+						} else if (reg2.test(array[0])) {
+							this.status[2].value = [];
+							for (let i = 0; i < this.ch_num; i++) {
+								this.status[2].value.push(array[1]);
+							}
+						} else if (reg3.test(array[0])) {
+							let index = Number(array[0].substring(5));
+							if (index < this.ch_num) {
+								this.status[3].value.splice(index, 1, array[1]);
+							}
+						} else if (reg4.test(array[0])) {
+							let index = Number(array[0].substring(7));
+							if (index < this.ch_num) {
+								this.input[index].gain = array[1];
+							}
+						} else if (reg5.test(array[0])) {
+							let index = Number(array[0].substring(8));
+							if (index < this.ch_num) {
+								this.output[index].gain = array[1];
+							}
+						} else if (reg6.test(array[0])) {
+							let index = Number(array[0].substring(7));
+							if (index < this.ch_num) {
+								this.input[index].mute = array[1];
+							}
+						} else if (reg7.test(array[0])) {
+							let index = Number(array[0].substring(8));
+							if (index < this.ch_num) {
+								this.output[index].mute = array[1];
+							}
+						} else if (array[0].indexOf('scene') != -1) {
+							this.scene_select = array[1];
+						}
+					}
+				},
+				{ 'auto-delete': true }
+			);
+			this.stomp_link.subscribe(
+				`/exchange/web-socket/tenant.user.${this.user_id}.#`,
+				(res) => {
+					let data = JSON.parse(res.body);
+					// 0等待 1成功 2断开 3超时 4拒绝
+					switch (data.replyType) {
+						case 0:
+							this.$message('等待连接');
+							break;
+						case 1:
+							this.$message.success('连接成功');
+							break;
+						case 2:
+							this.$message.error('断开连接');
+							break;
+						case 3:
+							this.$message('连接超时');
+							break;
+						case 4:
+							this.$message.error('连接被拒');
+							break;
+					}
+				},
+				{ 'auto-delete': true }
+			);
+		},
+		// stomp连接失败的回调
+		on_error(error) {
+			this.$message.error(error.headers.message);
+		},
 		resize() {
 			let dom = document.documentElement;
 			let w = dom.clientWidth;
@@ -78,30 +186,49 @@ new Vue({
 					return;
 				}
 				let data = res.data.data.properties;
-				let num = data.CH_NUM.propertyValue; //通道数量
+				this.ch_num = data.channel_num.propertyValue; //通道数量
+				// 状态值
 				for (let val of this.status) {
-					let temp;
+					val.value = [];
 					switch (val.title) {
 						case '通道':
-							val.value = [];
-							for (let i = 1; i <= num; i++) {
+							for (let i = 1; i <= this.ch_num; i++) {
 								val.value.push(`CH${i}`);
 							}
 							break;
 						case '电压':
-							val.value = [];
-							for (let i = 1; i <= num; i++) {
-								val.value.push(data[`V${i}`].propertyValue);
+							for (let i = 0; i < this.ch_num; i++) {
+								val.value.push(data[`v${i}`].propertyValue);
 							}
 							break;
-						case '电流':
-							break;
 						case '温度':
+							for (let i = 0; i < this.ch_num; i++) {
+								val.value.push(data.temp.propertyValue);
+							}
 							break;
 						case '故障':
+							for (let i = 0; i < this.ch_num; i++) {
+								val.value.push(data[`fault${i}`].propertyValue);
+							}
 							break;
 					}
 				}
+				// 静音增益
+				this.input = [];
+				this.output = [];
+				for (let i = 0; i < this.ch_num; i++) {
+					let t = {
+						gain: data[`gain_in${i}`].propertyValue,
+						mute: data[`mute_in${i}`].propertyValue,
+					};
+					this.input.push(t);
+					let t2 = {
+						gain: data[`gain_out${i}`].propertyValue,
+						mute: data[`mute_out${i}`].propertyValue,
+					};
+					this.output.push(t2);
+				}
+				this.scene_select = data.scene.propertyValue;
 			});
 		},
 		// 增益样式
@@ -131,7 +258,7 @@ new Vue({
 				obj.gain = this.html.gain_min;
 			}
 			if (flag) {
-				// this.send_order(key);
+				this.send_order(key, obj.gain);
 			}
 		},
 		slider_move(obj, key) {
@@ -140,7 +267,7 @@ new Vue({
 				this.slider_turn_to(e, obj, dom);
 			};
 			document.onmouseup = () => {
-				// this.send_order(key);
+				this.send_order(key, obj.gain);
 				document.onmousemove = null;
 				document.onmouseup = null;
 			};
@@ -150,58 +277,35 @@ new Vue({
 			if (typeof key == undefined) {
 				return;
 			}
-			let attributes = {};
-			if (key == 'MIXS') {
-				this.matrix[params[1]].splice(params[2], 1, Number(params[0]) ? '0' : '1');
-				let t = [];
-				for (let i = 0; i < this.matrix.length; i++) {
-					let t4 = [];
-					for (let val of this.matrix[i]) {
-						t4.push(val);
-					}
-					// 将数组反转 合并成字符串 用parseInt舍去前面的0 转换为number类型 再转进制
-					let t2 = parseInt(t4.reverse().join(''));
-					let t3 = parseInt(t2, 2) >> 0;
-					t.push(t3, 0);
-				}
-				attributes[key] = t;
-				console.log(this.matrix);
-			} else if (key == 'INMS') {
+			let topic = 8;
+			let body = {
+				contentType: 0,
+				contents: [{ deviceId: this.id, attributes: {} }],
+			};
+			if (key == 'scene') {
+				topic = 11;
+				body.contentType = 2;
+				body.contents[0].identifier = key;
+				body.contents[0].attributes[key] = this.scene_select;
+			} else if (key.indexOf('mute_') != -1) {
 				params[0].mute = params[0].mute ? 0 : 1;
-				let t = [];
-				for (let i = 0; i < this.input.length; i++) {
-					t.push(this.input[i].mute);
-				}
-				attributes[key] = t;
-			} else if (key == 'OUTMS') {
-				params[0].mute = params[0].mute ? 0 : 1;
-				let t = [];
-				for (let i = 0; i < this.output.length; i++) {
-					t.push(this.output[i].mute);
-				}
-				attributes[key] = t;
-			} else if (key == 'INGS') {
-				let t = [];
-				for (let i = 0; i < this.input.length; i++) {
-					t.push(this.input[i].gain * 100);
-				}
-				attributes[key] = t;
-			} else if (key == 'OUTGS') {
-				let t = [];
-				for (let i = 0; i < this.output.length; i++) {
-					t.push(this.output[i].gain * 100);
-				}
-				attributes[key] = t;
-			} else if (key == 'SCALL') {
-				attributes[key] = [this.html.config_select];
-			} else if (key == 'SSAVE') {
-				attributes[key] = [this.html.config_select];
+				let t = {
+					ch: Number(key[key.length - 1]),
+					in_out: key.indexOf('in') == -1 ? 1 : 0,
+					options: 'mute',
+					value: params[0].mute,
+				};
+				body.contents[0].attributes = t;
+			} else if (key.indexOf('gain_') != -1) {
+				let t = {
+					in_out: key.indexOf('_in') == -1 ? 1 : 0,
+					options: 'gain',
+					ch: Number(key[key.length - 1]),
+					value: params[0],
+				};
+				body.contents[0].attributes = t;
 			}
-			this.request('put', `${sendCmdtoDevice}/8`, this.token, { contentType: 0, contents: [{ deviceId: this.id, attributes: attributes }] }, (res) => {
-				if (key == 'SCALL') {
-					this.get_device_status();
-				}
-			});
+			this.request('put', `${sendCmdtoDevice}/${topic}`, this.token, body);
 		},
 	},
 });

@@ -27,6 +27,7 @@ new Vue({
 			this.device_name = decodeURIComponent(window.sessionStorage.device_name);
 		} else {
 			this.get_token();
+			this.device_name = decodeURIComponent(this.device_name);
 		}
 		document.title = '一体机';
 		this.get_user_info();

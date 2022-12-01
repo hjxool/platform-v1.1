@@ -1,7 +1,7 @@
 let url = `${我是接口地址}/`;
 let calender_search = `${url}api-portal/meeting/calender/search`;
 let meeting_search = `${url}api-portal/meeting/search`;
-let meeting_edit = `${url}api-portal/meeting`;
+let meeting_url = `${url}api-portal/meeting`;
 let room_search = `${url}api-portal/room/search`;
 
 Vue.config.productionTip = false;
@@ -12,7 +12,7 @@ new Vue({
 		html: {
 			date: new Date(),
 			time_option: 0, //切换显示时间周期
-			time_display: ['日', '周', '月', '列表'],
+			time_display: ['列表', '日', '周', '月'],
 			time_display2: ['日', '周', '月'],
 			week_date: new Date(),
 			month_date: new Date(),
@@ -20,7 +20,7 @@ new Vue({
 			day_start: '', // 小于这个数的要显示为灰色
 			day_end: '', // 大于这个数的显示为灰色
 			list_select: 0, //列表显示下筛选条件
-			list_options: ['审核中', '审核通过', '驳回', '已撤回'],
+			list_options: ['审核通过', '审核中', '驳回', '已撤回'],
 			meeting_detail_display: false, //会议详情查看
 		},
 		day_meeting: [], //日下的会议列表
@@ -65,7 +65,7 @@ new Vue({
 		},
 		time_display(index) {
 			this.html.time_option = index;
-			if (index == 0) {
+			if (index == 1) {
 				this.day_meeting = [];
 				let start_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 06:00:00`;
 				let end_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 23:00:00`;
@@ -82,7 +82,7 @@ new Vue({
 						this.day_meeting[i].endTime = this.day_meeting[i].endTime.split(' ')[1].substring(0, 5);
 					}
 				});
-			} else if (index == 1) {
+			} else if (index == 2) {
 				this.week_meeting = [];
 				let start_time = `${this.week_start.getFullYear()}-${this.week_start.getMonth() + 1}-${this.week_start.getDate()} 06:00:00`;
 				let end_time = `${this.week_end.getFullYear()}-${this.week_end.getMonth() + 1}-${this.week_end.getDate()} 23:00:00`;
@@ -122,7 +122,7 @@ new Vue({
 						}
 					}
 				});
-			} else if (index == 2) {
+			} else if (index == 3) {
 				// 先获取当前年月 然后算当月的1号是周几 然后根据时间戳算周日的日期
 				let d = this.html.month_date.getDate();
 				let t_start = this.html.month_date;
@@ -200,7 +200,7 @@ new Vue({
 						}
 					}
 				});
-			} else if (index == 3) {
+			} else if (index == 0) {
 				this.list_meeting = [];
 				this.request('post', meeting_search, this.token, { condition: { queryType: this.list_type, roomId: this.place_id }, pageNum: 1, pageSize: 999999 }, (res) => {
 					console.log('我的预订', res);
@@ -235,7 +235,7 @@ new Vue({
 								break;
 						}
 					}
-					this.list_meeting.push(under, pass, reject, cancel);
+					this.list_meeting.push(pass, under, reject, cancel);
 				});
 			}
 		},
@@ -323,13 +323,13 @@ new Vue({
 		},
 		// 撤销预约
 		cancel_review(meeting_id) {
-			this.request('put', meeting_edit, this.token, { id: meeting_id, status: -1 }, () => {
+			this.request('put', meeting_url, this.token, { id: meeting_id, status: -1 }, () => {
 				this.time_display(this.html.time_option);
 			});
 		},
 		// 查看会议详情
 		meeting_check(data) {
-			this.html.meeting_detail_display = true;
+			this.html.meeting_detail_display = false;
 			this.meeting_detail = [
 				{ title: '创建人', value: data.createUserName },
 				{ title: '会议主持人', value: data.moderatorName },
@@ -338,6 +338,68 @@ new Vue({
 				{ title: '会议类型', value: data.type == 0 ? '视频会议' : data.type == 1 ? '综合会议' : '无纸化会议' },
 			];
 			this.meeting_qr = data.qrCodeUrl;
+			this.request('get', `${meeting_url}/${data.id}`, this.token, (res) => {
+				console.log('会议详情', res);
+				if (res.data.head.code != 200) {
+					this.$message('无会议详情');
+					return;
+				}
+				this.html.meeting_detail_display = true;
+				let data = res.data.data.users;
+				let reject = 0;
+				let join = 0;
+				let sign_in = 0;
+				let sign_out = 0;
+				for (let val of data) {
+					val.reply ? join++ : reject++;
+					val.signIn ? sign_in++ : sign_out++;
+				}
+				this.$nextTick(() => {
+					let dom = document.querySelectorAll('.echart1');
+					let e1 = echarts.init(dom[0]);
+					let e2 = echarts.init(dom[1]);
+					let data1 = [
+						{ value: join, name: '参加' },
+						{ value: reject, name: '不参加' },
+					];
+					let data2 = [
+						{ value: sign_in, name: '签到' },
+						{ value: sign_out, name: '未签到' },
+					];
+					let option = {
+						legend: {
+							bottom: '5%',
+							right: '10%',
+							orient: 'vertical',
+						},
+						series: [
+							{
+								type: 'pie',
+								radius: ['60%', '70%'],
+								center: ['30%', '50%'],
+								label: {
+									show: false,
+									position: 'center',
+								},
+								emphasis: {
+									label: {
+										show: true,
+										fontSize: '20',
+										fontWeight: 'bold',
+										color: '#000',
+										formatter: '{c}',
+									},
+								},
+							},
+						],
+					};
+					option.series[0].data = data1;
+					e1.setOption(option);
+					option.series[0].data = data2;
+					option.color = ['#FAFF75', '#01B4FF'];
+					e2.setOption(option);
+				});
+			});
 		},
 	},
 });

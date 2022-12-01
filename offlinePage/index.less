@@ -84,15 +84,17 @@
 	grid-row-start: 1;
 	grid-row-end: 25;
 	.box2_1 {
-		margin: 0 0 20px 16px;
+		margin: 16px 0 20px 16px;
 		flex-grow: 1;
-		overflow: auto;
 		padding-right: 16px;
+		overflow-y: auto;
+		overflow-x: hidden;
 		.box2_2 {
-			height: 5.5rem;
+			height: 70px;
 			background: #252f3f;
 			border: 1px solid #3a485e;
 			margin-bottom: 10px;
+			transition: all 1s;
 			.icon2 {
 				width: 1.25rem;
 				height: 1.25rem;
@@ -130,17 +132,11 @@
 }
 .box5 {
 	grid-column-start: 1;
-	grid-column-end: 27;
-	grid-row-start: 31;
-	grid-row-end: -1;
-}
-.box6 {
-	grid-column-start: 28;
 	grid-column-end: 64;
 	grid-row-start: 31;
 	grid-row-end: -1;
 }
-.box7 {
+.box6 {
 	grid-column-start: 65;
 	grid-column-end: -1;
 	grid-row-start: 31;
@@ -160,4 +156,12 @@
 		width: 1.5rem;
 		height: 1.5rem;
 	}
+}
+// 滚动消息动画
+.alert-enter,
+.alert-leave-to {
+	transform: scaleY(0);
+}
+.alert-leave-active {
+	position: absolute;
 }

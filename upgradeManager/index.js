@@ -206,7 +206,12 @@ new Vue({
 		// 选完文件后填充表单
 		file_selected() {
 			let file = select_file.files[0];
-			this.firmware_form.ver = md5(file);
+			let data_stream = new FileReader();
+			data_stream.readAsBinaryString(file);
+			data_stream.onload = (e) => {
+				// this.firmware_form.ver = md5(e.target.result);
+				this.firmware_form.ver = SparkMD5.hashBinary(e.target.result);
+			};
 			this.firmware_form.file_name = file.name;
 		},
 		// 下来菜单点击事件
@@ -216,22 +221,28 @@ new Vue({
 					axios({
 						method: 'get',
 						url: `${export_firmware_url}/${row_obj.id}`,
-						responseType: 'blob',
+						// responseType: 'blob',
 						headers: {
 							Authorization: `Bearer ${this.token}`,
-							'Content-Type': 'application/x-download',
+							// 'Content-Type': 'application/x-download',
 						},
 					}).then((res) => {
 						console.log('下载', res);
-						let b = new Blob([res.data]);
-						let a = document.createElement('a');
-						let href = URL.createObjectURL(b);
-						a.href = href;
-						a.target = '_blank'; //空白页打开
-						a.download = href.split('/').pop(); //返回被删除末尾元素
-						document.body.appendChild(a);
-						a.click();
-						document.body.removeChild(a);
+						// let b = new Blob([res.data]);
+						// let a = document.createElement('a');
+						// let href = URL.createObjectURL(b);
+						// a.href = href;
+						// a.target = '_blank'; //空白页打开
+						// a.download = href.split('/').pop(); //返回被删除末尾元素
+						// document.body.appendChild(a);
+						// a.click();
+						// document.body.removeChild(a);
+						// let t = res.data.match(/server:\s*"https:\/\/\d{3}\.\d{1,3}.\d{1,3}.\d{1,3}\/\S+"/);
+						// let t2 = t[0].replace(/\s/g, '');
+						// let url = t2.substring(8, t2.length - 1);
+						if (res.data.head) {
+							window.open(res.data.head.message);
+						}
 					});
 					break;
 				case 'upgrade':

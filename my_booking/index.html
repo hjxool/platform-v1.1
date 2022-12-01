@@ -40,7 +40,7 @@
     </div>
     <!-- 不同时间选项 不同页面 -->
     <!-- 天 -->
-    <div v-show="html.time_option==0" class="body1">
+    <div v-show="html.time_option==1" class="body1">
       <div v-for="i in 17" class="box1 day">
         <span class="title center">{{i+5}}:30</span>
         <div class="box2">
@@ -58,7 +58,7 @@
       </div>
     </div>
     <!-- 周 -->
-    <div v-show="html.time_option==1" class="body2">
+    <div v-show="html.time_option==2" class="body2">
       <div class="week_box">
         <div></div>
         <span class="text">周日</span>
@@ -90,7 +90,7 @@
       </div>
     </div>
     <!-- 月 -->
-    <div v-show="html.time_option==2" class="body3">
+    <div v-show="html.time_option==3" class="body3">
       <div class="week_box">
         <span class="text center">周日</span>
         <span class="text center">周一</span>
@@ -114,7 +114,7 @@
       </div>
     </div>
     <!-- 列表 -->
-    <div v-show="html.time_option==3" class="body4">
+    <div v-show="html.time_option==0" class="body4">
       <div class="box1">
         <el-radio-group v-model="html.list_select">
           <el-radio v-for="item,index in html.list_options" :label="index">{{item}}</el-radio>
@@ -131,10 +131,10 @@
             <span class="text2">会议室(地点)：{{item.roomName}}</span>
           </div>
           <div class="button_box flex_shrink">
-            <span class="text3 button flex_shrink" v-if="html.list_select==0"
+            <span class="text3 button flex_shrink" v-if="html.list_select==1"
               @click="cancel_review(item.id)">撤销申请</span>
-            <span class="text3 button flex_shrink" v-if="html.list_select!=1">编辑</span>
-            <span class="text3 button flex_shrink" v-if="html.list_select==1" @click="meeting_check(item)">查看</span>
+            <span class="text3 button flex_shrink" v-if="html.list_select!=0">编辑</span>
+            <span class="text3 button flex_shrink" v-if="html.list_select==0" @click="meeting_check(item)">查看</span>
           </div>
         </div>
         <el-empty v-show="list_meeting.length==0||list_meeting[html.list_select].length==0" description="无数据"
@@ -143,7 +143,7 @@
       </div>
     </div>
     <!-- 弹窗 -->
-    <div class="popover" v-show="html.meeting_detail_display">
+    <div class="popover" v-if="html.meeting_detail_display">
       <el-card class="form_box" shadow="never">
         <div class="form_head">
           <span class="text">会议详情</span>
@@ -153,9 +153,18 @@
         </div>
         <div class="box1">
           <div class="left">
-            <div class="box2 flex_shrink" v-for="item in meeting_detail">
-              <span class="title flex_shrink">{{item.title}}</span>
-              <span class="text flex_shrink text_ellipsis">{{item.value}}</span>
+            <div class="left1">
+              <div class="box2 flex_shrink" v-for="item in meeting_detail">
+                <span class="title flex_shrink">{{item.title}}</span>
+                <span class="text flex_shrink text_ellipsis">{{item.value}}</span>
+              </div>
+            </div>
+            <div class="left2">
+              <div class="title"><i class="el-icon-s-data icon1"></i>参会详情</div>
+              <!-- 统计参加不参加 -->
+              <div class="echart1"></div>
+              <!-- 统计签到人数图表 -->
+              <div class="echart1"></div>
             </div>
           </div>
           <div class="right">
@@ -171,6 +180,7 @@
   <script src="../module/vue.js"></script>
   <script src="../module/element-ui.js"></script>
   <script src="../module/axios.min.js"></script>
+  <script src="../module/echarts.min.js"></script>
   <script src="../module/common_function.js"></script>
   <script src="./index.js"></script>
 </body>

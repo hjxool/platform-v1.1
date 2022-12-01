@@ -62,6 +62,7 @@ new Vue({
 			this.device_name = decodeURIComponent(window.sessionStorage.device_name);
 		} else {
 			this.get_token();
+			this.device_name = decodeURIComponent(this.device_name);
 		}
 		document.title = '音响系统';
 		this.get_user_info();

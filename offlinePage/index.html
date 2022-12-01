@@ -15,35 +15,35 @@
     <div class="box1 row_layout">
       <img src="./img/icon1.png" class="bg_img">
 
-      <div class="row_layout">
+      <div class="row_layout button">
         <img src="./img/icon2.png" class="icon">
         <div class="box1_1">
-          <span class="text">13</span>
+          <span class="text">{{place_num}}</span>
           <span class="text2">场所数量</span>
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout">
+      <div class="row_layout button">
         <img src="./img/icon3.png" class="icon">
         <div class="box1_1">
-          <span class="text">16</span>
+          <span class="text">{{online_num}}</span>
           <span class="text2">在线设备</span>
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout">
+      <div class="row_layout button" @click="trun_to_other_page('离线')">
         <img src="./img/icon4.png" class="icon">
         <div class="box1_1">
-          <span class="text">54</span>
+          <span class="text">{{offline_num}}</span>
           <span class="text2">离线设备</span>
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout">
+      <div class="row_layout button" @click="trun_to_other_page('告警')">
         <img src="./img/icon5.png" class="icon">
         <div class="box1_1">
-          <span class="text">4</span>
-          <span class="text2">设备告警</span>
+          <span class="text">{{alert_num}}</span>
+          <span class="text2">告警设备</span>
         </div>
       </div>
     </div>
@@ -54,13 +54,16 @@
         <span class="text">实时告警</span>
       </div>
       <div class="box2_1">
-        <div class="box2_2 row_layout" v-for="item in 10">
-          <img src="./img/icon7.png" class="icon2">
-          <div class="box2_3">
-            <span class="text1 text_ellipsis">四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司四川湖山电器股份有限公司</span>
-            <span class="text2 text_ellipsis">2022.11.08 12:22:31</span>
+        <transition-group name="alert">
+          <div class="box2_2 row_layout button" v-for="item in alert_list" :key="item.time"
+            @click="trun_to_other_page(item.type)">
+            <img src="./img/icon7.png" class="icon2">
+            <div class="box2_3">
+              <span class="text1 text_ellipsis" :title="item.content">{{item.content}}</span>
+              <span class="text2 text_ellipsis">{{item.time}}</span>
+            </div>
           </div>
-        </div>
+        </transition-group>
       </div>
     </div>
 
@@ -83,7 +86,7 @@
     <div class="box5 box_layout">
       <div class="header row_layout flex_shrink">
         <img src="./img/icon6.png" class="bg_img">
-        <span class="text">设备分类</span>
+        <span class="text">产品统计</span>
       </div>
       <div class="body"></div>
     </div>
@@ -96,15 +99,7 @@
       <div class="body"></div>
     </div>
 
-    <div class="box7 box_layout">
-      <div class="header row_layout flex_shrink">
-        <img src="./img/icon6.png" class="bg_img">
-        <span class="text">警情分布</span>
-      </div>
-      <div class="body"></div>
-    </div>
-
-    <div class="box8 button center">
+    <div class="box8 button center" @click="trun_to_other_page('跳转到设备监控')">
       <img src="./img/icon8.png" class="bg_img" draggable="false">
       <div class="row_layout">
         <span class="text">远程管控</span>
@@ -113,10 +108,13 @@
     </div>
   </div>
 
-  <!-- <script src="../../运维人员部署请修改我.js"></script>
-  <script src="../../js/Zhr_Basics.js"></script> -->
-  <script src="../module/echarts.min.js"></script>
+  <script src="../../运维人员部署请修改我.js"></script>
+  <!-- <script src="../../js/Zhr_Basics.js"></script> -->
+  <!-- <script src="../../js/echarts.min.js"></script> -->
   <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/echarts.min.js"></script>
   <script src="../module/common_function.js"></script>
   <script src="./index.js"></script>
 </body>
