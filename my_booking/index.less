@@ -7,6 +7,12 @@
 	position: absolute;
 	display: grid;
 	grid-template-rows: 70px auto;
+	min-width: 800px;
+	min-height: 600px;
+}
+.row_layout {
+	display: flex;
+	align-items: center;
 }
 .header {
 	display: flex;
@@ -298,14 +304,13 @@
 	position: absolute;
 	background-color: rgba(0, 0, 0, 0.2);
 	display: grid;
-	justify-content: center;
+	justify-items: center;
 	align-items: start;
 	z-index: 990;
 	.form_box {
 		width: 40%;
 		min-width: 600px;
 		max-height: 90%;
-		overflow: auto;
 		margin-top: 40px;
 		.form_head {
 			display: flex;
@@ -329,56 +334,106 @@
 		}
 		.box1 {
 			display: grid;
-			grid-template-columns: 2fr 1fr;
-			.left1 {
-				overflow: auto;
-				max-height: 500px;
-				.box2 {
-					margin: 10px;
-					.title {
-						font-size: 14px;
-						font-weight: bold;
-						margin-bottom: 10px;
-					}
-					.text {
-						padding-left: 20px;
-						font-size: 14px;
-						color: gray;
-					}
-				}
-			}
-			.left2 {
-				.title {
-					font-size: 14px;
-					font-weight: bold;
-					padding: 10px;
-					display: flex;
-					align-items: center;
-					.icon1 {
-						font-size: 14px;
-						color: #00bfff;
+			grid-template-columns: 1fr 1fr;
+			overflow: auto;
+			.left {
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+				.left1 {
+					.box2 {
+						margin: 10px 10px 20px 10px;
+						.title {
+							font-size: 14px;
+							font-weight: bold;
+						}
+						.text {
+							padding-left: 20px;
+							font-size: 14px;
+							color: gray;
+						}
+						.user_name::after {
+							content: '、';
+						}
+						.user_name:last-child:after {
+							content: none;
+						}
 					}
 				}
-				.echart1 {
-					height: 140px;
+				.left_button {
+					align-self: center;
 				}
 			}
 			.right {
 				display: flex;
 				flex-direction: column;
-				align-items: center;
 				.title {
 					font-size: 18px;
 					font-weight: bold;
-					margin-top: 30px;
-					margin-bottom: 20px;
+					align-self: center;
 				}
 				.icon {
-					width: 70%;
-					height: 50%;
+					width: 100%;
 					object-fit: contain;
+					max-width: 200px;
+					align-self: center;
+				}
+				.right2 {
+					.title {
+						font-size: 14px;
+						font-weight: bold;
+						padding: 10px;
+						display: flex;
+						align-items: center;
+						.icon1 {
+							font-size: 14px;
+							color: #00bfff;
+						}
+					}
+					.echart1 {
+						height: 140px;
+					}
 				}
 			}
+		}
+	}
+	.form_box2 {
+		width: 90%;
+		min-width: 800px;
+		height: 90%;
+		align-self: center;
+		.el-card__body {
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+		}
+		.form_head {
+			display: flex;
+			align-items: center;
+			height: 40px;
+			.text {
+				font-weight: bold;
+				font-size: 18px;
+			}
+			.icon {
+				width: 26px;
+				height: 26px;
+				background-color: #fdeaea;
+				border-radius: 50%;
+				margin-left: auto;
+				.icon2 {
+					font-size: 16px;
+					color: #f02424;
+				}
+			}
+		}
+		.box1 {
+			flex-grow: 1;
+			background: red;
+		}
+		.box2 {
+			padding-top: 10px;
+			justify-content: end;
 		}
 	}
 }

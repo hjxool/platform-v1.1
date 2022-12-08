@@ -3,6 +3,7 @@ let calender_search = `${url}api-portal/meeting/calender/search`;
 let meeting_search = `${url}api-portal/meeting/search`;
 let meeting_url = `${url}api-portal/meeting`;
 let room_search = `${url}api-portal/room/search`;
+let download_summary_url = `${url}api-portal/meeting/summary/download`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -22,6 +23,9 @@ new Vue({
 			list_select: 0, //列表显示下筛选条件
 			list_options: ['审核通过', '审核中', '驳回', '已撤回'],
 			meeting_detail_display: false, //会议详情查看
+			detail_h: 0, //会议详情弹窗最大高度
+			user_type: 0, //参会人类型
+			summary_display: false, //富文本编辑器显示
 		},
 		day_meeting: [], //日下的会议列表
 		week_meeting: [], //周下的会议列表
@@ -48,6 +52,7 @@ new Vue({
 			this.list_type = 4;
 		}
 		this.get_place_list();
+		window.addEventListener('resize', this.resize);
 	},
 	methods: {
 		// 获取会议室列表
@@ -331,11 +336,11 @@ new Vue({
 		meeting_check(data) {
 			this.html.meeting_detail_display = false;
 			this.meeting_detail = [
-				{ title: '创建人', value: data.createUserName },
-				{ title: '会议主持人', value: data.moderatorName },
-				{ title: '会议室名称', value: data.roomName },
-				{ title: '会议主题', value: data.theme },
-				{ title: '会议类型', value: data.type == 0 ? '视频会议' : data.type == 1 ? '综合会议' : '无纸化会议' },
+				{ title: '创建人', value: data.createUserName, special: 0 },
+				{ title: '会议主持人', value: data.moderatorName, special: 0 },
+				{ title: '会议室', value: data.roomName, special: 0 },
+				{ title: '会议主题', value: data.theme, special: 0 },
+				{ title: '会议类型', value: data.type == 0 ? '视频会议' : data.type == 1 ? '综合会议' : '无纸化会议', special: 0 },
 			];
 			this.meeting_qr = data.qrCodeUrl;
 			this.request('get', `${meeting_url}/${data.id}`, this.token, (res) => {
@@ -345,15 +350,30 @@ new Vue({
 					return;
 				}
 				this.html.meeting_detail_display = true;
-				let data = res.data.data.users;
-				let reject = 0;
-				let join = 0;
-				let sign_in = 0;
-				let sign_out = 0;
-				for (let val of data) {
+				this.html.user_type = 0;
+				let data = res.data.data;
+				this.meeting_obj = data;
+				let reject = 0,
+					join = 0,
+					sign_in = 0,
+					sign_out = 0;
+				let sign_in2 = [],
+					sign_out2 = [];
+				for (let val of data.users) {
 					val.reply ? join++ : reject++;
-					val.signIn ? sign_in++ : sign_out++;
+					if (val.signIn) {
+						sign_in++;
+						sign_in2.push(val);
+					} else {
+						sign_out++;
+						sign_out2.push(val);
+					}
 				}
+				let t = { title: '是否有会议纪要', value: data.summary ? '有' : '没有', special: data.status == 2 ? (data.summary ? 1 : 0) : 0 };
+				let t2 = { title: '会议附件', value: data.meetingFiles.length ? data.meetingFiles : [], special: 2 };
+				let t3 = { title: '参会人', value: [data.users, sign_in2, sign_out2], special: 3 };
+				this.meeting_detail.push(t, t2, t3);
+				this.resize();
 				this.$nextTick(() => {
 					let dom = document.querySelectorAll('.echart1');
 					let e1 = echarts.init(dom[0]);
@@ -400,6 +420,62 @@ new Vue({
 					e2.setOption(option);
 				});
 			});
+		},
+		// 缩放执行的方法
+		resize() {
+			let dom = document.documentElement;
+			this.html.detail_h = dom.clientHeight - 40 - 40 - 40 - 20; //弹窗高度减去el组件padding再减去标题高度
+		},
+		// 下载会议纪要
+		download_summary() {
+			axios({
+				method: 'get',
+				url: `${download_summary_url}/${this.meeting_obj.id}`,
+				responseType: 'blob',
+				headers: { Authorization: `Bearer ${this.token}` },
+			}).then((res) => {
+				let b = new Blob([res.data]);
+				let a = document.createElement('a');
+				let href = URL.createObjectURL(b);
+				a.href = href;
+				a.target = '_blank';
+				let filename;
+				let t = res.headers['content-disposition'].replace(/\s/g, '').split(';');
+				for (let val of t) {
+					if (val.match(/^filename/) != null) {
+						filename = decodeURIComponent(val.split('=')[1]);
+					}
+				}
+				a.download = filename || '';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(href);
+			});
+		},
+		// 显示会议纪要
+		show_summary() {
+			this.html.summary_display = true;
+		},
+		// 保存会议纪要
+		save_summary(type) {
+			if (type) {
+				// 提交完重新获取会议详情 并关闭弹窗
+				if (this.meeting_obj.summaryTime == null) {
+					this.$confirm('提交后不能再进行修改，是否继续？', '提示', {
+						confirmButtonText: '确定',
+						cancelButtonText: '取消',
+						type: 'warning',
+					}).then(() => {});
+				} else {
+				}
+			} else {
+				if (this.meeting_obj.summaryTime == null) {
+					// 等于null可保存 只修改本地记录
+				} else {
+					// 不等于null时不可修改
+				}
+			}
 		},
 	},
 });

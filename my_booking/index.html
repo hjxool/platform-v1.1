@@ -151,15 +151,48 @@
             <i class="el-icon-close icon2"></i>
           </div>
         </div>
-        <div class="box1">
+        <div class="box1" :style="{maxHeight:html.detail_h+'px'}">
           <div class="left">
             <div class="left1">
-              <div class="box2 flex_shrink" v-for="item in meeting_detail">
-                <span class="title flex_shrink">{{item.title}}</span>
-                <span class="text flex_shrink text_ellipsis">{{item.value}}</span>
+              <div class="box2 row_layout" v-for="item in meeting_detail">
+                <!-- 通用样式 -->
+                <span class="title flex_shrink" v-if="!item.special || item.special==1">{{item.title}}</span>
+                <span class="text text_ellipsis" v-if="!item.special || item.special==1">{{item.value}}</span>
+                <!-- 会议纪要 -->
+                <el-button type="text" v-if="item.special==1" @click="download_summary"
+                  style="margin-left: 20px;padding: 0;">
+                  下载</el-button>
+                <!-- 参会人 -->
+                <div v-if="item.special==3" style="flex-grow: 1;">
+                  <div class="row_layout" style="padding-bottom: 10px;">
+                    <div class="title">{{item.title}}</div>
+                    <el-radio-group v-model="html.user_type" size="mini" style="margin-left: auto;">
+                      <el-radio-button :label="0">所有</el-radio-button>
+                      <el-radio-button :label="1">已签到</el-radio-button>
+                      <el-radio-button :label="2">未签到</el-radio-button>
+                    </el-radio-group>
+                  </div>
+                  <div class="text">
+                    <span class="user_name" v-for="item2 in item.value[html.user_type]">{{item2.username}}</span>
+                  </div>
+                </div>
+                <!-- 附件 -->
+                <div v-if="item.special==2" style="overflow: hidden;">
+                  <div class="title" style="padding-bottom: 10px;">{{item.title}}</div>
+                  <div class="text" v-if="!item.value.length">无</div>
+                  <div class="text text_ellipsis" v-for="item2 in item.value">文件名:{{item2.fileName}}
+                    路径:{{item2.fileUrl}}
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="left2">
+            <el-button @click="show_summary" type="primary" size="small" class="left_button">会议纪要
+            </el-button>
+          </div>
+          <div class="right">
+            <span class="title">二维码</span>
+            <img :src="meeting_qr" class="icon">
+            <div class="right2">
               <div class="title"><i class="el-icon-s-data icon1"></i>参会详情</div>
               <!-- 统计参加不参加 -->
               <div class="echart1"></div>
@@ -167,10 +200,22 @@
               <div class="echart1"></div>
             </div>
           </div>
-          <div class="right">
-            <span class="title">二维码</span>
-            <img :src="meeting_qr" class="icon">
+        </div>
+      </el-card>
+    </div>
+    <!-- 会议纪要 富文本编辑器 -->
+    <div class="popover" v-if="html.summary_display">
+      <el-card class="form_box2" shadow="never">
+        <div class="form_head flex_shrink">
+          <span class="text">会议纪要</span>
+          <div class="icon center button" @click="html.summary_display=false">
+            <i class="el-icon-close icon2"></i>
           </div>
+        </div>
+        <div class="box1"></div>
+        <div class="row_layout box2 flex_shrink">
+          <el-button @click="save_summary(0)" type="primary" round>保存</el-button>
+          <el-button @click="save_summary(1)" round>提交</el-button>
         </div>
       </el-card>
     </div>

@@ -40,9 +40,6 @@ new Vue({
 				case 'ConferenceRoomUsageStatistics':
 					path = 'my_booking';
 					break;
-				case 'workbench':
-					path = 'workbench';
-					break;
 				case 'IoTControl':
 					path = 'IoTControl';
 					break;

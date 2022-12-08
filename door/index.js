@@ -29,6 +29,8 @@ new Vue({
 			page_loading: false, //选项页切换
 			distribute_place_display: false, //分配场所页面显示
 			popover_loading: false, //分配场所弹窗查询和保存时加载
+			turn_to_display: -1, //跳转设备按钮选择弹窗
+			turn_to_options: ['可视化页面', '定制页面'],
 		},
 		place_type_list: [], //场所类型
 		edit_place_form: {
@@ -246,15 +248,31 @@ new Vue({
 			// 	this.$message('设备不在线！');
 			// 	return;
 			// }
-			if (device_obj.id == '1595667718277664768') {
+			//#region
+			// if (type == 0) {
+			// 	if (device_obj.visualizedFlag) {
+			// 		window.open(`../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}`);
+			// 	} else {
+			// 		this.$message('请配置产品可视化界面后再试');
+			// 	}
+			// } else {
+			// 	if (device_obj.productUrl) {
+			// 		let name = encodeURIComponent(device_obj.deviceName);
+			// 		window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
+			// 	} else {
+			// 		this.$message('请配置产品调控页面前端标识后再试');
+			// 	}
+			// }
+			//#endregion
+			if (device_obj.visualizedFlag) {
 				window.open(`../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}`);
-				return;
-			}
-			if (device_obj.productUrl) {
-				let name = encodeURIComponent(device_obj.deviceName);
-				window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
 			} else {
-				this.$message('请配置产品调控页面前端标识后再试');
+				if (device_obj.productUrl) {
+					let name = encodeURIComponent(device_obj.deviceName);
+					window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
+				} else {
+					this.$message('请配置产品调控页面前端标识后再试');
+				}
 			}
 		},
 		// 切换选项查看场所信息
@@ -435,6 +453,14 @@ new Vue({
 				this.devices.type_offline = data.offline;
 				this.devices.type_unbinding = data.initial;
 			});
+		},
+		// 显示和隐藏对应跳转选项
+		turn_to_display(index) {
+			if (this.html.turn_to_display == index) {
+				this.html.turn_to_display = -1;
+			} else {
+				this.html.turn_to_display = index;
+			}
 		},
 	},
 });

@@ -62,6 +62,7 @@ new Vue({
 				`/exchange/device-report/device-report.${this.id}`,
 				(res) => {
 					let data = JSON.parse(res.body);
+					console.log(data);
 					let data_list = Object.entries(data.contents[0].attributes);
 					for (let array of data_list) {
 						let reg = /^ch\d+$/;
@@ -69,7 +70,13 @@ new Vue({
 							this.timing_switch = array[1];
 						} else if (reg.test(array[0])) {
 							let index = Number(array[0].substring(2));
-							this.channel.splice(index - 1, 1, array[1]);
+							let t = {
+								v: 0,
+								a: 0,
+								delay: 1,
+								status: array[1],
+							};
+							this.channel.splice(index - 1, 1, t);
 						}
 					}
 				},
