@@ -20,8 +20,8 @@ new Vue({
 			page_select: '1', // 页面选择
 			page_loading: true, // 加载大页面时loading遮罩
 			popup_loading: false, // 加载二级弹窗loading遮罩
+			page2_display: false, //设备等信息页面显示
 		},
-		place_id: '', //所选会议室
 		place_list: [], //会议室列表
 		device: {
 			list: [], // 设备卡片列表
@@ -74,27 +74,30 @@ new Vue({
 	methods: {
 		// 获取会议室列表
 		get_place_list() {
+			this.html.page_loading = true;
 			this.request('post', room_search, this.token, { condition: {}, pageNum: 1, pageSize: 999999 }, (res) => {
 				console.log('会议室列表', res);
+				this.html.page_loading = false;
 				if (Object.entries(res.data.data).length == 0) {
 					return;
 				}
 				this.place_list = res.data.data.data;
-				this.place_id = this.place_list[0].id;
-				this.place_change();
 			});
 		},
 		// 场所一切换 设备列表就要更新
-		place_change() {
+		place_change(place_id) {
 			this.html.page_loading = true;
+			this.place_id = place_id;
 			this.device.list = [];
 			this.request('post', `${device_list}/${this.place_id}`, this.token, { condition: {} }, (res) => {
 				console.log('设备列表', res);
 				this.html.page_loading = false;
 				if (Object.entries(res.data).length == 0 || res.data.data == null) {
+					this.$message('无设备信息');
 					this.device.list_empty = true;
 					return;
 				}
+				this.html.page2_display = true;
 				this.device.list = res.data.data;
 				this.device.list_empty = false;
 			});
@@ -152,7 +155,7 @@ new Vue({
 				let array = [];
 				this.joint.devices_length = data.length; // 记录下设备列表长度 勾选时会用
 				for (let i = 0; i < data.length; i++) {
-					data[i].server_select = []; // 赋值给data中的响应式数据后会自动添加响应式
+					data[i].server_select = ''; // 赋值给data中的响应式数据后会自动添加响应式
 					data[i].server_list = [];
 					data[i].selected = false; // 选中标识
 					this.request('post', `${model_server_search}/${data[i].id}`, this.token, (res) => {
@@ -210,7 +213,7 @@ new Vue({
 			}
 			for (let val of this.joint.device_list) {
 				for (let val2 of val.devices) {
-					val2.server_select = [];
+					val2.server_select = '';
 					val2.selected = false;
 				}
 			}
@@ -232,7 +235,7 @@ new Vue({
 			for (let val of this.joint.device_list) {
 				for (let val2 of val.devices) {
 					val2.selected = false;
-					val2.server_select = [];
+					val2.server_select = '';
 					for (let val3 of rule_obj.devicesVOS) {
 						if (val2.id == val3.deviceId) {
 							val2.selected = true;
@@ -424,6 +427,15 @@ new Vue({
 		// 点击联检规则里的场所列表 折叠或显示
 		click_joint_place(place_obj) {
 			this.joint.form.place_id = this.joint.form.place_id == place_obj.placeId ? '' : place_obj.placeId;
+		},
+
+		// element card样式
+		card_style() {
+			return {
+				display: 'flex',
+				alignItems: 'center',
+				height: '100%',
+			};
 		},
 	},
 });

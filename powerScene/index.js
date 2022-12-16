@@ -375,7 +375,7 @@ new Vue({
 								for (let val3 of val2.server_config) {
 									let t2 = {
 										serviceIdentifier: val3.identifier,
-										serviceInputParam: JSON.parse(val3.input),
+										serviceInputParam: JSON.parse(val3.input) || null,
 									};
 									t.serviceInputParamList.push(t2);
 								}

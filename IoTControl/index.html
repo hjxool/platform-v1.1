@@ -12,175 +12,178 @@
 </head>
 
 <body>
-  <div id="index" v-cloak>
-    <!-- 场所选择 -->
-    <div class="button_layout flex_shrink" style="padding: 5px 0;">
-      <el-select v-model="place_id" @change="place_change">
-        <el-option v-for="item in place_list" :label="item.roomName" :value="item.id">
-        </el-option>
-      </el-select>
-    </div>
-    <!-- 页面切换按钮 -->
-    <div class="button_layout flex_shrink">
-      <el-menu :default-active="html.page_select" mode="horizontal" @select="page_switch">
-        <el-menu-item index="1">设备管理</el-menu-item>
-        <el-submenu index="2">
-          <template slot="title">设备联检</template>
-          <el-menu-item index="2-1">联检规则</el-menu-item>
-          <el-menu-item index="2-2">联检记录</el-menu-item>
-        </el-submenu>
-        <el-submenu index="3">
-          <template slot="title">设备巡检</template>
-          <el-menu-item index="3-1">巡检计划</el-menu-item>
-          <el-menu-item index="3-2">巡检规则</el-menu-item>
-          <el-menu-item index="3-3">巡检记录</el-menu-item>
-        </el-submenu>
-        <el-menu-item index="4">情景模式</el-menu-item>
-      </el-menu>
-    </div>
-    <!-- 设备卡片页面 -->
-    <div class="page1" v-show="html.page_select=='1'" v-loading="html.page_loading">
-      <el-card class="cards" shadow="hover" v-for="item in device.list">
-        <div class="box1">
-          <span class="text1 text_ellipsis">{{item.deviceName}}</span>
-          <div class="box2 flex_shrink">
-            <div v-if="item.statusValue==0" class="icon0"></div>
-            <span v-if="item.statusValue==0" class="text4">未注册</span>
-            <div v-if="item.statusValue==1" class="icon1"></div>
-            <span v-if="item.statusValue==1" class="text2">在线</span>
-            <div v-if="item.statusValue==2" class="icon2"></div>
-            <span v-if="item.statusValue==2" class="text3">离线</span>
+  <div id="index" v-cloak v-loading="html.page_loading">
+    <!-- 会议室卡片 -->
+    <el-card class="button" v-for="item in place_list" @click="place_change(item.id)" style="margin:10px;"
+      :body-style="card_style()" shadow="never">
+      <div style="font-weight:bold;margin-right:auto;">{{item.roomName}}</div>
+      <div class="card_dot" :style="{background:status?'green':'red'}"></div>
+      <div :style="{color:status?'green':'red'}">{{status?'正常':'告警'}}</div>
+    </el-card>
+    <!-- 会议室卡片点开后显示界面 -->
+    <div class="page2" v-if="html.page2_display">
+      <!-- 页面切换按钮 -->
+      <div class="button_layout flex_shrink">
+        <el-menu :default-active="html.page_select" mode="horizontal" @select="page_switch">
+          <el-menu-item index="1">设备管理</el-menu-item>
+          <el-submenu index="2">
+            <template slot="title">设备联检</template>
+            <el-menu-item index="2-1">联检规则</el-menu-item>
+            <el-menu-item index="2-2">联检记录</el-menu-item>
+          </el-submenu>
+          <el-submenu index="3">
+            <template slot="title">设备巡检</template>
+            <el-menu-item index="3-1">巡检计划</el-menu-item>
+            <el-menu-item index="3-2">巡检规则</el-menu-item>
+            <el-menu-item index="3-3">巡检记录</el-menu-item>
+          </el-submenu>
+          <el-menu-item index="4">情景模式</el-menu-item>
+        </el-menu>
+      </div>
+      <!-- 设备卡片页面 -->
+      <div class="page1" v-show="html.page_select=='1'" v-loading="html.page_loading">
+        <el-card class="cards" shadow="hover" v-for="item in device.list">
+          <div class="box1">
+            <span class="text1 text_ellipsis">{{item.deviceName}}</span>
+            <div class="box2 flex_shrink">
+              <div v-if="item.statusValue==0" class="icon0"></div>
+              <span v-if="item.statusValue==0" class="text4">未注册</span>
+              <div v-if="item.statusValue==1" class="icon1"></div>
+              <span v-if="item.statusValue==1" class="text2">在线</span>
+              <div v-if="item.statusValue==2" class="icon2"></div>
+              <span v-if="item.statusValue==2" class="text3">离线</span>
+            </div>
           </div>
-        </div>
-        <div class="box1">
-          <div class="box2">
-            <!-- <i class="el-icon-edit icon3 button"></i> -->
-            <span class="icon3 text_ellipsis">所属产品类型:{{item.productTypeValue}}</span>
+          <div class="box1">
+            <div class="box2">
+              <!-- <i class="el-icon-edit icon3 button"></i> -->
+              <span class="icon3 text_ellipsis">所属产品类型:{{item.productTypeValue}}</span>
+            </div>
+            <img src="./img/icon1.png" class="icon4 button">
           </div>
-          <img src="./img/icon1.png" class="icon4 button">
+        </el-card>
+        <el-empty v-show="device.list_empty" description="会议室下无设备" style="width: 100%;height: 100%;"></el-empty>
+      </div>
+      <!-- 联检页面 -->
+      <div class="page2 flex_grow" v-loading="html.page_loading"
+        v-show="html.page_select=='2-1'||html.page_select=='2-2'">
+        <!-- 按钮等功能 -->
+        <div class="button_layout">
+          <el-button class="buttons" v-show="html.page_select=='2-1'" @click="add_joint_rules" icon="el-icon-plus"
+            size="small">
+            添加规则
+          </el-button>
+
+          <el-input @keydown.enter="search_record(joint.log_search)" style="width: 200px;"
+            v-show="html.page_select=='2-2'" size="small" placeholder="搜索" v-model="joint.log_search" clearable>
+          </el-input>
         </div>
-      </el-card>
-      <el-empty v-show="device.list_empty" description="会议室下无设备" style="width: 100%;height: 100%;"></el-empty>
-    </div>
-    <!-- 联检页面 -->
-    <div class="page2 flex_grow" v-loading="html.page_loading"
-      v-show="html.page_select=='2-1'||html.page_select=='2-2'">
-      <!-- 按钮等功能 -->
-      <div class="button_layout">
-        <el-button class="buttons" v-show="html.page_select=='2-1'" @click="add_joint_rules" icon="el-icon-plus"
-          size="small">
-          添加规则
-        </el-button>
+        <div class="joint_table">
+          <!-- 规则表格 -->
+          <el-table v-show="html.page_select=='2-1'" :data="joint.rule_list" border :max-height="joint.table_height">
+            <el-table-column prop="onlineCheckName" label="名称" width="200"></el-table-column>
+            <el-table-column prop="createUserName" label="创建人" width="100"></el-table-column>
+            <el-table-column prop="placeName" label="会议室"></el-table-column>
+            <el-table-column prop="executeTime" label="执行时间" width="100"></el-table-column>
+            <el-table-column prop="planDatetimeStart" label="开始时间" width="200"></el-table-column>
+            <el-table-column prop="planDatetimeEnd" label="结束时间" width="200"></el-table-column>
+            <el-table-column label="操作" width="220">
+              <template slot-scope="scope">
+                <el-button type="text" size="small" @click="edit_joint_rule(scope.row)">编辑</el-button>
+                <el-button type="text" size="small" @click="del_joint_rule(scope.row)">删除
+                </el-button>
+                <el-button type="text" size="small" @click="ex_joint_rule(scope.row)" style="margin-right: 10px;">执行联检
+                </el-button>
+                <el-switch v-model="scope.row.status" @change="switch_joint_rule_status(scope.row)" :active-value="1"
+                  :inactive-value="0"></el-switch>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 记录表格 -->
+          <el-table v-show="html.page_select=='2-2'" :data="joint.record_list" border :max-height="joint.table_height"
+            :default-sort="{prop:'created',order: 'descending'}">
+            <el-table-column prop="onlineCheckName" label="名称" width="200"></el-table-column>
+            <el-table-column prop="placeName" label="会议室" width="200"></el-table-column>
+            <el-table-column prop="resultRemark" label="联检结果"></el-table-column>
+            <el-table-column prop="statusDesc" label="检测状态" width="150"></el-table-column>
+            <el-table-column prop="created" label="联检时间" sortable width="200"></el-table-column>
+            <el-table-column label="操作" width="100">
+              <template slot-scope="scope">
+                <el-button @click="check_record(scope.row)" type="text" size="small">查看</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <!-- 巡检页面 -->
+      <div class="page3 flex_grow" v-show="html.page_select=='3-1'||html.page_select=='3-2'||html.page_select=='3-3'"
+        v-loading="html.page_loading">
+        <div class="button_layout">
+          <el-button class="buttons" v-show="html.page_select=='3-1'" icon="el-icon-plus" size="small">新增巡检计划
+          </el-button>
 
-        <el-input @keydown.enter="search_record(joint.log_search)" style="width: 200px;"
-          v-show="html.page_select=='2-2'" size="small" placeholder="搜索" v-model="joint.log_search" clearable>
-        </el-input>
-      </div>
-      <div class="joint_table">
-        <!-- 规则表格 -->
-        <el-table v-show="html.page_select=='2-1'" :data="joint.rule_list" border :max-height="joint.table_height">
-          <el-table-column prop="onlineCheckName" label="名称" width="200"></el-table-column>
-          <el-table-column prop="createUserName" label="创建人" width="100"></el-table-column>
-          <el-table-column prop="placeName" label="会议室"></el-table-column>
-          <el-table-column prop="executeTime" label="执行时间" width="100"></el-table-column>
-          <el-table-column prop="planDatetimeStart" label="开始时间" width="200"></el-table-column>
-          <el-table-column prop="planDatetimeEnd" label="结束时间" width="200"></el-table-column>
-          <el-table-column label="操作" width="220">
-            <template slot-scope="scope">
-              <el-button type="text" size="small" @click="edit_joint_rule(scope.row)">编辑</el-button>
-              <el-button type="text" size="small" @click="del_joint_rule(scope.row)">删除
-              </el-button>
-              <el-button type="text" size="small" @click="ex_joint_rule(scope.row)" style="margin-right: 10px;">执行联检
-              </el-button>
-              <el-switch v-model="scope.row.status" @change="switch_joint_rule_status(scope.row)" :active-value="1"
-                :inactive-value="0"></el-switch>
-            </template>
-          </el-table-column>
-        </el-table>
-        <!-- 记录表格 -->
-        <el-table v-show="html.page_select=='2-2'" :data="joint.record_list" border :max-height="joint.table_height"
-          :default-sort="{prop:'created',order: 'descending'}">
-          <el-table-column prop="onlineCheckName" label="名称" width="200"></el-table-column>
-          <el-table-column prop="placeName" label="会议室" width="200"></el-table-column>
-          <el-table-column prop="resultRemark" label="联检结果"></el-table-column>
-          <el-table-column prop="statusDesc" label="检测状态" width="150"></el-table-column>
-          <el-table-column prop="created" label="联检时间" sortable width="200"></el-table-column>
-          <el-table-column label="操作" width="100">
-            <template slot-scope="scope">
-              <el-button @click="check_record(scope.row)" type="text" size="small">查看</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-    </div>
-    <!-- 巡检页面 -->
-    <div class="page3 flex_grow" v-show="html.page_select=='3-1'||html.page_select=='3-2'||html.page_select=='3-3'"
-      v-loading="html.page_loading">
-      <div class="button_layout">
-        <el-button class="buttons" v-show="html.page_select=='3-1'" icon="el-icon-plus" size="small">新增巡检计划
-        </el-button>
+          <span class="buttons" v-show="html.page_select=='3-2'">应用会议室</span>
+          <el-select class="buttons" v-model="polling.apply_place" v-show="html.page_select=='3-2'" size="small">
+            <el-option v-for="item in option1" :value="item"></el-option>
+          </el-select>
+          <el-button class="buttons" v-show="html.page_select=='3-2'" icon="el-icon-plus" size="small">新增检查项
+          </el-button>
 
-        <span class="buttons" v-show="html.page_select=='3-2'">应用会议室</span>
-        <el-select class="buttons" v-model="polling.apply_place" v-show="html.page_select=='3-2'" size="small">
-          <el-option v-for="item in option1" :value="item"></el-option>
-        </el-select>
-        <el-button class="buttons" v-show="html.page_select=='3-2'" icon="el-icon-plus" size="small">新增检查项
-        </el-button>
-
-        <el-radio-group v-show="html.page_select=='3-3'" v-model="polling.log_select" size="small">
-          <el-radio :label="0">全部</el-radio>
-          <el-radio :label="1">待巡检</el-radio>
-          <el-radio :label="2">正常完成</el-radio>
-        </el-radio-group>
+          <el-radio-group v-show="html.page_select=='3-3'" v-model="polling.log_select" size="small">
+            <el-radio :label="0">全部</el-radio>
+            <el-radio :label="1">待巡检</el-radio>
+            <el-radio :label="2">正常完成</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="polling_table">
+          <!-- 计划表格 -->
+          <el-table v-show="html.page_select=='3-1'" :data="tableData" border :max-height="polling.table_height">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="计划名称"></el-table-column>
+            <el-table-column prop="c" label="启用状态"></el-table-column>
+            <el-table-column prop="d" label="执行周期"></el-table-column>
+            <el-table-column label="操作" width="150">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">编辑</el-button>
+                <el-button type="text" size="small">禁用</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 规则表格 -->
+          <el-table v-show="html.page_select=='3-2'" :data="tableData" border :max-height="polling.table_height"
+            style="width: 100%">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="规则名称"></el-table-column>
+            <el-table-column prop="c" label="应用会议室"></el-table-column>
+            <el-table-column prop="d" label="应用会议室"></el-table-column>
+            <el-table-column label="操作" width="150">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">编辑</el-button>
+                <el-button type="text" size="small">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <!-- 记录表格 -->
+          <el-table v-show="html.page_select=='3-3'" :data="tableData" border :max-height="polling.table_height"
+            style="width: 100%">
+            <el-table-column prop="a" label="序号"></el-table-column>
+            <el-table-column prop="b" label="计划名称"></el-table-column>
+            <el-table-column prop="c" label="结果"></el-table-column>
+            <el-table-column prop="d" label="巡检时间"></el-table-column>
+            <el-table-column prop="e" label="巡检人员"></el-table-column>
+            <el-table-column label="操作" width="120">
+              <template slot-scope="scope">
+                <el-button type="text" size="small">详情</el-button>
+                <el-button type="text" size="small">执行巡检</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
       </div>
-      <div class="polling_table">
-        <!-- 计划表格 -->
-        <el-table v-show="html.page_select=='3-1'" :data="tableData" border :max-height="polling.table_height">
-          <el-table-column prop="a" label="序号"></el-table-column>
-          <el-table-column prop="b" label="计划名称"></el-table-column>
-          <el-table-column prop="c" label="启用状态"></el-table-column>
-          <el-table-column prop="d" label="执行周期"></el-table-column>
-          <el-table-column label="操作" width="150">
-            <template slot-scope="scope">
-              <el-button type="text" size="small">编辑</el-button>
-              <el-button type="text" size="small">禁用</el-button>
-              <el-button type="text" size="small">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <!-- 规则表格 -->
-        <el-table v-show="html.page_select=='3-2'" :data="tableData" border :max-height="polling.table_height"
-          style="width: 100%">
-          <el-table-column prop="a" label="序号"></el-table-column>
-          <el-table-column prop="b" label="规则名称"></el-table-column>
-          <el-table-column prop="c" label="应用会议室"></el-table-column>
-          <el-table-column prop="d" label="应用会议室"></el-table-column>
-          <el-table-column label="操作" width="150">
-            <template slot-scope="scope">
-              <el-button type="text" size="small">编辑</el-button>
-              <el-button type="text" size="small">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <!-- 记录表格 -->
-        <el-table v-show="html.page_select=='3-3'" :data="tableData" border :max-height="polling.table_height"
-          style="width: 100%">
-          <el-table-column prop="a" label="序号"></el-table-column>
-          <el-table-column prop="b" label="计划名称"></el-table-column>
-          <el-table-column prop="c" label="结果"></el-table-column>
-          <el-table-column prop="d" label="巡检时间"></el-table-column>
-          <el-table-column prop="e" label="巡检人员"></el-table-column>
-          <el-table-column label="操作" width="120">
-            <template slot-scope="scope">
-              <el-button type="text" size="small">详情</el-button>
-              <el-button type="text" size="small">执行巡检</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+      <!-- 情景模式 -->
+      <div class="page4 flex_grow" v-show="html.page_select=='4'"></div>
     </div>
-    <!-- 情景模式 -->
-    <div class="page4 flex_grow" v-show="html.page_select=='4'"></div>
 
     <!-- 添加/编辑规则弹窗 -->
     <div class="popup" v-if="joint.add_rule_display">
@@ -246,8 +249,8 @@
                         </div>
                         <span class="text text_ellipsis" @click="check_change(item2)"
                           :title="item2.deviceName">{{item2.deviceName}}</span>
-                        <el-select v-model="item2.server_select" multiple collapse-tags placeholder="选择物模型服务"
-                          size="mini" style="width: 150px;" class="flex_shrink">
+                        <el-select v-model="item2.server_select" placeholder="选择物模型服务" size="mini" style="width: 150px;"
+                          class="flex_shrink">
                           <el-option v-for="item3 in item2.server_list" :key="item3.serviceId" :value="item3.identifier"
                             :label="item3.name">
                           </el-option>

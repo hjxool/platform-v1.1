@@ -85,12 +85,13 @@ new Vue({
 						if (reg.test(array[0])) {
 							let index = Number(array[0].substring(1));
 							if (index < this.ch_num) {
-								this.status[1].value.splice(index, 1, array[1]);
+								this.status[1].value.splice(index, 1, Math.floor(array[1] * 10) / 10);
 							}
 						} else if (reg2.test(array[0])) {
 							this.status[2].value = [];
+							let t = Math.floor(array[1] * 10) / 10;
 							for (let i = 0; i < this.ch_num; i++) {
-								this.status[2].value.push(array[1]);
+								this.status[2].value.push(t);
 							}
 						} else if (reg3.test(array[0])) {
 							let index = Number(array[0].substring(5));
@@ -198,12 +199,13 @@ new Vue({
 							break;
 						case '电压':
 							for (let i = 0; i < this.ch_num; i++) {
-								val.value.push(data[`v${i}`].propertyValue);
+								val.value.push(Math.floor(data[`v${i}`].propertyValue * 10) / 10);
 							}
 							break;
 						case '温度':
+							let t = Math.floor(data.temp.propertyValue * 10) / 10;
 							for (let i = 0; i < this.ch_num; i++) {
-								val.value.push(data.temp.propertyValue);
+								val.value.push(t);
 							}
 							break;
 						case '故障':

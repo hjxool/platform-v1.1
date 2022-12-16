@@ -11,8 +11,6 @@ const common_functions = {
 					window.sessionStorage.userName = this.userName = t[1];
 				} else if (t[0].match(/^id$/) != null) {
 					window.sessionStorage.id = this.id = t[1];
-				} else if (t[0].match(/^type$/) != null) {
-					window.sessionStorage.router = this.router = t[1];
 				} else if (t[0].match(/^device_name$/) != null) {
 					// cookie里只能存编码后的中文字符
 					window.sessionStorage.device_name = this.device_name = t[1];
@@ -20,6 +18,8 @@ const common_functions = {
 					window.sessionStorage.product_id = this.product_id = t[1];
 				} else if (t[0].match(/^deviceId$/) != null) {
 					window.sessionStorage.device_id = this.device_id = t[1];
+				} else if (t[0].match(/^prePage$/) != null) {
+					window.sessionStorage.prePage = this.prePage = t[1];
 				}
 			}
 			let url = location.href.split('?')[0];

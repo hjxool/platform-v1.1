@@ -31,8 +31,8 @@ new Vue({
 					{ value: 'double', name: 'double' },
 					{ value: 'text', name: 'text' },
 					{ value: 'date', name: 'date' },
-					{ value: 'struct', name: 'struct', disabled: true },
-					{ value: 'array', name: 'array', disabled: true },
+					{ value: 'struct', name: 'struct' },
+					{ value: 'array', name: 'array' },
 				],
 				// 数组元素类型
 				array_type_options: [

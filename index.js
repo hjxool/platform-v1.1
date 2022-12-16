@@ -7,6 +7,7 @@ new Vue({
 	},
 	methods: {
 		get_type() {
+			console.log(location.search);
 			let temp = location.search.substring(1).split('&');
 			for (let val of temp) {
 				let t = val.split('=');
@@ -36,9 +37,8 @@ new Vue({
 				case 'MeetingReservation':
 					path = 'meeting_reserve';
 					break;
-				case 'MyBooking':
 				case 'ConferenceRoomUsageStatistics':
-					path = 'my_booking';
+					path = 'calendar';
 					break;
 				case 'IoTControl':
 					path = 'IoTControl';
@@ -73,6 +73,15 @@ new Vue({
 					break;
 				case 'Visual_Preview':
 					path = 'visual_editor';
+					break;
+				case 'MeetingList':
+					path = 'meetingList';
+					break;
+				case 'meetingDetail':
+					path = 'meetingDetail';
+					break;
+				case 'MyBooking':
+					path = 'todayMeeting';
 					break;
 				default:
 					location.href = `${this.path}${location.search}`;

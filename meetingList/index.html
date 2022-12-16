@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title></title>
+  <link rel="stylesheet" href="../module/element-ui.css">
+  <link rel="stylesheet" href="../module/common_style.css">
+  <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+  <div id="index" v-cloak v-loading="html.loading">
+    <div class="header">
+      <el-input v-model="html.search" @keydown.enter.native="get_data" style="width:200px;margin-right:20px;"
+        placeholder="模糊搜索" size="small" clearable>
+        <i @click="get_data" slot="suffix" class="el-input__icon el-icon-search button"></i>
+      </el-input>
+
+      <el-date-picker v-model="html.date" @change="get_data" :picker-options="html.date_options" type="daterange"
+        align="right" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" size="small"></el-date-picker>
+
+      <el-select v-model="html.status" @change="get_data" style="margin-left:20px;" placeholder="会议状态" clearable
+        size="small">
+        <el-option v-for="item in html.status_options" :key="item.value" :label="item.label" :value="item.value">
+        </el-option>
+      </el-select>
+    </div>
+    <div class="body">
+      <el-table :data="tableData" :max-height="table_height()" border>
+        <el-table-column prop="roomName" label="会议室"></el-table-column>
+        <el-table-column prop="theme" label="会议主题"></el-table-column>
+        <el-table-column prop="moderatorName" label="主持人"></el-table-column>
+        <el-table-column label="会议类型">
+          <template slot-scope="scope">
+            <!-- <el-tag v-if="scope.row==1">周期会议</el-tag>
+            <el-tag v-if="scope.row==0" type="warning">单次会议</el-tag> -->
+            <span>暂无</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="会议时间" width="300">
+          <template slot-scope="scope">
+            <span style="font-size: 14px;">{{scope.row.startTime}} ~ {{scope.row.endTime}}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="会议人数">
+          <template slot-scope="scope">
+            <!-- <span>{{scope.row}}</span> -->
+            <span>暂无</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="会议备注"></el-table-column>
+        <el-table-column label="状态" width="100">
+          <template slot-scope="scope">
+            <el-tag v-if="scope.row.auditStatus==2" type="success">审核通过</el-tag>
+            <el-tag v-if="scope.row.auditStatus==-1" type="danger">驳回</el-tag>
+            <el-tag v-if="scope.row.auditStatus==0" type="info">已撤回</el-tag>
+            <el-tag v-if="scope.row.auditStatus==1">审核中</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template slot-scope="scope">
+            <el-button @click="turn_to(scope.row.id)" type="primary" size="medium">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+    <el-pagination class="footer" @current-change="get_data('page',$event)" :page-size="html.size" background
+      layout="total,prev,pager,next" :total="total_size"></el-pagination>
+  </div>
+
+  <script src="../../运维人员部署请修改我.js"></script>
+  <script src="../module/vue.js"></script>
+  <script src="../module/element-ui.js"></script>
+  <script src="../module/axios.min.js"></script>
+  <script src="../module/common_function.js"></script>
+  <script src="index.js"></script>
+</body>
+
+</html>

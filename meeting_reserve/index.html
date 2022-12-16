@@ -28,7 +28,7 @@
     </div>
     <!-- 提示区 -->
     <div class="table_type">
-      <span class="meeting_name">会议室(场所)</span>
+      <span class="meeting_name">会议室名称</span>
       <div class="other">
         <span class="text flex_shrink">时间</span>
         <div class="tips flex_shrink">
@@ -170,11 +170,11 @@
                   :picker-options="{start: '06:00',step: '00:15',end: '23:00',maxTime:new_meeting_form.time_start}"
                   placeholder="选择提醒时间">
                 </el-time-select>
-                <el-select v-model="item.type" class="box2">
+                <!-- <el-select v-model="item.type" class="box2">
                   <el-option v-for="item2,index in html.info_type" :label="item2" :value="index"
                     :disabled="index!=0&&index!=2">
                   </el-option>
-                </el-select>
+                </el-select> -->
                 <i class="el-icon-close icon button" @click="del_alert_time(index)"></i>
               </div>
             </div>
