@@ -5,32 +5,34 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title></title>
   <link rel="stylesheet" href="../module/element-ui.css">
   <link rel="stylesheet" href="../module/common_style.css">
   <link rel="stylesheet" href="./index.css">
 </head>
 
 <body>
-  <div id="index" v-cloak :style="resize()" v-loading="html.page_loading">
-    <template v-for="item in component_list">
-      <custom-slider v-if="item.type=='slider'" :obj="item" :total_h="html.total_h" :total_w="html.total_w"
-        :radio="radio">
-      </custom-slider>
-      <custom-text v-if="item.type=='text'" :obj="item" :total_h="html.total_h" :total_w="html.total_w" :radio="radio">
-      </custom-text>
-      <custom-img v-if="item.type=='img'" :obj="item" :total_h="html.total_h" :total_w="html.total_w" :radio="radio">
-      </custom-img>
-      <custom-button v-if="item.type=='button'" :obj="item" :total_h="html.total_h" :total_w="html.total_w"
-        :radio="radio">
-      </custom-button>
-      <custom-switch v-if="item.type=='switch'" :obj="item" :total_h="html.total_h" :total_w="html.total_w"
-        :radio="radio">
-      </custom-switch>
-      <custom-progress v-if="item.type=='progress'" :obj="item" :total_h="html.total_h" :total_w="html.total_w"
-        :radio="radio">
-      </custom-progress>
-    </template>
+  <div id="index" v-cloak v-loading="html.page_loading" @click="close_popup">
+    <div class="body" :style="resize(page)" v-for="page in component_list" v-show="page_id==page.id">
+      <template v-for="item,index in page.data">
+        <custom-slider v-if="item.type=='slider'" :obj="item" :radio="page.radio">
+        </custom-slider>
+        <custom-text v-if="item.type=='text'" :obj="item" :radio="page.radio">
+        </custom-text>
+        <custom-img v-if="item.type=='img'" :obj="item" :radio="page.radio">
+        </custom-img>
+        <custom-button v-if="item.type=='button'" :obj="item" :radio="page.radio" :current_page="page_id">
+        </custom-button>
+        <custom-switch v-if="item.type=='switch'" :obj="item" :radio="page.radio">
+        </custom-switch>
+        <custom-progress v-if="item.type=='progress'" :obj="item" :radio="page.radio">
+        </custom-progress>
+        <custom-selector v-if="item.type=='select'" :obj="item" :radio="page.radio" :group="index"></custom-selector>
+        <custom-popup v-if="item.type=='select'" :obj="item" :radio="page.radio" :group="index"></custom-popup>
+        <custom-button-switch v-if="item.type=='switch_button'" :obj="item" :radio="page.radio"></custom-button-switch>
+        <custom-matrix v-if="item.type=='matrix'" :obj="item" :radio="page.radio"></custom-matrix>
+      </template>
+    </div>
   </div>
 
   <script src="../../运维人员部署请修改我.js"></script>

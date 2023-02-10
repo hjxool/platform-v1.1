@@ -6,6 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title></title>
+  <link rel="stylesheet" href="../../css/eleme-dark.css">
   <link rel="stylesheet" href="../module/common_style.css">
   <link rel="stylesheet" href="./index.css">
 </head>
@@ -15,7 +16,7 @@
     <div class="box1 row_layout">
       <img src="./img/icon1.png" class="bg_img">
 
-      <div class="row_layout button">
+      <div class="row_layout button" @click="get_statistic_list('场所数量')">
         <img src="./img/icon2.png" class="icon">
         <div class="box1_1">
           <span class="text">{{place_num}}</span>
@@ -23,7 +24,7 @@
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout button">
+      <div class="row_layout button" @click="get_statistic_list('在线设备')">
         <img src="./img/icon3.png" class="icon">
         <div class="box1_1">
           <span class="text">{{online_num}}</span>
@@ -31,7 +32,7 @@
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout button" @click="trun_to_other_page('离线')">
+      <div class="row_layout button" @click="get_statistic_list('离线设备')">
         <img src="./img/icon4.png" class="icon">
         <div class="box1_1">
           <span class="text">{{offline_num}}</span>
@@ -39,7 +40,7 @@
         </div>
       </div>
       <div class="icon2"></div>
-      <div class="row_layout button" @click="trun_to_other_page('告警')">
+      <div class="row_layout button" @click="get_statistic_list('告警设备')">
         <img src="./img/icon5.png" class="icon">
         <div class="box1_1">
           <span class="text">{{alert_num}}</span>
@@ -55,12 +56,12 @@
       </div>
       <div class="box2_1">
         <transition-group name="alert">
-          <div class="box2_2 row_layout button" v-for="item in alert_list" :key="item.time"
+          <div class="box2_2 row_layout button" v-for="item,index in alert_list" :key="index"
             @click="trun_to_other_page(item.type)">
             <img src="./img/icon7.png" class="icon2">
             <div class="box2_3">
               <span class="text1 text_ellipsis" :title="item.content">{{item.content}}</span>
-              <span class="text2 text_ellipsis">{{item.time}}</span>
+              <!-- <span class="text2 text_ellipsis">{{item.time}}</span> -->
             </div>
           </div>
         </transition-group>
@@ -104,6 +105,38 @@
       <div class="row_layout">
         <span class="text">远程管控</span>
         <img src="./img/icon9.png" class="icon" draggable="false">
+      </div>
+    </div>
+
+    <!-- 弹窗 -->
+    <!-- 场所/在线设备/离线设备/告警设备弹窗 -->
+    <div class="popover" v-if="html.statistic_window">
+      <div class="statistic_window">
+        <div class="head">
+          <span class="text">{{html.statistic_title}}</span>
+          <el-button @click="html.statistic_window=false" type="danger" icon="el-icon-close" circle
+            size="mini"></el-button>
+        </div>
+        <div class="statistic_body">
+          <el-table :data="statistic_window_list" :max-height="html.table_h">
+            <el-table-column type="index" width="50"></el-table-column>
+            <template v-if="html.statistic_title!=='场所数量'">
+              <el-table-column v-if="html.statistic_title==='离线设备'" prop="offlineTime" label="时间"
+                width="180"></el-table-column>
+              <el-table-column prop="deviceName" label="设备名称"></el-table-column>
+              <el-table-column v-if="html.statistic_title!=='在线设备'" label="操作" width="80">
+                <template slot-scope="scope">
+                  <el-button @click="trun_to_other_page(scope.row)" type="text">详情</el-button>
+                </template>
+              </el-table-column>
+            </template>
+            <template v-if="html.statistic_title==='场所数量'">
+              <el-table-column prop="placeName" label="场所名称"></el-table-column>
+            </template>
+          </el-table>
+        </div>
+        <el-pagination v-if="html.statistic_title!=='场所数量'" class="paging" @current-change="get_statistic_list"
+          layout="prev, pager, next" :total="html.total" :page-size="html.page_size"></el-pagination>
       </div>
     </div>
   </div>

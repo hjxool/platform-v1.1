@@ -64,7 +64,7 @@ new Vue({
 			this.get_token();
 			this.device_name = decodeURIComponent(this.device_name);
 		}
-		document.title = '音响系统';
+		document.title = '智慧音频终端';
 		this.get_user_info();
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符

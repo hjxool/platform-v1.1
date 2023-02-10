@@ -49,6 +49,8 @@ new Vue({
 			cycle_deadline: '', // 周期预约的截止日期
 			// files: [], // 存多次上传文件回来的结果
 			meetingReminds: [], // 提醒时间 数组
+			guestList: [], //来宾列表
+			description: '', //会议备注
 		},
 		// 会议信息
 		meeting_info: {
@@ -93,7 +95,7 @@ new Vue({
 		// 小于当天的格子全部灰掉
 		// 改变时间后 只有当天才能显示和计算边界值 格式化当天条件为 00点
 		let t = new Date();
-		this.current_day = new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()}`).getTime();
+		this.current_day = new Date(`${t.getFullYear()}/${t.getMonth() + 1}/${t.getDate()}`).getTime();
 		this.html.date = new Date(this.current_day);
 		// 获取当前时间
 		this.display_time(this.html.date);
@@ -309,6 +311,7 @@ new Vue({
 				this.new_meeting_form.cycle_deadline = '';
 				this.new_meeting_form.files = [];
 				this.html.form_loading = false;
+				this.new_meeting_form.guestList = [];
 			}
 			this.start_move = false;
 		},
@@ -389,6 +392,8 @@ new Vue({
 						userIds: form.search_person,
 						meetingFiles: form.files,
 						meetingReminds: [],
+						guestList: this.new_meeting_form.guestList,
+						description: form.description,
 					};
 					if (form.method != 0) {
 						// 周期截止
@@ -417,9 +422,10 @@ new Vue({
 					}
 					this.html.form_loading = true;
 					this.request('post', meeting_reserve, this.token, data, (res) => {
-						this.col_index_start = this.col_index_end = null;
+						this.close_new();
+						// this.col_index_start = this.col_index_end = null;
 						this.req_room_list();
-						this.html.new_meeting = false;
+						// this.html.new_meeting = false;
 						this.html.form_loading = false;
 					});
 				}
@@ -451,6 +457,43 @@ new Vue({
 				},
 			};
 		},
+		// 预约日期不能是当天之前的
+		date_options() {
+			return {
+				disabledDate(curr_time) {
+					return curr_time.getTime() < Date.now() - 86400000;
+				},
+			};
+		},
+		// 预约时间如果是当天，则不能选择当前时刻之前的
+		// time_options(flag) {
+		// 	let s = '06:00';
+		// 	// 86400000是一天的毫秒数
+		//   let t = {
+		//     step: '00:30',
+		// 		end: '23:00',
+		//   }
+		// 	if (Date.now() - this.new_meeting_form.date.getTime() < 86400000) {
+		//     // 小于一天，认为是当天 获取当前时刻
+		// 		if (flag == 'start') {
+		// 		} else if (flag == 'end') {
+		// 		}
+		// 		let time = new Date().toString().split(' ')[4];
+		// 		let time_list = time.split(':');
+		// 		let hour = +time_list[0]; //+号使字符转变为数字
+		// 		let minute = +time_list[1];
+		// 		if (minute < 30) {
+		// 			s = `${hour > 10 ? hour : '0' + hour}:30`;
+		// 		} else {
+		// 			s = `${++hour > 10 ? hour : '0' + hour}:00`;
+		// 		}
+		// 	}
+		//   return t
+		// 	return {
+		// 		start: s,
+		// 		// maxTime: this.new_meeting_form.time_end,
+		// 	};
+		// },
 		// 删除上传文件时
 		file_del(file, file_list) {
 			let promise = this.$confirm(`确认删除 ${file.name} ？`);
@@ -579,6 +622,82 @@ new Vue({
 			if (this.new_meeting_form.sendMessage == 0) {
 				this.new_meeting_form.meetingReminds = [];
 			}
+		},
+		// 上传来宾信息
+		upload_click() {
+			upload.click();
+		},
+		upload_visitor(e) {
+			let file = e.target.files[0];
+			let reader = new FileReader();
+			reader.readAsBinaryString(file);
+			reader.onload = (e2) => {
+				try {
+					let binary = e2.target.result;
+					this.new_meeting_form.guestList = []; //在当前表单下有可能重复上传文件 每次要清空之前的列表
+					let excel = XLSX.read(binary, { type: 'binary' });
+					for (let sheet in excel.Sheets) {
+						if (Object.prototype.hasOwnProperty.call(excel.Sheets, sheet)) {
+							let single_sheet = XLSX.utils.sheet_to_json(excel.Sheets[sheet]);
+							// 生成的是对象数组
+							for (let val of single_sheet) {
+								let t = Object.entries(val);
+								let visitor = {
+									guestName: t[0][1],
+									guestPhone: t[1][1],
+								};
+								this.new_meeting_form.guestList.push(visitor);
+							}
+						}
+					}
+				} catch (err) {
+					this.$message('只能上传Excel文件');
+				}
+			};
+		},
+		// 下载excel模板
+		download() {
+			axios({
+				method: 'get',
+				url: `${url}api-file/files/view/9ECD2E6B3A604EC5ADBD1A9852CFA67D.xlsx`,
+				responseType: 'blob',
+			}).then((res) => {
+				// let b = new Blob([res.data], { type: 'application/vnd.ms-excel' });
+				let a = document.createElement('a');
+				a.href = URL.createObjectURL(res.data);
+				a.target = '_blank';
+				a.download = '模板';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+			});
+		},
+		// 表单卡片样式
+		form_style() {
+			return {
+				display: 'flex',
+				flexDirection: 'column',
+				overflow: 'hidden',
+				maxHeight: '86vh',
+			};
+		},
+	},
+	computed: {
+		// 由表单获取的来宾列表计算生成的文本
+		guestList() {
+			let text = '';
+			let count = 0;
+			for (let val of this.new_meeting_form.guestList) {
+				count++;
+				let t;
+				if (count == this.new_meeting_form.guestList.length) {
+					t = '';
+				} else {
+					t = '、';
+				}
+				text += `${val.guestName}(${val.guestPhone})${t}`;
+			}
+			return text;
 		},
 	},
 });

@@ -20,6 +20,8 @@ const common_functions = {
 					window.sessionStorage.device_id = this.device_id = t[1];
 				} else if (t[0].match(/^prePage$/) != null) {
 					window.sessionStorage.prePage = this.prePage = t[1];
+				} else if (t[0].match(/^type$/) != null) {
+					window.sessionStorage.router = this.router = t[1];
 				}
 			}
 			let url = location.href.split('?')[0];

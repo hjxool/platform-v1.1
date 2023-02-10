@@ -222,11 +222,13 @@ new Vue({
 					let t = {
 						gain: data[`gain_in${i}`].propertyValue,
 						mute: data[`mute_in${i}`].propertyValue,
+						gain_input: data[`gain_in${i}`].propertyValue,
 					};
 					this.input.push(t);
 					let t2 = {
 						gain: data[`gain_out${i}`].propertyValue,
 						mute: data[`mute_out${i}`].propertyValue,
+						gain_input: data[`gain_out${i}`].propertyValue,
 					};
 					this.output.push(t2);
 				}
@@ -308,6 +310,30 @@ new Vue({
 				body.contents[0].attributes = t;
 			}
 			this.request('put', `${sendCmdtoDevice}/${topic}`, this.token, body);
+		},
+		// 防抖
+		debounce(fn, delay, ...params) {
+			clearTimeout(this.timer);
+			this.timer = setTimeout(() => {
+				fn(...params);
+			}, delay);
+		},
+		// 验证滑块输入
+		verify_slider_input(obj, key) {
+			let reg = /(^\-?\d+$)|(^\+?\d+$)|(^\-?\d+\.\d+$)|(^\+?\d+\.\d+$)/;
+			if (reg.test(obj.gain_input)) {
+				if (Number(obj.gain_input) < this.html.gain_min) {
+					obj.gain = obj.gain_input = this.html.gain_min;
+				} else if (Number(obj.gain_input) > this.html.gain_max) {
+					obj.gain = obj.gain_input = this.html.gain_max;
+				} else {
+					obj.gain = Number(obj.gain_input);
+				}
+				this.send_order(key, obj.gain);
+			} else {
+				this.$message.error('只能输入数字！');
+				obj.gain_input = obj.gain;
+			}
 		},
 	},
 });

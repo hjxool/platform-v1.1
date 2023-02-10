@@ -14,11 +14,12 @@
 <body>
   <div id="index" v-cloak>
     <!-- 日历 -->
-    <el-card shadow="never" style="margin-right: 20px;">
+    <div class="left">
       <!-- 日期及选项切换 -->
       <div class="header">
+        <i class="el-icon-info" title="会议日历显示已审核通过的所有申请及参与的会议"></i>
         <div class="box1">
-          <div class="icon1 center button" @click="pre_date(html.time_option)">
+          <div class="icon1 center button" @click="pre_date">
             <i class="el-icon-arrow-left icon2"></i>
           </div>
           <!-- 选择日 -->
@@ -26,11 +27,11 @@
               @change="time_display(0)" type="date"></el-date-picker> -->
           <!-- 选择周 -->
           <el-date-picker v-show="html.time_option==0" v-model="html.week_date" class="calendar" style="width: 260px;"
-            :format="week_format()" type="week" @change="time_display(0)"></el-date-picker>
+            :format="week_format()" type="week" @change="time_display(html.time_option)"></el-date-picker>
           <!-- 选择月 -->
           <el-date-picker v-show="html.time_option==1" v-model="html.month_date" class="calendar" style="width: 120px;"
-            format="yyyy-MM" type="month" @change="time_display(1)"></el-date-picker>
-          <div class="icon1 center button" @click="next_date(html.time_option)">
+            format="yyyy-MM" type="month" @change="time_display(html.time_option)"></el-date-picker>
+          <div class="icon1 center button" @click="next_date">
             <i class="el-icon-arrow-right icon2"></i>
           </div>
         </div>
@@ -68,10 +69,10 @@
           <span class="text">周六</span>
         </div>
         <div class="box1">
-          <div class="time_box">
+          <div class="time_box min_height">
             <div v-for="i in 17" class="time center week">{{i+5}}:30</div>
           </div>
-          <div v-for="i in 7" class="box2">
+          <div v-for="i in 7" class="box2 min_height">
             <div v-for="j in 17" class="box3">
               <div class="line"></div>
             </div>
@@ -111,11 +112,11 @@
           </div>
         </div>
       </div>
-    </el-card>
+    </div>
     <!-- 右侧统计及列表 -->
     <div class="right">
       <!-- 统计 -->
-      <el-card shadow="never" class="right1">
+      <div class="right1">
         <div class="right1_head row_layout">
           <span>会议总状态</span>
           <el-button @click="turn_to_page('会议预约')" type="primary" size="small">+ 创建会议</el-button>
@@ -124,9 +125,9 @@
           <span>{{item.title}}</span>
           <span style="font-size: 20px;">{{item.num}}</span>
         </div>
-      </el-card>
+      </div>
       <!-- 列表 -->
-      <el-card shadow="never">
+      <div class="right2_all">
         <div class="right2" v-for="item,index in meeting_list">
           <!-- 装饰线 -->
           <div class="right2_1 flex_shrink">
@@ -154,7 +155,7 @@
             <el-button class="right2_2_2" @click="turn_to_page('meetingDetail',item.id)" type="text">详情 ></el-button>
           </div>
         </div>
-      </el-card>
+      </div>
     </div>
   </div>
 

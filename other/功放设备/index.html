@@ -86,7 +86,10 @@
                 <img src="./img/icon7.png" class="bg_img" v-show="item2.mute==1">
                 <span style="color: #fff;font-size: 1rem;">静音</span>
               </div>
-              <div class="text2 center">{{item2.gain}}</div>
+              <!-- <div class="text2 center">{{item2.gain}}</div> -->
+              <input @input="debounce(verify_slider_input,1500,item2,(item==1?'gain_in':'gain_out')+index)"
+                @keydown.enter="verify_slider_input(item2,(item==1?'gain_in':'gain_out')+index)"
+                v-model="item2.gain_input" maxlength="5" class="text2">
               <div class="slider"
                 @mousedown="slider_turn_to($event,item2,undefined,(item==1?'gain_in':'gain_out')+index)">
                 <img src="./img/icon9.png" class="icon2" draggable="false">

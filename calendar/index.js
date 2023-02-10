@@ -14,7 +14,7 @@ new Vue({
 			month_block: [], //月显示时当月1号所在周到月末所在周日期
 			day_start: '', // 小于这个数的要显示为灰色
 			day_end: '', // 大于这个数的显示为灰色
-			meeting_type: 3, // 查询的会议类型 3已通过
+			meeting_type: 3, // 查询的会议类型 3已通过 4全部用户
 		},
 		week_meeting: [], //周下的会议列表
 		month_meeting: [], //月下的会议列表
@@ -33,78 +33,18 @@ new Vue({
 			this.get_token();
 		}
 		this.time_display(this.html.time_option);
-		window.addEventListener('resize', this.resize);
 	},
 	methods: {
 		time_display(index) {
 			this.html.time_option = index;
-			this.meeting_list = [];
 			for (let val of this.meeting_count) {
 				val.num = 0;
 			}
-			//#region
-			// if (index == 0) {
-			// 	this.day_meeting = [];
-			// 	let start_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 06:00:00`;
-			// 	let end_time = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1}-${this.html.date.getDate()} 23:00:00`;
-			// 	this.request('post', calender_search, this.token, { queryType: this.html.meeting_type, startTime: start_time, endTime: end_time }, (res) => {
-			// 		console.log('一天会议', res);
-			// 		if (res.data.data == null || typeof res.data.data == 'string' || Object.entries(res.data.data).length == 0) {
-			// 			return;
-			// 		}
-			// 		// 获取基础方格高度
-			// 		this.block_height = document.querySelector('.day').offsetHeight / 2;
-			// 		this.day_meeting = Object.entries(res.data.data)[0][1];
-			// 	});
-			// }
-			//#endregion
 			if (index == 0) {
-				this.week_meeting = [];
-				let start_time = `${this.week_start.getFullYear()}-${this.week_start.getMonth() + 1}-${this.week_start.getDate()} 06:00:00`;
-				let end_time = `${this.week_end.getFullYear()}-${this.week_end.getMonth() + 1}-${this.week_end.getDate()} 23:00:00`;
-				this.request('post', calender_search, this.token, { queryType: this.html.meeting_type, startTime: start_time, endTime: end_time }, (res) => {
-					console.log('周会议', res);
-					let array = Object.entries(res.data.data);
-					if (array.length == 0) {
-						return;
-					}
-					this.block_height = document.querySelector('.week').offsetHeight / 2;
-					// 先将页面渲染数组构造出来 再计算位置
-					let t_a = [];
-					for (let i = 0; i < array.length; i++) {
-						let t = new Date(array[i][0]).getDay();
-						t_a.push(t);
-						for (let val of array[i][1]) {
-							// 添加几个属性
-							val.date = val.startTime.split(' ')[0];
-							val.start = val.startTime.split(' ')[1].substring(0, 5);
-							val.end = val.endTime.split(' ')[1].substring(0, 5);
-							// 返回的数据是日期对象里套数组 数组里才是会议
-							this.meeting_list.push(val); // 会议列表不论时间只将有的会议都压栈进去
-							// 统计
-							if (val.status == 1) {
-								this.meeting_count[0].num++;
-							} else if (val.status == 0) {
-								this.meeting_count[1].num++;
-							} else if (val.status == 2) {
-								this.meeting_count[2].num++;
-							}
-						}
-					}
-					for (let i = 0; i < 7; i++) {
-						let flag = false;
-						for (let j = 0; j < t_a.length; j++) {
-							if (i == t_a[j]) {
-								flag = true;
-								this.week_meeting.push(array[j][1]);
-								break;
-							}
-						}
-						if (!flag) {
-							this.week_meeting.push([]);
-						}
-					}
-				});
+				// this.week_meeting = [];
+				// 有多个查询条件 就不每次都计算时间了 不改变时间开始和结束日期就不变 只有在切换周/月显示时需要重新计算时间
+				this.start_time = `${this.week_start.getFullYear()}-${this.week_start.getMonth() + 1}-${this.week_start.getDate()} 06:00:00`;
+				this.end_time = `${this.week_end.getFullYear()}-${this.week_end.getMonth() + 1}-${this.week_end.getDate()} 23:00:00`;
 			} else if (index == 1) {
 				// 先获取当前年月 然后算当月的1号是周几 然后根据时间戳算周日的日期
 				let d = this.html.month_date.getDate();
@@ -151,16 +91,31 @@ new Vue({
 					this.html.month_block.push(t);
 				}
 				// 发送请求 计算35个方格中开始到结束的日期
-				this.month_meeting = [];
-				let start_time = `${d_start.getFullYear()}-${d_start.getMonth() + 1}-${d_start.getDate()} 06:00:00`;
+				// this.month_meeting = [];
+				this.start_time = `${d_start.getFullYear()}-${d_start.getMonth() + 1}-${d_start.getDate()} 06:00:00`;
 				let end_day = new Date(d_start.getTime() + 34 * 24 * 60 * 60 * 1000);
-				let end_time = `${end_day.getFullYear()}-${end_day.getMonth() + 1}-${end_day.getDate()} 23:00:00`;
-				this.request('post', calender_search, this.token, { queryType: this.html.meeting_type, startTime: start_time, endTime: end_time }, (res) => {
-					console.log('月会议', res);
-					let array = Object.entries(res.data.data);
-					if (array.length == 0) {
-						return;
-					}
+				this.end_time = `${end_day.getFullYear()}-${end_day.getMonth() + 1}-${end_day.getDate()} 23:00:00`;
+			}
+			this.get_meeting_list(index);
+		},
+		// 获取周会议列表
+		get_meeting_list(page_index) {
+			this.meeting_list = [];
+			this.week_meeting = [];
+			this.month_meeting = [];
+			let data = {
+				queryType: this.html.meeting_type,
+				startTime: this.start_time,
+				endTime: this.end_time,
+			};
+			this.request('post', calender_search, this.token, data, (res) => {
+				console.log(`${page_index ? '月' : '周'}会议`, res);
+				let array = Object.entries(res.data.data);
+				if (array.length == 0) {
+					return;
+				}
+				if (page_index) {
+					// month_block是全部的日期数组
 					for (let i = 0; i < this.html.month_block.length; i++) {
 						let flag = false;
 						for (let j = 0; j < array.length; j++) {
@@ -188,8 +143,45 @@ new Vue({
 							this.month_meeting.push([]);
 						}
 					}
-				});
-			}
+				} else {
+					this.block_height = document.querySelector('.week').offsetHeight / 2;
+					// 先将页面渲染数组构造出来 再计算位置
+					let t_a = [];
+					for (let i = 0; i < array.length; i++) {
+						let t = new Date(array[i][0]).getDay();
+						t_a.push(t); //生成日期数组 用以查看是否有缺的日期
+						for (let val of array[i][1]) {
+							// 添加几个属性
+							val.date = val.startTime.split(' ')[0];
+							val.start = val.startTime.split(' ')[1].substring(0, 5);
+							val.end = val.endTime.split(' ')[1].substring(0, 5);
+							// 返回的数据是日期对象里套数组 数组里才是会议
+							this.meeting_list.push(val); // 会议列表不论时间只将有的会议都压栈进去
+							// 统计
+							if (val.status == 1) {
+								this.meeting_count[0].num++;
+							} else if (val.status == 0) {
+								this.meeting_count[1].num++;
+							} else if (val.status == 2) {
+								this.meeting_count[2].num++;
+							}
+						}
+					}
+					for (let i = 0; i < 7; i++) {
+						let flag = false;
+						for (let j = 0; j < t_a.length; j++) {
+							if (i == t_a[j]) {
+								flag = true;
+								this.week_meeting.push(array[j][1]);
+								break;
+							}
+						}
+						if (!flag) {
+							this.week_meeting.push([]);
+						}
+					}
+				}
+			});
 		},
 		// 格式化周的时间显示
 		week_format() {
@@ -225,8 +217,8 @@ new Vue({
 			return t;
 		},
 		// 不同日期下点击前/后一天 功能不一样
-		pre_date(page_index) {
-			switch (page_index) {
+		pre_date() {
+			switch (this.html.time_option) {
 				// case 0:
 				// 	this.html.date = new Date(this.html.date.getTime() - 24 * 60 * 60 * 1000);
 				// 	break;
@@ -246,10 +238,13 @@ new Vue({
 					this.html.month_date = new Date(`${y}-${m}`);
 					break;
 			}
-			this.time_display(this.html.time_option);
+			// 因为周用的是element格式化方法 所以修改完时间后得等组件挂载刷新后再调用time_display
+			this.$nextTick(() => {
+				this.time_display(this.html.time_option);
+			});
 		},
-		next_date(page_index) {
-			switch (page_index) {
+		next_date() {
+			switch (this.html.time_option) {
 				// case 0:
 				// 	this.html.date = new Date(this.html.date.getTime() + 24 * 60 * 60 * 1000);
 				// 	break;
@@ -269,7 +264,10 @@ new Vue({
 					this.html.month_date = new Date(`${y}-${m}`);
 					break;
 			}
-			this.time_display(this.html.time_option);
+			// 因为周用的是element格式化方法 所以修改完时间后得等组件挂载刷新后再调用time_display
+			this.$nextTick(() => {
+				this.time_display(this.html.time_option);
+			});
 		},
 		// 跳转到其他页面
 		turn_to_page(type, meeting_id) {

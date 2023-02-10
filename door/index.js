@@ -9,6 +9,8 @@ let curent_user_name_url = `${url}api-auth/oauth/user/tenant`;
 let unbind_device_url = `${url}api-portal/place/delete`;
 let devices_status_info_url = `${url}api-portal/deviceAnalyse/ops/search/devices`;
 let edit_device_url = `${url}api-device/device`;
+let device_alert_url = `${url}api-portal/device-alarm/search`;
+let handle_alert_url = `${url}api-portal/device-alarm/deal`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -29,8 +31,11 @@ new Vue({
 			page_loading: false, //选项页切换
 			distribute_place_display: false, //分配场所页面显示
 			popover_loading: false, //分配场所弹窗查询和保存时加载
-			turn_to_display: -1, //跳转设备按钮选择弹窗
-			turn_to_options: ['可视化页面', '定制页面'],
+			turn_to_device: false, //跳转设备弹窗显示
+			device_name: '', //设备弹窗下设备名称
+			device_url: '', //设备跳转路径
+			iconize_device: false, //最小化弹窗
+			alert_detail_display: false, //告警详情弹窗
 		},
 		place_type_list: [], //场所类型
 		edit_place_form: {
@@ -54,6 +59,7 @@ new Vue({
 			type_online: 0, //在线数
 			type_offline: 0, //离线数
 			// is_check_all: false, //是否点击了全选
+			page_size: 10, //一页最大显示条数
 		},
 		// 设备监控
 		status: {
@@ -64,6 +70,10 @@ new Vue({
 			place_list: [], //场所列表
 			place_id: '', //场所id
 			place_devices: [], // 设备列表
+			total_alert: 0, //告警总条数
+			page_size: 20, //一页最大显示条数
+			alert_table_h: 0,
+			alert_list: [], //告警列表
 		},
 	},
 	mounted() {
@@ -77,6 +87,10 @@ new Vue({
 		window.onresize = () => {
 			let dom = document.querySelector('.all_device');
 			this.devices.table_h = dom.offsetHeight - 20;
+			if (this.html.alert_detail_display) {
+				let dom2 = document.querySelector('.alert_body');
+				this.status.alert_table_h = dom2.offsetHeight;
+			}
 		};
 	},
 	methods: {
@@ -167,10 +181,15 @@ new Vue({
 			this.$refs.edit_place_form.validate((result) => {
 				if (result) {
 					if (this.add_or_edit == 'add') {
-						this.request('post', `${place_list}/${this.add_user_id}/add`, this.token, { placeName: this.edit_place_form.name, placeType: this.edit_place_form.type }, () => {
+						this.request('post', `${place_list}/${this.add_user_id}/add`, this.token, { placeName: this.edit_place_form.name, placeType: this.edit_place_form.type }, (res) => {
 							this.html.edit_place_display = false;
-							if (this.add_user_id == this.status.user_id) {
-								this.refresh_place_list();
+							// if (this.add_user_id == this.status.user_id) {
+							// 	this.refresh_place_list();
+							// }
+							if (res.data.head.code == 200) {
+								this.$message.success(`新增 ${this.edit_place_form.name} 场所成功`);
+							} else {
+								this.$message('新增场所失败');
 							}
 						});
 					} else if (this.add_or_edit == 'edit') {
@@ -264,12 +283,22 @@ new Vue({
 			// 	}
 			// }
 			//#endregion
+			// 保存下当前操作的对象
+			this.device_obj = device_obj;
+			this.html.iconize_device = false;
 			if (device_obj.visualizedFlag) {
-				window.open(`../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}`);
+				this.html.turn_to_device = true;
+				let name = encodeURIComponent(device_obj.deviceName);
+				this.html.device_name = device_obj.deviceName;
+				// window.open(`../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}&device_name=${name}`);
+				this.html.device_url = `../index.html?type=Visual_Preview&token=${this.token}&deviceId=${device_obj.id}&productId=${device_obj.productId}&device_name=${name}`;
 			} else {
 				if (device_obj.productUrl) {
+					this.html.turn_to_device = true;
 					let name = encodeURIComponent(device_obj.deviceName);
-					window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
+					this.html.device_name = device_obj.deviceName;
+					// window.open(`../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`);
+					this.html.device_url = `../index.html?type=${device_obj.productUrl}&token=${this.token}&id=${device_obj.id}&device_name=${name}`;
 				} else {
 					this.$message('请配置产品调控页面前端标识后再试');
 				}
@@ -278,8 +307,8 @@ new Vue({
 		// 切换选项查看场所信息
 		option_switch(index) {
 			this.html.option_focus = index;
+			this.req_user_list();
 			if (index == 0) {
-				this.get_all_devices_status_info();
 				this.get_all_user_devices();
 				this.request('get', user_list, this.token, (res) => {
 					console.log('租户', res);
@@ -292,7 +321,7 @@ new Vue({
 					this.devices.table_h = dom.offsetHeight - 20;
 				});
 			} else if (index == 1) {
-				this.req_user_list();
+				// this.req_user_list();
 			}
 		},
 		// 查询所有租户设备
@@ -300,7 +329,7 @@ new Vue({
 			this.get_all_devices_status_info();
 			let data = {
 				condition: {},
-				pageSize: 10,
+				pageSize: this.devices.page_size,
 			};
 			if (typeof cur_page == 'number') {
 				data.pageNum = cur_page;
@@ -461,6 +490,53 @@ new Vue({
 			} else {
 				this.html.turn_to_display = index;
 			}
+		},
+		// 最小化设备窗口
+		iconize_device_window() {
+			this.html.turn_to_device = false;
+			this.html.iconize_device = true;
+		},
+		// 最大化设备窗口
+		full_size() {
+			this.turn_to_device(this.device_obj);
+		},
+		// 关闭设备窗口
+		close_device_window() {
+			this.html.turn_to_device = false;
+			this.html.device_url = '';
+		},
+		// 告警弹窗显示
+		alert_detail(params) {
+			// 形参是数字则是翻页 是对象则检索第一页
+			let n;
+			if (typeof params == 'number') {
+				n = params;
+			} else {
+				n = 1;
+				this.alert_device_id = params;
+			}
+			this.request('post', device_alert_url, this.token, { condition: { deviceId: this.alert_device_id, alarmDeal: false }, pageNum: n, pageSize: this.status.page_size }, (res) => {
+				console.log('设别告警', res);
+				if (res.data.head.code != 200) {
+					return;
+				}
+				this.html.alert_detail_display = true;
+				this.status.alert_list = res.data.data.data;
+				this.status.total_alert = res.data.data.total;
+				// 第一次点开弹窗要计算高度
+				if (typeof params == 'string') {
+					this.$nextTick(() => {
+						let dom = document.querySelector('.alert_body');
+						this.status.alert_table_h = dom.offsetHeight;
+					});
+				}
+			});
+		},
+		// 处理告警消息
+		handle_alert_message(alert_obj) {
+			this.request('post', handle_alert_url, this.token, [alert_obj.id], () => {
+				this.alert_detail(this.alert_device_id);
+			});
 		},
 	},
 });

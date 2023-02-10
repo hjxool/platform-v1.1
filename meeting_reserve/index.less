@@ -215,8 +215,6 @@
 	.form_box {
 		width: 31.25%;
 		min-width: 600px;
-		max-height: 90%;
-		overflow: auto;
 		margin-top: 40px;
 		.form_head {
 			display: flex;
@@ -237,6 +235,12 @@
 					color: #f02424;
 				}
 			}
+		}
+		.form_body {
+			flex-grow: 1;
+			overflow: auto;
+			padding-right: 10px;
+			margin: 20px 0;
 		}
 		.alert_box {
 			display: flex;
@@ -261,10 +265,6 @@
 					font-size: 16px;
 				}
 			}
-		}
-		.button_layout {
-			display: flex;
-			justify-content: end;
 		}
 		.margin {
 			margin-right: 10px;

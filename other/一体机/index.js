@@ -13,12 +13,21 @@ new Vue({
 			level_min: -72,
 			gain_max: 12,
 			gain_min: -72,
+			video_buttons: ['IN1->OUTA', 'IN2->OUTA', 'IN3->OUTA', 'IN4->OUTA', 'IN1->OUTB', 'IN2->OUTB', 'IN3->OUTB', 'IN4->OUTB'], //视频控制按钮
+			EDID_buttons: ['摄像头EDID', '无线投屏EDID', '视频会议EDID', '备用视频信号'],
+			page_select: 0, //选择的显示页
+			page: ['矩阵', '自定义'],
+			url: '',
+			iframe_h: 0,
 		},
 		configs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // 场景配置选择
 		matrix: [], // 矩阵
 		input: [], //输入
 		output: [], //输出
+		video_matrix: [], //视频矩阵回显
+		EDID_matrix: [],
 		device_name: '', //显示在页面的设备名
+		productId: '', //产品ID
 	},
 	mounted() {
 		if (!location.search) {
@@ -29,13 +38,13 @@ new Vue({
 			this.get_token();
 			this.device_name = decodeURIComponent(this.device_name);
 		}
-		document.title = '一体机';
+		document.title = '智慧运算中心';
 		this.get_user_info();
 		this.data_ready = false; // 数据结构是否完成了
 		window.onresize = () => {
 			this.button_h = document.querySelector('.slider_button').offsetHeight;
 		};
-		this.get_device_status();
+		this.change_page(0);
 	},
 	methods: {
 		// 获取用户信息包括 id 连接stomp用户名和密码
@@ -49,11 +58,15 @@ new Vue({
 				this.ws_name = res.data.data.mqUser;
 				this.ws_password = res.data.data.mqPassword;
 				this.user_id = res.data.data.id;
-				this.ws_link = new WebSocket(`${我是websocket地址}`);
-				this.stomp_link = Stomp.over(this.ws_link);
-				this.stomp_link.debug = null;
-				this.stomp_link.connect(this.ws_name, this.ws_password, this.on_message, this.on_error, '/');
+				this.link_websocket();
 			});
+		},
+		// 切换tab时 断开 以及重连
+		link_websocket() {
+			this.ws_link = new WebSocket(`${我是websocket地址}`);
+			this.stomp_link = Stomp.over(this.ws_link);
+			this.stomp_link.debug = null;
+			this.stomp_link.connect(this.ws_name, this.ws_password, this.on_message, this.on_error, '/');
 		},
 		// stomp连接成功的回调
 		on_message() {
@@ -142,6 +155,10 @@ new Vue({
 							}
 						} else if (array[0] == 'SCALL') {
 							this.html.config_select = array[1][0];
+						} else if (array[0] == 'VSWT') {
+							this.video_matrix = array[1];
+						} else if (array[0] == 'VEDID') {
+							this.EDID_matrix = array[1];
 						}
 					}
 				},
@@ -175,18 +192,21 @@ new Vue({
 		},
 		// stomp连接失败的回调
 		on_error(error) {
-			this.$message.error(error.headers.message);
+			// this.$message.error(error.headers.message);
 		},
 		// 获取页面参数
 		get_device_status() {
 			this.matrix = [];
 			this.input = [];
 			this.output = [];
+			this.video_matrix = [];
+			this.EDID_matrix = [];
 			this.request('get', `${getChannelDetail}/${this.id}`, this.token, (res) => {
 				console.log('一体机数据', res);
 				if (res.data.head.code != 200) {
 					return;
 				}
+				this.productId = res.data.data.productId;
 				let data = res.data.data.properties;
 				for (let i = 0; i < 8; i++) {
 					let t = {
@@ -231,6 +251,8 @@ new Vue({
 					this.matrix.push(t);
 				}
 				this.html.config_select = data['SCALL'].propertyValue[0];
+				this.video_matrix = data['VSWT'].propertyValue;
+				this.EDID_matrix = data['VEDID'].propertyValue;
 				this.data_ready = true;
 				this.$nextTick(() => {
 					// this.level_h = document.querySelector('.level').offsetHeight - 4; //图片偏差
@@ -337,12 +359,60 @@ new Vue({
 				attributes[key] = [this.html.config_select];
 			} else if (key == 'SSAVE') {
 				attributes[key] = [this.html.config_select];
+			} else if (key == 'VSWT') {
+				if (params[0] < 4) {
+					let t = params[0] + 1;
+					attributes[key] = [t, 255];
+					this.video_matrix.splice(0, 1, t);
+				} else {
+					let t = params[0] - 3;
+					attributes[key] = [255, t];
+					this.video_matrix.splice(1, 1, t);
+				}
+			} else if (key == 'VEDID') {
+				attributes[key] = [params[0] + 1, 255];
+				this.EDID_matrix.splice(0, 1, params[0] + 1);
 			}
 			this.request('put', `${sendCmdtoDevice}/8`, this.token, { contentType: 0, contents: [{ deviceId: this.id, attributes: attributes }] }, (res) => {
-				if (key == 'SCALL') {
-					this.get_device_status();
-				}
+				// if (key == 'SCALL') {
+				// 	this.get_device_status();
+				// }
 			});
+		},
+		// 视频矩阵回显
+		video_matrix_status(index) {
+			if (index < 4) {
+				if (index + 1 == this.video_matrix[0]) {
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				if (index - 3 == this.video_matrix[1]) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+		},
+		// 切换显示页
+		change_page(index) {
+			this.html.page_select = index;
+			switch (index) {
+				case 0:
+					if (this.ws_link == null) {
+						this.link_websocket();
+					}
+					this.get_device_status();
+					break;
+				case 1:
+					if (this.ws_link != null) {
+						this.ws_link.close();
+						this.ws_link = null;
+					}
+					this.html.url = `${候工链接}?type=Visual_Preview&token=${this.token}&deviceId=${this.id}&productId=${this.productId}`;
+					break;
+			}
 		},
 	},
 });

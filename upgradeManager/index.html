@@ -99,7 +99,7 @@
     </div>
     <!-- 选择升级设备 -->
     <div class="popover" v-if="html.upgrade_display">
-      <el-card class="form_layout" style="width: 500px;" v-loading="html.popover_loading">
+      <el-card class="form_layout" style="width: 600px;" v-loading="html.popover_loading">
         <div class="form_head">
           <span class="title">选择固件升级设备</span>
           <div class="button" @click="html.upgrade_display=false">
@@ -124,10 +124,10 @@
           </el-form-item>
           <el-form-item label="选择要升级的设备" required>
             <div v-if="upgrade_form.list.length>0" style="display: flex;flex-direction: column;">
-              <el-checkbox :indeterminate="upgrade_form.not_all" v-model="upgrade_form.checkAll" @change="check_all"
+              <!-- <el-checkbox :indeterminate="upgrade_form.not_all" v-model="upgrade_form.checkAll" @change="check_all"
                 style="align-self: start;">
                 全选
-              </el-checkbox>
+              </el-checkbox> -->
               <div class="scroll_box2">
                 <el-checkbox-group v-model="upgrade_form.select_list" @change="check_change">
                   <el-checkbox v-for="item in upgrade_form.list" :label="item.id" :key="item.id"
@@ -137,6 +137,9 @@
                   </el-checkbox>
                 </el-checkbox-group>
               </div>
+              <el-pagination class="paging" style="justify-content: start;" @current-change="get_product_device_list"
+                layout="prev, pager, next" :total="upgrade_form.total"
+                :page-size="upgrade_form.page_size"></el-pagination>
             </div>
             <el-empty v-show="upgrade_form.list.length==0" description="无设备" :image-size="100"
               style="width: 70%;padding: 0;">

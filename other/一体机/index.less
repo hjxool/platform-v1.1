@@ -38,9 +38,9 @@
 		min-height: 400px;
 		overflow-y: hidden;
 		overflow-x: auto;
+		display: grid;
+		grid-template-columns: 70% auto;
 		.box1_1 {
-			width: 80%;
-			height: 98%;
 			min-width: 800px;
 			margin-top: 20px;
 			padding-right: 10px;
@@ -74,6 +74,47 @@
 						display: grid;
 						grid-template-columns: repeat(12, 1fr);
 					}
+				}
+			}
+		}
+		.box1_2 {
+			background: linear-gradient(0deg, rgba(54, 64, 83, 0.8), rgba(35, 42, 55, 0.8));
+			border: 2px solid rgba(15, 16, 20, 0.8);
+			margin: 20px;
+			display: flex;
+			flex-direction: column;
+			min-width: 500px;
+			.title {
+				color: #fff;
+				font-size: 20px;
+				align-self: center;
+				padding: 20px 0;
+			}
+			.box1_2_1 {
+				flex-grow: 2;
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				grid-template-rows: repeat(2, 1fr);
+				align-items: center;
+				justify-items: center;
+				.text {
+					color: #fff;
+					font-weight: bold;
+					font-size: 14px;
+					padding: 20px;
+				}
+			}
+			.box1_2_2 {
+				flex-grow: 1;
+				display: grid;
+				grid-template-columns: repeat(4, 1fr);
+				align-items: center;
+				justify-items: center;
+				.text {
+					color: #fff;
+					font-weight: bold;
+					font-size: 12px;
+					padding: 20px;
 				}
 			}
 		}
@@ -209,6 +250,9 @@
 			}
 		}
 	}
+}
+.iframe_page {
+	overflow: hidden;
 }
 
 ::-webkit-scrollbar {

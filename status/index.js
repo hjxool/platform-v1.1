@@ -108,7 +108,7 @@ new Vue({
 			dom[dom.length - 1].className = 'detail fold';
 			setTimeout(() => {
 				this.page_list.pop();
-			}, 100);
+			}, 300);
 		},
 		// 具有子属性的点击进入下一级页面
 		next_page(child_array) {

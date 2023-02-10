@@ -1,5 +1,7 @@
 let url = `${我是接口地址}/`;
 let data_url = `${url}api-portal/place/tenant/device/analyse`;
+let search_device_list_url = `${url}api-portal/place/user/findDeviceByType`;
+let search_place_list_url = `${url}api-portal/place/user/findAll`;
 
 new Vue({
 	el: '#index',
@@ -7,6 +9,11 @@ new Vue({
 	data: {
 		html: {
 			scroll_num: 5, //限制滚动显示的告警条数
+			statistic_window: false, //统计数字弹窗
+			statistic_title: '', //统计弹窗标题
+			page_size: 10, //查询条数
+			table_h: 0, //弹窗列表高度
+			total: 0, //统计弹窗总数
 		},
 		online_num: 0, //在线设备数
 		offline_num: 0, //离线设备数
@@ -15,6 +22,7 @@ new Vue({
 		alert_num: 0, //设备告警数
 		alert_list: [], //实时告警列表
 		place_num: 0, //场所数量
+		statistic_window_list: [], //统计弹窗列表
 	},
 	mounted() {
 		if (!location.search) {
@@ -47,6 +55,10 @@ new Vue({
 			// 更新图表
 			for (let i = 1; i <= 4; i++) {
 				this[`echart${i}`].resize();
+			}
+			if (this.html.statistic_window) {
+				let dom2 = document.querySelector('.statistic_body');
+				this.html.table_h = dom2.offsetHeight;
 			}
 		},
 		// 初始化图表
@@ -294,8 +306,8 @@ new Vue({
 				for (let i = 0; i < length; i++) {
 					let t = data.alarmDeviceInfo[i].split(',');
 					let t2 = {
-						time: t[3].substring(3),
-						content: `类型：${t[0]},${t[1]},${t[2]}`,
+						// time: t[3].substring(3),
+						content: `类型：${t[0]}, ${t[1]}`,
 						type: t[0].substring(2),
 					};
 					this.alert_list.push(t2);
@@ -322,12 +334,66 @@ new Vue({
 			});
 		},
 		// 跳转到其他页面
-		trun_to_other_page(keyword) {
-			let key = keyword;
-			if (keyword == '告警' || keyword == '离线') {
-				key = `${keyword}设备下钻`;
+		trun_to_other_page(device_obj) {
+			let message = {
+				type: 'jump',
+				name: '设备告警',
+				condition_deviceId: device_obj.id,
+				// 200001告警 200002离线
+				condition_bizType: this.html.statistic_title == '离线设备' ? '200002' : '200001',
+			};
+			window.parent.postMessage(message);
+		},
+		// 获取统计数据
+		get_statistic_list(params) {
+			// 字符串则是第一次点开 根据类型匹配查询方法 数字则是分页查询 用同一种查询方法
+			if (typeof params == 'string') {
+				this.html.statistic_title = params;
+				switch (params) {
+					case '场所数量':
+						this.request('get', search_place_list_url, this.token, (res) => {
+							console.log('场所', res);
+							if (res.data.head.code != 200) {
+								return;
+							}
+							this.html.statistic_window = true;
+							this.statistic_window_list = res.data.data;
+							this.$nextTick(() => {
+								// 此时数据已经挂载上去 父元素被element组件撑大了 获取到的就不是正确的高度
+								// 父元素设置为溢出隐藏后 高度就在弹窗显示时固定了
+								let dom2 = document.querySelector('.statistic_body');
+								this.html.table_h = dom2.offsetHeight;
+							});
+						});
+						return;
+					default:
+						this.request_data = {};
+						this.url = search_device_list_url;
+						this.request_data.condition = {
+							placeType: 0,
+							type: params == '在线设备' ? 1 : params == '离线设备' ? 2 : 3,
+						};
+						this.request_data.pageNum = 1;
+						this.request_data.pageSize = this.html.page_size;
+						this.func = (res) => {
+							console.log('统计', res);
+							if (res.data.head.code != 200) {
+								return;
+							}
+							this.html.statistic_window = true;
+							this.statistic_window_list = res.data.data.data;
+							this.html.total = res.data.data.total;
+							this.$nextTick(() => {
+								let dom2 = document.querySelector('.statistic_body');
+								this.html.table_h = dom2.offsetHeight;
+							});
+						};
+						break;
+				}
+			} else {
+				this.request_data.pageNum = params;
 			}
-			window.parent.postMessage(key);
+			this.request('post', this.url, this.token, this.request_data, this.func);
 		},
 	},
 });

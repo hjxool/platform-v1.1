@@ -35,10 +35,14 @@
         <img src="./img/button2.png" class="bg_img">
         保存
       </div>
+      <!-- 切换的tab -->
+      <el-button v-for="item,index in html.page" @click="change_page(index)"
+        :type="html.page_select==index?'primary':''" style="margin-left:20px;" size="small">{{item}}</el-button>
     </div>
-    <div class="body">
-      <!-- 矩阵 -->
+    <!-- 定制页 -->
+    <div class="body" v-show="html.page_select==0">
       <div class="box1">
+        <!-- 矩阵 -->
         <div class="box1_1">
           <div class="box1_1_head">
             <div class="block center text" v-for="num,index in 13">
@@ -58,6 +62,25 @@
                   <img v-show="item2==0" src="./img/icon2.png" class="bg_img">
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <!-- 视频控制 -->
+        <div class="box1_2">
+          <span class="title">视频控制</span>
+          <div class="box1_2_1">
+            <div class="button center" v-for="item,index in html.video_buttons" @click="send_order('VSWT',index)">
+              <img v-show="!video_matrix_status(index)" src="./img/button2.png" class="bg_img">
+              <img v-show="video_matrix_status(index)" src="./img/button3.png" class="bg_img">
+              <span class="text">{{item}}</span>
+            </div>
+          </div>
+          <span class="title">EDID强制分辨率同步</span>
+          <div class="box1_2_2">
+            <div class="button center" v-for="item,index in html.EDID_buttons" @click="send_order('VEDID',index)">
+              <img v-show="EDID_matrix[0]!=(index+1)" src="./img/button2.png" class="bg_img">
+              <img v-show="EDID_matrix[0]==(index+1)" src="./img/button3.png" class="bg_img">
+              <span class="text">{{item}}</span>
             </div>
           </div>
         </div>
@@ -142,6 +165,10 @@
           </div>
         </div>
       </div>
+    </div>
+    <!-- 可视化 -->
+    <div class="iframe_page" v-if="html.page_select==1">
+      <iframe :src="html.url" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
     </div>
   </div>
 

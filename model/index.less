@@ -6,6 +6,10 @@
 	height: 100%;
 	position: absolute;
 }
+.row_layout {
+	display: flex;
+	align-items: center;
+}
 .index {
 	width: 100%;
 	height: 100%;
@@ -51,6 +55,18 @@
 			border-right: 1px solid #d8d8d8;
 			padding-right: 8px;
 			margin-right: 8px;
+		}
+	}
+	.enum_layout {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		align-items: center;
+		margin: 8px 0;
+		.gap {
+			margin: 0 10px;
+		}
+		.el-icon-question {
+			color: gray;
 		}
 	}
 	.el-input {

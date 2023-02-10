@@ -55,12 +55,11 @@ new Vue({
 				case 'Wisdom_Scene':
 					path = 'powerScene';
 					break;
+				case 'Wisdom_Scene2':
+					path = 'scene2';
+					break;
 				case 'UpgradeManagement':
 					path = 'upgradeManager';
-					break;
-				case 'ProjectOverviewOffline':
-					location.href = `./offlinePage/index.html?token=${this.token}`;
-					path = 'offlinePage';
 					break;
 				case 'ADKXX':
 					path = 'other/功放设备';

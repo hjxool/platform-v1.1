@@ -98,7 +98,7 @@
                 <div class="verify_text" v-show="rules.identifier.show">{{rules.identifier.message}}</div>
               </el-form-item>
               <el-form-item label="数据类型" size="medium">
-                <el-select style="width: 80px;" v-model="card.dataType" placeholder="请选择数据类型"
+                <el-select class="form_input" v-model="card.dataType" placeholder="请选择数据类型"
                   @change="format_type_data(card)" :disabled="static_params.add_edit=='check'">
                   <el-option v-for="item in static_params.type_options" :key="item.value" :label="item.name"
                     :value="item.value"></el-option>
@@ -213,6 +213,29 @@
                     <div class="verify_text" v-if="card.struct_array.length==0">不能为空</div>
                   </el-form-item>
                 </template>
+              </template>
+              <template v-if="card.dataType=='enum'">
+                <el-form-item label="枚举项" size="medium">
+                  <div class="enum_layout" style="margin-top:0;">
+                    <span>参数值<i class="el-icon-question" title="参数只当字符串处理，由设备端解析"></i></span>
+                    <span>参数描述</span>
+                  </div>
+                  <div class="enum_layout" v-for="item in card.enum_list">
+                    <div class="row_layout">
+                      <el-input v-model="item.value" size="small" placeholder="请输入内容" clearable></el-input>
+                      <span class="gap">-</span>
+                    </div>
+                    <div class="row_layout">
+                      <el-input v-model="item.label" maxlength="20" size="small" placeholder="请输入内容"
+                        clearable></el-input>
+                      <el-button class="gap" @click="del_enum(card)" type="text">删除</el-button>
+                    </div>
+                  </div>
+                  <span style="color: rgb(0, 112, 204);cursor: pointer;font-size: 12px;" @click="add_enum(card)">+
+                    新增枚举项</span>
+                  <el-tag type="warning" size="mini" effect="plain">必填</el-tag>
+                  <div class="verify_text" v-show="rules.enum_list.show">{{rules.enum_list.message}}</div>
+                </el-form-item>
               </template>
             </template>
             <!-- 事件设置 -->

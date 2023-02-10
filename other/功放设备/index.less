@@ -1,12 +1,8 @@
 #index {
 	width: 100%;
-	min-width: 1000px;
 	height: 100%;
-	min-height: 800px;
 	position: absolute;
 	z-index: 10;
-	overflow-x: auto;
-	overflow-y: hidden;
 	display: flex;
 	flex-direction: column;
 }
@@ -130,6 +126,7 @@
 	.box2 {
 		flex-grow: 1;
 		display: flex;
+		min-height: 400px;
 		.box2_1 {
 			width: 50%;
 			display: flex;
@@ -171,6 +168,9 @@
 						color: #fff;
 						font-size: 1rem;
 						margin: 0 10px 1rem 10px;
+
+						outline: none;
+						text-align: center;
 					}
 					.slider {
 						flex-grow: 1;

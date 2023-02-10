@@ -83,128 +83,142 @@
     </div>
     <!-- 遮罩及新建会议弹窗 -->
     <div class="popover" v-if="html.new_meeting">
-      <el-card class="form_box" shadow="never" v-loading="html.form_loading">
+      <el-card class="form_box" shadow="never" v-loading="html.form_loading" :body-style="form_style()">
         <div class="form_head">
           <span class="text">预约会议</span>
           <div class="icon center button" @click="close_new">
             <i class="el-icon-close icon2"></i>
           </div>
         </div>
-        <el-form :model="new_meeting_form" :rules="new_rule" ref="new_meeting" label-width="100px">
-          <el-form-item label="会议名称" prop="name">
-            <el-input v-model="new_meeting_form.name"></el-input>
-          </el-form-item>
+        <div class="form_body">
+          <el-form :model="new_meeting_form" :rules="new_rule" ref="new_meeting" label-width="auto">
+            <el-form-item label="会议名称" prop="name">
+              <el-input v-model="new_meeting_form.name"></el-input>
+            </el-form-item>
 
-          <el-form-item label="预约时间" required>
-            <div style="display: flex;">
-              <el-form-item prop="date" class="margin" style="width: 140px;">
-                <el-date-picker v-model="new_meeting_form.date" type="date" @change="change_reserve_type"
-                  style="width: 140px;">
-                </el-date-picker>
-              </el-form-item>
-              <el-form-item prop="time_start" class="margin" style="width: 100px;">
-                <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type"
-                  style="width: 100px;"
-                  :picker-options="{start: '06:00',step: '00:30',end: '23:00',maxTime:new_meeting_form.time_end}"
-                  placeholder="选择起始时间">
-                </el-time-select>
-              </el-form-item>
-              <span class="margin">&#10140</span>
-              <el-form-item prop="time_end" class="margin" style="width: 100px;">
-                <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type" style="width: 100px;"
-                  :picker-options="{start: '06:00',step: '00:30',end: '23:00',minTime: new_meeting_form.time_start}"
-                  placeholder="选择结束时间">
-                </el-time-select>
-              </el-form-item>
-            </div>
-          </el-form-item>
+            <el-form-item label="预约时间" required>
+              <div style="display: flex;">
+                <el-form-item prop="date" class="margin" style="width: 140px;">
+                  <el-date-picker v-model="new_meeting_form.date" type="date" :picker-options="date_options()"
+                    @change="change_reserve_type" style="width: 140px;">
+                  </el-date-picker>
+                </el-form-item>
+                <el-form-item prop="time_start" class="margin" style="width: 100px;">
+                  <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type"
+                    style="width: 100px;"
+                    :picker-options="{start: '06:00',step: '00:30',end: '23:00',maxTime:new_meeting_form.time_end}"
+                    placeholder="选择起始时间">
+                  </el-time-select>
+                </el-form-item>
+                <span class="margin">&#10140</span>
+                <el-form-item prop="time_end" class="margin" style="width: 100px;">
+                  <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type"
+                    style="width: 100px;"
+                    :picker-options="{start: '06:00',step: '00:30',end: '23:00',minTime: new_meeting_form.time_start}"
+                    placeholder="选择结束时间">
+                  </el-time-select>
+                </el-form-item>
+              </div>
+            </el-form-item>
 
-          <el-form-item label="预约方式">
-            <el-select v-model="new_meeting_form.method">
-              <el-option v-for="item,index in html.reserve_type" :label="item" :value="index">
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item v-if="new_meeting_form.method==5" label="自定义星期" prop="cus_week">
-            <el-select v-model="new_meeting_form.cus_week" multiple>
-              <el-option v-for="item,index in html.week_options" :label="item" :value="index+1">
-              </el-option>
-            </el-select>
-          </el-form-item>
+            <el-form-item label="预约方式">
+              <el-select v-model="new_meeting_form.method">
+                <el-option v-for="item,index in html.reserve_type" :label="item" :value="index">
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item v-if="new_meeting_form.method==5" label="自定义星期" prop="cus_week">
+              <el-select v-model="new_meeting_form.cus_week" multiple>
+                <el-option v-for="item,index in html.week_options" :label="item" :value="index+1">
+                </el-option>
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="预约截止日期">
-            <el-date-picker v-model="new_meeting_form.cycle_deadline" :picker-options="cycle_options()" type="date"
-              placeholder="选择日期">
-            </el-date-picker>
-          </el-form-item>
+            <el-form-item label="预约截止日期">
+              <el-date-picker v-model="new_meeting_form.cycle_deadline" :picker-options="cycle_options()" type="date"
+                placeholder="选择日期">
+              </el-date-picker>
+            </el-form-item>
 
-          <el-form-item label="参会人员" prop="search_person">
-            <el-select v-model="new_meeting_form.search_person" filterable multiple placeholder="搜索"
-              style="width: 100%;">
-              <el-option v-for="item in conferee_list" :label="item.username" :value="item.id">
-              </el-option>
-            </el-select>
-          </el-form-item>
+            <el-form-item label="参会人员" prop="search_person">
+              <el-select v-model="new_meeting_form.search_person" filterable multiple placeholder="搜索"
+                style="width: 100%;">
+                <el-option v-for="item in conferee_list" :label="item.username" :value="item.id">
+                </el-option>
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="是否回复">
-            <el-select v-model="new_meeting_form.reply">
-              <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
-              </el-option>
-            </el-select>
-          </el-form-item>
+            <el-form-item label="来宾人员">
+              <div style="display:flex;align-items:center;">
+                <input type="file" style="display:none;" id="upload" @change="upload_visitor">
+                <el-button @click="upload_click" style="margin-right: 10px;" type="text">上传来宾信息</el-button>
+                <el-button @click="download" size="mini">Excel模板</el-button>
+              </div>
+              <el-input type="textarea" autosize placeholder="来宾信息" readonly v-model="guestList"></el-input>
+            </el-form-item>
 
-          <el-form-item label="是否通知">
-            <div style="display: flex;align-items: center;">
-              <el-select v-model="new_meeting_form.sendMessage" style="margin-right: 20px;" @change="change_info">
+            <el-form-item label="是否回复">
+              <el-select v-model="new_meeting_form.reply">
                 <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
                 </el-option>
               </el-select>
-              <el-button @click="add_alert_time" v-show="new_meeting_form.sendMessage==1" type="text" size="small">添加提醒
-              </el-button>
-            </div>
-          </el-form-item>
-          <el-form-item label="&#128276;" v-show="new_meeting_form.meetingReminds.length>0">
-            <div class="alert_box">
-              <div v-for="item,index in new_meeting_form.meetingReminds" class="box1">
-                <el-time-select v-model="item.alert_time" style="margin-right: 10px;width: 150px;"
-                  :picker-options="{start: '06:00',step: '00:15',end: '23:00',maxTime:new_meeting_form.time_start}"
-                  placeholder="选择提醒时间">
-                </el-time-select>
-                <!-- <el-select v-model="item.type" class="box2">
-                  <el-option v-for="item2,index in html.info_type" :label="item2" :value="index"
-                    :disabled="index!=0&&index!=2">
+            </el-form-item>
+
+            <el-form-item label="是否通知">
+              <div style="display: flex;align-items: center;">
+                <el-select v-model="new_meeting_form.sendMessage" style="margin-right: 20px;" @change="change_info">
+                  <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
                   </el-option>
-                </el-select> -->
-                <i class="el-icon-close icon button" @click="del_alert_time(index)"></i>
+                </el-select>
+                <el-button @click="add_alert_time" v-show="new_meeting_form.sendMessage==1" type="text"
+                  size="small">添加提醒
+                </el-button>
               </div>
-            </div>
-          </el-form-item>
+            </el-form-item>
+            <el-form-item label="&#128276;" v-show="new_meeting_form.meetingReminds.length>0">
+              <div class="alert_box">
+                <div v-for="item,index in new_meeting_form.meetingReminds" class="box1">
+                  <el-time-select v-model="item.alert_time" style="margin-right: 10px;width: 150px;"
+                    :picker-options="{start: '06:00',step: '00:15',end: '23:00',maxTime:new_meeting_form.time_start}"
+                    placeholder="选择提醒时间">
+                  </el-time-select>
+                  <!-- <el-select v-model="item.type" class="box2">
+                    <el-option v-for="item2,index in html.info_type" :label="item2" :value="index"
+                      :disabled="index!=0&&index!=2">
+                    </el-option>
+                  </el-select> -->
+                  <i class="el-icon-close icon button" @click="del_alert_time(index)"></i>
+                </div>
+              </div>
+            </el-form-item>
 
-          <el-form-item label="是否签到">
-            <el-select v-model="new_meeting_form.signIn">
-              <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
-              </el-option>
-            </el-select>
-          </el-form-item>
+            <el-form-item label="是否签到">
+              <el-select v-model="new_meeting_form.signIn">
+                <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
+                </el-option>
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="会议纪要">
-            <el-select v-model="new_meeting_form.summary">
-              <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
-              </el-option>
-            </el-select>
-          </el-form-item>
+            <el-form-item label="会议纪要">
+              <el-select v-model="new_meeting_form.summary">
+                <el-option v-for="item,index in html.bool_options" :label="item" :value="index">
+                </el-option>
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="附件">
-            <el-upload :action="file.url" :headers="upload_header()" :file-list="file.list" :before-remove="file_del"
-              :on-success="upload_result" style="width: 50%;">
-              <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
-            </el-upload>
-          </el-form-item>
+            <el-form-item label="备注">
+              <el-input type="textarea" autosize v-model="new_meeting_form.description"></el-input>
+            </el-form-item>
 
-          <el-form-item class="button_layout">
-            <el-button type="primary" @click="new_submit(new_meeting_form)">确定</el-button>
-          </el-form-item>
-        </el-form>
+            <el-form-item label="附件">
+              <el-upload :action="file.url" :headers="upload_header()" :file-list="file.list" :before-remove="file_del"
+                :on-success="upload_result" style="width: 50%;">
+                <el-button slot="trigger" size="small" type="primary">选取文件</el-button>
+              </el-upload>
+            </el-form-item>
+          </el-form>
+        </div>
+        <el-button @click="new_submit(new_meeting_form)" type="primary" style="align-self:end;">确定</el-button>
       </el-card>
     </div>
     <!-- 会议信息 -->
@@ -222,6 +236,7 @@
   <script src="../../运维人员部署请修改我.js"></script>
   <script src="../module/vue.js"></script>
   <script src="../module/element-ui.js"></script>
+  <script src="../module/xlsx.core.min.js"></script>
   <script src="../module/axios.min.js"></script>
   <script src="../module/common_function.js"></script>
   <script src="./index.js"></script>

@@ -157,6 +157,38 @@
 		height: 1.5rem;
 	}
 }
+.statistic_window {
+	width: 45%;
+	min-width: 500px;
+	height: 40vh;
+	min-height: 400px;
+	overflow: hidden;
+	// margin-top: 40px;
+	align-self: center;
+	background: #242632;
+	border-radius: 10px;
+	display: flex;
+	flex-direction: column;
+	> .head {
+		padding: 20px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		> .text {
+			color: #fff;
+			font-weight: bold;
+		}
+	}
+	> .statistic_body {
+		flex-grow: 1;
+		overflow: hidden;
+	}
+	> .paging {
+		align-self: center;
+		padding: 20px 0;
+	}
+}
+
 // 滚动消息动画
 .alert-enter,
 .alert-leave-to {

@@ -7,8 +7,8 @@
 	position: absolute;
 	display: grid;
 	grid-template-columns: 75% auto;
-	min-width: 1000px;
-	min-height: 800px;
+	// min-width: 1000px;
+	// min-height: 800px;
 	background: #f7faff;
 }
 .row_layout {
@@ -22,9 +22,13 @@
 }
 
 .header {
-	height: 70px;
 	display: flex;
 	align-items: center;
+	.el-icon-info {
+		font-size: 20px;
+		font-weight: bold;
+		color: rgb(4, 97, 250);
+	}
 	.box1 {
 		display: flex;
 		margin: 0 auto;
@@ -68,32 +72,31 @@
 	}
 }
 .body2 {
-	display: grid;
-	grid-template-rows: 40px auto;
-	overflow-y: hidden;
-	overflow-x: auto;
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 	.week_box {
+		padding: 10px 0;
 		display: grid;
-		grid-template-columns: 70px repeat(7, 1fr);
+		grid-template-columns: 50px repeat(7, 1fr);
 		align-items: center;
 		justify-items: center;
 		.text {
 			font-size: 16px;
 			color: #106fff;
 			font-weight: bold;
-			min-width: 170px;
 		}
 	}
 	.box1 {
-		overflow-y: auto;
-		overflow-x: hidden;
+		overflow: auto;
+		flex-grow: 1;
 		display: grid;
-		grid-template-columns: 70px repeat(7, 1fr);
+		grid-template-columns: 50px repeat(7, 1fr);
 		.time_box {
 			display: grid;
 			grid-template-rows: repeat(17, 1fr);
 			.time {
-				min-height: 100px;
 				font-size: 16px;
 				font-weight: bold;
 				border-bottom: 1px solid #f0f2f7;
@@ -101,11 +104,9 @@
 		}
 		.box2 {
 			position: relative;
-			min-width: 170px;
 			display: grid;
 			grid-template-rows: repeat(17, 1fr);
 			.box3 {
-				min-height: 100px;
 				border-left: 1px solid #f0f2f7;
 				border-bottom: 1px solid #f0f2f7;
 				position: relative;
@@ -117,17 +118,21 @@
 					left: 0;
 					top: 50%;
 					transform: translateY(-50%);
-					z-index: -1;
 				}
 			}
+		}
+		.min_height {
+			min-height: 1200px;
 		}
 	}
 }
 .body3 {
-	display: grid;
-	grid-template-rows: 40px auto;
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
 	.week_box {
+		padding: 10px 0;
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
 		.text {
@@ -137,15 +142,17 @@
 		}
 	}
 	.box1 {
+		flex-grow: 1;
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
-		grid-template-rows: repeat(5, 150px);
-		overflow: auto;
+		grid-template-rows: repeat(5, 1fr);
+		overflow: hidden;
 		.box2 {
 			border-bottom: 1px solid #f0f2f7;
 			border-right: 1px solid #f0f2f7;
 			display: grid;
 			grid-template-rows: 30px auto;
+			overflow: hidden;
 			.text {
 				align-self: start;
 				justify-self: end;
@@ -187,7 +194,7 @@
 	}
 }
 .meeting_block {
-	width: 160px;
+	width: 90%;
 	background-color: #e7f0ff;
 	border-radius: 6px;
 	position: absolute;
@@ -216,62 +223,74 @@
 	left: 50%;
 	transform: translateX(-50%);
 }
+.left {
+	background: #fff;
+	margin-right: 20px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
 .right {
-	display: grid;
-	grid-template-rows: 37% auto;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 	.right1 {
 		margin-bottom: 20px;
+		padding: 20px 20px 0 20px;
+		background: #fff;
 		.right1_head {
 			justify-content: space-between;
-			padding-bottom: 20px;
 		}
 		.right1_box {
 			justify-content: space-between;
-			flex-grow: 1;
+			margin: 20px 0;
 		}
 	}
-	.el-card__body {
+	.right2_all {
+		flex-grow: 1;
 		overflow: auto;
-	}
-	.right2 {
-		position: relative;
-		padding-left: 30px;
-		padding-bottom: 20px;
-		.right2_1 {
-			position: absolute;
-			left: 0;
-			height: 100%;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			.icon {
-				width: 8px;
-				height: 8px;
-				border-radius: 50%;
+		background: #fff;
+		padding: 20px 20px 0 20px;
+		.right2 {
+			position: relative;
+			padding-left: 30px;
+			padding-bottom: 20px;
+			.right2_1 {
+				position: absolute;
+				left: 0;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				.icon {
+					width: 8px;
+					height: 8px;
+					border-radius: 50%;
+				}
+				.icon2 {
+					flex-grow: 1;
+					border: 2px dashed #dcdcdc;
+				}
 			}
-			.icon2 {
-				flex-grow: 1;
-				border: 2px dashed #dcdcdc;
-			}
-		}
-		.right2_2 {
-			height: 100%;
-			border-bottom: 1px solid #e6e6e6;
-			.date {
-				font-size: 20px;
-				font-weight: bold;
-			}
-			.name {
-				font-size: 18px;
-				font-weight: bold;
-				padding-top: 20px;
-			}
-			.right2_2_1 {
-				justify-content: space-between;
-				padding: 10px 20% 10px 0;
-			}
-			.right2_2_2 {
-				padding: 10px 0;
+			.right2_2 {
+				height: 100%;
+				border-bottom: 1px solid #e6e6e6;
+				.date {
+					font-size: 20px;
+					font-weight: bold;
+				}
+				.name {
+					font-size: 18px;
+					font-weight: bold;
+					padding-top: 20px;
+				}
+				.right2_2_1 {
+					justify-content: space-between;
+					padding: 10px 20% 10px 0;
+				}
+				.right2_2_2 {
+					padding: 10px 0;
+				}
 			}
 		}
 	}

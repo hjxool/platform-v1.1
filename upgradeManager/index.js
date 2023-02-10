@@ -6,7 +6,7 @@ let upload_firmware_url = `${url}api-device/firmware/upload`;
 let upgrade_url = `${url}api-device/firmware/update`;
 let del_firmware_url = `${url}api-device/firmware/delete`;
 let export_firmware_url = `${url}api-device/firmware/export`;
-let device_list_url = `${url}api-device/device/byProduct`;
+let device_list_url = `${url}api-device/device/search`;
 
 new Vue({
 	el: '#index',
@@ -44,6 +44,8 @@ new Vue({
 			checkAll: false, //全选
 			list: [], //同产品的设备
 			select_list: [], //勾选的设备
+			total: 0, //设备总数
+			page_size: 10, //单页显示设备数
 		},
 		upgrade_rules: {
 			size: [
@@ -256,15 +258,8 @@ new Vue({
 						}
 					}
 					this.firmware_id = row_obj.id;
-					this.html.popover_loading = true;
-					this.request('post', device_list_url, this.token, { productIds: [row_obj.productId] }, (res) => {
-						console.log('同一产品设备', res);
-						this.html.popover_loading = false;
-						if (res.data.head.code != 200) {
-							return;
-						}
-						this.upgrade_form.list = res.data.data;
-					});
+					this.product_id = row_obj.productId; //记录当前查看的产品
+					this.get_product_device_list(1);
 					this.upgrade_rules.select.show = false;
 					this.html.upgrade_display = true;
 					break;
@@ -300,8 +295,9 @@ new Vue({
 		},
 		// 勾选设备时
 		check_change(array) {
-			this.upgrade_form.checkAll = array.length == this.upgrade_form.list.length;
-			this.upgrade_form.not_all = array.length > 0 && array.length < this.upgrade_form.list.length;
+			// console.log(array);
+			// this.upgrade_form.checkAll = array.length == this.upgrade_form.list.length;
+			// this.upgrade_form.not_all = array.length > 0 && array.length < this.upgrade_form.list.length;
 		},
 		// 升级固件提交
 		up_sub(form_name) {
@@ -376,6 +372,19 @@ new Vue({
 				}
 			});
 			form_obj = null;
+		},
+		// 获取同一产品下在线设备列表
+		get_product_device_list(params) {
+			this.html.popover_loading = true;
+			this.request('post', device_list_url, this.token, { condition: { productId: this.product_id, statusValue: 1 }, pageNum: params, pageSize: this.upgrade_form.page_size }, (res) => {
+				console.log('同一产品设备', res);
+				this.html.popover_loading = false;
+				if (res.data.head.code != 200) {
+					return;
+				}
+				this.upgrade_form.list = res.data.data.data;
+				this.upgrade_form.total = res.data.data.total;
+			});
 		},
 	},
 });

@@ -1,5 +1,8 @@
 let url = `${我是接口地址}/`;
-let search_meeting_url = `${url}api-portal/meeting/search`;
+let search_meeting_url = `${url}api-portal/meeting/list`;
+let edit_meeting_url = `${url}api-portal/meeting`;
+let user_url = `${url}api-auth/oauth/userinfo`; //获取当前登录用户信息
+let cancel_url = `${url}api-portal/meeting/cancel`;
 
 new Vue({
 	el: '#index',
@@ -40,18 +43,21 @@ new Vue({
 				],
 			},
 			date: null, //日期范围
-			status: '', //会议状态
+			status: 'all', //会议状态
 			status_options: [
 				// 状态类型
+				{ value: 'all', label: '全部' },
 				{ value: -1, label: '驳回' },
 				{ value: 0, label: '已撤回' },
 				{ value: 1, label: '审核中' },
 				{ value: 2, label: '审核通过' },
 			],
 			size: 20, //一页显示条数
+			cancel_display: true, //取消会议按钮显示
 		},
 		total_size: 0, //总条数
 		tableData: [], //表格数据
+		current_user: '', //当前用户id
 	},
 	mounted() {
 		if (!location.search) {
@@ -60,9 +66,22 @@ new Vue({
 			this.get_token();
 		}
 		window.addEventListener('resize', this.table_height);
+		this.get_current_user();
 		this.get_data();
 	},
 	methods: {
+		// 获取当前登录用户名
+		get_current_user() {
+			this.request('get', user_url, this.token, (res) => {
+				console.log('用户信息');
+				if (res.data.head.code != 200) {
+					this.$message('无法获取用户信息');
+					this.html.cancel_display = false;
+					return;
+				}
+				this.current_user = res.data.data.id;
+			});
+		},
 		// 计算表格最大高度
 		table_height() {
 			let dom = document.querySelector('.body');
@@ -79,9 +98,9 @@ new Vue({
 				this.current_page = current;
 			}
 			let c = {
-				queryType: 5,
+				// queryType: 0,
 			};
-			if (this.html.status !== '') {
+			if (this.html.status !== 'all') {
 				c.auditStatus = this.html.status;
 			}
 			if (this.html.date != null) {
@@ -98,6 +117,21 @@ new Vue({
 				}
 				this.total_size = res.data.data.total;
 				this.tableData = res.data.data.data;
+			});
+		},
+		// 撤销会议
+		revoke(meeting) {
+			this.request('put', edit_meeting_url, this.token, { id: meeting.id, status: -1 }, (res) => {
+				if (res.data.head.code == 200) {
+					this.$message.success(`撤销 ${meeting.theme} 会议成功`);
+				}
+				this.get_data();
+			});
+		},
+		// 取消会议
+		cancel_meeting(meeting_id) {
+			this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+				this.get_data();
 			});
 		},
 	},

@@ -26,13 +26,14 @@ new Vue({
 				loading: false, //请求未返回时加载遮罩
 				// 数据类型种类
 				type_options: [
-					{ value: 'int', name: 'int' },
-					{ value: 'float', name: 'float' },
-					{ value: 'double', name: 'double' },
-					{ value: 'text', name: 'text' },
-					{ value: 'date', name: 'date' },
-					{ value: 'struct', name: 'struct' },
-					{ value: 'array', name: 'array' },
+					{ value: 'int', name: 'int(整数)' },
+					{ value: 'float', name: 'float(浮点型)' },
+					{ value: 'double', name: 'double(双精度浮点型)' },
+					{ value: 'text', name: 'text(文本)' },
+					{ value: 'date', name: 'date(时间)' },
+					{ value: 'struct', name: 'struct(结构体)' },
+					{ value: 'array', name: 'array(数组)' },
+					{ value: 'enum', name: 'enum(枚举)' },
 				],
 				// 数组元素类型
 				array_type_options: [
@@ -111,6 +112,7 @@ new Vue({
 				unit_name: { show: false, message: '' },
 				symbol: { show: false, message: '' },
 				typeName: { show: false, message: '' },
+				enum_list: { show: false, message: '' },
 			},
 			default_property: [], //默认属性列表
 			current_model: '', //当前启用物模型
@@ -196,6 +198,12 @@ new Vue({
 					if (table.itemType == 'struct') {
 						table.struct_array = e.dataType.specs.item.properties;
 					}
+				} else if (e.dataType.type == 'enum') {
+					table.enum_list = [];
+					for (let key in e.dataType.specs.enumValue) {
+						let t = { value: key, label: e.dataType.specs.enumValue[key] };
+						table.enum_list.push(t);
+					}
 				} else {
 					table.min = e.dataType.specs.min;
 					table.max = e.dataType.specs.max;
@@ -241,11 +249,14 @@ new Vue({
 			}
 			// 因为数组是对象有索引 修改父级数组后，模板中数组指针也永远改变了，所以每一层看的都是同样的数组
 			if (row_data.struct_array != undefined) {
-				temp.struct_array = row_data.struct_array;
+				temp.struct_array = JSON.parse(JSON.stringify(row_data.struct_array));
 				// 还需要准备一个临时的深拷贝响应数组，当取消删除操作时，用此临时数据替换源数组
 				// 在准备好的数组push前，声明的非响应式数据在push之后都会变成响应式
 				// temp.struct_array_replace = [];
 				// this.copy_struct_array(temp.struct_array_replace, row_data.struct_array);
+			}
+			if (row_data.enum_list != undefined) {
+				temp.enum_list = JSON.parse(JSON.stringify(row_data.enum_list));
 			}
 			this.form_list.push(temp);
 			this.$nextTick(() => {
@@ -313,6 +324,9 @@ new Vue({
 			if (row_data.struct_array != undefined) {
 				temp.struct_array = row_data.struct_array;
 			}
+			if (row_data.enum_list != undefined) {
+				temp.enum_list = JSON.parse(JSON.stringify(row_data.enum_list));
+			}
 			this.form_list.push(temp);
 		},
 		// 编辑子属性
@@ -359,6 +373,13 @@ new Vue({
 						// this.copy_struct_array(temp.struct_array_replace, row_data.dataType.specs.item.properties);
 					}
 					break;
+				case 'enum':
+					temp.enum_list = [];
+					for (let key in row_data.dataType.specs.enumValue) {
+						let t = { value: key, label: row_data.dataType.specs.enumValue[key] };
+						temp.enum_list.push(t);
+					}
+					break;
 				default:
 					temp.min = row_data.dataType.specs.min;
 					temp.max = row_data.dataType.specs.max;
@@ -370,14 +391,15 @@ new Vue({
 		},
 		// 删除子属性
 		del_child_json(parent, child_index) {
-			this.$confirm(`此操作不可逆，删除后需刷新页面重新获取数据`, '提示', {
-				confirmButtonText: '确定',
-				cancelButtonText: '取消',
-				type: 'info',
-				center: true,
-			}).then(() => {
-				parent.struct_array.splice(child_index, 1);
-			});
+			parent.struct_array.splice(child_index, 1);
+			// this.$confirm(`此操作不可逆，删除后需刷新页面重新获取数据`, '提示', {
+			// 	confirmButtonText: '确定',
+			// 	cancelButtonText: '取消',
+			// 	type: 'info',
+			// 	center: true,
+			// }).then(() => {
+			// 	parent.struct_array.splice(child_index, 1);
+			// });
 		},
 		// 发布后查看子属性
 		check_child_json(row_data) {
@@ -407,6 +429,13 @@ new Vue({
 					temp.size = row_data.dataType.specs.size;
 					if (temp.itemType == 'struct') {
 						temp.struct_array = row_data.dataType.specs.item.properties;
+					}
+					break;
+				case 'enum':
+					temp.enum_list = [];
+					for (let key in row_data.dataType.specs.enumValue) {
+						let t = { value: key, label: row_data.dataType.specs.enumValue[key] };
+						temp.enum_list.push(t);
 					}
 					break;
 				default:
@@ -527,6 +556,20 @@ new Vue({
 						}
 					}
 					break;
+				case 'enum_list':
+					if (value.length) {
+						reg = /^[\u4E00-\u9FA5A-Za-z0-9_]+$/;
+						for (let val of value) {
+							if (!reg.test(val.value) || !reg.test(val.label)) {
+								this.rules[flag].message = '枚举项不能为空';
+								return false;
+							}
+						}
+					} else {
+						this.rules[flag].message = '不能为空';
+						return false;
+					}
+					break;
 				default:
 					reg = /^.{1,}$/;
 					if (!reg.test(value)) {
@@ -556,6 +599,9 @@ new Vue({
 			}
 			if (obj.dataType == 'array') {
 				result.push(this.form_verify(obj.size, 'size'));
+			}
+			if (obj.dataType == 'enum') {
+				result.push(this.form_verify(obj.enum_list, 'enum_list'));
 			}
 			for (let value of result) {
 				if (!value) {
@@ -605,6 +651,12 @@ new Vue({
 								for (let i of obj.struct_array) {
 									array[obj.index].dataType.specs.item.properties.push(i);
 								}
+							}
+							break;
+						case 'enum':
+							array[obj.index].dataType.specs = { enumValue: {} };
+							for (let val of obj.enum_list) {
+								array[obj.index].dataType.specs.enumValue[val.value] = val.label;
 							}
 							break;
 						default:
@@ -713,6 +765,12 @@ new Vue({
 													}
 												}
 												break;
+											case 'enum':
+												e.dataType.specs = { enumValue: {} };
+												for (let val of obj.enum_list) {
+													e.dataType.specs.enumValue[val.value] = val.label;
+												}
+												break;
 											default:
 												e.dataType.specs = {
 													min: obj.min == '' ? 0 : obj.min,
@@ -804,6 +862,12 @@ new Vue({
 						}
 					}
 					break;
+				case 'enum':
+					dataType.specs = { enumValue: {} };
+					for (let val of obj.enum_list) {
+						dataType.specs.enumValue[val.value] = val.label;
+					}
+					break;
 				default:
 					dataType.specs = {
 						min: obj.min == '' ? 0 : obj.min,
@@ -833,6 +897,8 @@ new Vue({
 				if (obj.itemType == '' || obj.itemType == null) {
 					obj.itemType = 'int';
 				}
+			} else if (obj.dataType == 'enum' && obj.enum_list == undefined) {
+				this.$set(obj, 'enum_list', []);
 			}
 			this.clean_verify();
 		},
@@ -861,6 +927,18 @@ new Vue({
 			temp.dataType = 'int';
 			this.form_list.push(temp);
 			this.clean_verify();
+		},
+		// 增加枚举项
+		add_enum(obj) {
+			let t = {
+				value: '',
+				label: '',
+			};
+			obj.enum_list.push(t);
+		},
+		// 删除枚举项
+		del_enum(obj) {
+			obj.enum_list.pop();
 		},
 		// 发布物模型
 		publish_model() {

@@ -48,6 +48,8 @@
               <el-radio-button :label="0">所有</el-radio-button>
               <el-radio-button :label="1">已签到</el-radio-button>
               <el-radio-button :label="2">未签到</el-radio-button>
+              <el-radio-button :label="3">未回复</el-radio-button>
+              <el-radio-button :label="4">已回复</el-radio-button>
             </el-radio-group>
           </div>
           <el-table :data="user_list[html.user_type]" max-height="250">
@@ -58,19 +60,20 @@
                 <el-tag v-if="!scope.row.signIn" size="medium">未签到</el-tag>
                 <el-tag v-if="scope.row.signIn==1" type="success" size="medium">已签到</el-tag>
                 <el-tag v-if="scope.row.signIn==2" type="warning" size="medium">迟到</el-tag>
+                <el-tag v-if="!scope.row.reply" type="warning" size="medium">未回复</el-tag>
+                <el-tag v-if="scope.row.reply" type="success" size="medium">已回复</el-tag>
               </template>
             </el-table-column>
           </el-table>
         </el-card>
         <!-- 会议纪要 -->
-        <el-card class="box2" v-if="meeting_detail.save" shadow="never">
+        <el-card class="box2" v-show="meeting_detail.save" shadow="never">
           <div slot="header" class="row_layout">
             <i class="el-icon-s-order title_icon" style="color: #00CD41;"></i>
             <span class="title">会议纪要</span>
             <el-button @click="save_summary(0)" style="margin-left:auto;" type="primary" round>保存</el-button>
             <el-button @click="save_summary(1)" style="margin-left:20px;" round>提交</el-button>
-            <el-button v-if="meeting_detail.download" @click="download_summary" style="margin-left:20px;" type="warning"
-              size="small">导出</el-button>
+            <el-button @click="download_summary" style="margin-left:20px;" type="warning" size="small">导出</el-button>
           </div>
           <div id="editor_tool"></div>
           <div id="editor_input"></div>
@@ -98,6 +101,8 @@
           <!-- 统计参加不参加 -->
           <div class="echart1"></div>
           <!-- 统计签到人数图表 -->
+          <div class="echart1"></div>
+          <!-- 统计迟到 -->
           <div class="echart1"></div>
         </el-card>
       </div>
