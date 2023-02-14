@@ -61,6 +61,8 @@ new Vue({
 		},
 		col_index_start: null,
 		col_index_end: null,
+		block_width: 0, //时间方块宽度
+		start_move: false, //按下鼠标 焦点方块消失
 		conferee_list: [], //参会人员列表
 		file: {
 			url: upload_files, //上传地址
@@ -74,6 +76,15 @@ new Vue({
 			time_end: [{ required: true, message: '必须选择时间', trigger: 'change' }],
 			cus_week: [{ required: true, message: '必须选择星期', trigger: 'change' }],
 			search_person: [{ required: true, message: '必须选择与会人员', trigger: 'change' }],
+		},
+		mouse: {
+			row_index: null, //鼠标所在行
+			col_index: null, //鼠标所在列
+			enter: false, //鼠标移入列表才显示定位
+			focus: false,
+			top: '', //指示条离顶部距离
+			height: '', //指示条高度
+			focus_top: '0px', //焦点距离父容器高度
 		},
 	},
 	mounted() {
@@ -102,6 +113,9 @@ new Vue({
 		window.onresize = () => {
 			this.get_boundary();
 		};
+		setInterval(() => {
+			this.get_boundary();
+		}, 600000);
 		this.search_organiztion();
 	},
 	methods: {
@@ -113,7 +127,7 @@ new Vue({
 			this.request('post', room_list, this.token, { roomName: meeting_name || '', startTime: `${t4} 06:00:00`, endTime: `${t4} 23:00:00` }, (res) => {
 				console.log('会议室及会议', res);
 				this.html.loading = false;
-				if (res.data.data.length == 0) {
+				if (res.data.head.code != 200) {
 					this.$message('当前用户下无会议室');
 					return;
 				}
@@ -207,12 +221,17 @@ new Vue({
 				let boundary = (hour - 6) * 2;
 				// 计算分钟在一小时间隔中位置
 				let per = minute / 60;
-				let block_position = document.querySelectorAll('.time_box')[boundary].offsetLeft;
+				// 只获取一次time_box数组 给鼠标焦点用
+				this.time_box_array = document.querySelectorAll('.time_box');
+				let block_position = this.time_box_array[boundary].offsetLeft;
 				this.block_width = document.querySelector('.time_box').offsetWidth;
 				let offset = per * (this.block_width * 2) + block_position;
 				let dom = document.querySelector('.current_time');
 				dom.style.left = `${offset}px`;
-				dom.style.height = `${100 * this.place_list.length}px`; // 100是一行高度
+				let dom2 = document.querySelector('.meeting_boxs');
+				// dom.style.height = `${100 * this.place_list.length}px`; // 100是一行高度
+				this.mouse.top = dom.style.top = dom2.getBoundingClientRect().top + 'px';
+				this.mouse.height = dom.style.height = dom2.clientHeight + 'px';
 			}
 		},
 		// 获取选中时间
@@ -262,7 +281,13 @@ new Vue({
 			}
 		},
 		// 鼠标滑动时 将开始的end样式去除 给末尾的添加end样式
-		area_enter(row_index, col_index) {
+		area_enter(row_index, col_index, event) {
+			this.after_area_enter = true; //触发enter事件后mouse.row_index才有的值
+			// 鼠标悬浮的行列高亮显示
+			this.mouse.row_index = row_index; //记录下鼠标刚进入方块的旧值
+			// this.mouse.row_index_old = this.mouse.row_index = row_index; //记录下鼠标刚进入方块的旧值
+			this.mouse.col_index = col_index;
+			// 如果是已按下鼠标的状态 则渲染块
 			if (this.start_move) {
 				if (col_index >= this.col_index_start) {
 					// 再把鼠标所在的方块置为end
@@ -278,6 +303,70 @@ new Vue({
 					let l = this.col_index_end - this.col_index_start;
 					for (let i = 0; i <= l; i++) {
 						this.html.block_list2[this.row_index].splice(this.col_index_start + i, 1, 3);
+					}
+				}
+			} else {
+				// 否则视作鼠标普通悬浮状态 查询块信息
+				this.query_meeting_info(event, row_index, col_index);
+			}
+		},
+		// 鼠标悬浮时显示其下会议信息
+		query_meeting_info(event, row_index, col_index) {
+			if (!this.start_move) {
+				this.html.meeting_info_show = false;
+				// 先判断鼠标悬停处有没有会议 没有隐藏信息框 有则显示 过期的也不显示
+				let t2 = this.html.block_list[row_index][col_index];
+				if (t2 != 0 && t2 != 1) {
+					let t = Object.entries(this.place_list[row_index].meetingList)[0][1];
+					for (let i = 0; i < t.length; i++) {
+						let start = t[i].startTime.split(' ')[1].split(':');
+						let start_hour = +start[0];
+						let start_minute = +start[1];
+						let start_index = (start_hour - 6) * 2;
+						if (start_minute == 30) {
+							start_index++;
+						}
+						let end = t[i].endTime.split(' ')[1].split(':');
+						let end_hour = +end[0];
+						let end_minute = +end[1];
+						let end_index = (end_hour - 6) * 2 - 1;
+						if (end_minute == 30) {
+							end_index++;
+						}
+						if (col_index >= start_index && col_index <= end_index) {
+							let info = t[i];
+							this.meeting_info.name = info.theme;
+							this.meeting_info.start_time = info.startTime;
+							this.meeting_info.end_time = info.endTime;
+							switch (info.type) {
+								case 0:
+									this.meeting_info.type = '视频会议';
+									break;
+								case 1:
+									this.meeting_info.type = '综合会议';
+									break;
+								case 2:
+									this.meeting_info.type = '无纸化会议';
+									break;
+							}
+							this.html.meeting_info_show = true;
+							// 根据鼠标位置计算弹窗出现位置 当展示距离不够时 再相反位置出现
+							let dom = document.querySelector('.meeting_info_box');
+							let box_width = dom.offsetWidth;
+							let box_height = dom.offsetHeight;
+							if (event.clientX >= box_width) {
+								dom.style.left = event.clientX - box_width + 'px';
+							} else {
+								dom.style.left = event.clientX + 'px';
+							}
+							let page = document.querySelector('#index');
+							if (page.clientHeight - event.clientY >= box_height) {
+								dom.style.top = event.clientY + 'px';
+							} else {
+								dom.style.top = event.clientY - box_height + 'px';
+							}
+							break;
+						}
 					}
 				}
 			}
@@ -443,7 +532,7 @@ new Vue({
 		search_organiztion() {
 			this.request('post', user_list, this.token, { condition: {}, pageNum: 1, pageSize: 9999999 }, (res) => {
 				console.log('部门人员', res);
-				if (res.data.data == null) {
+				if (res.data.head.code != 200) {
 					return;
 				}
 				this.conferee_list = res.data.data.data;
@@ -518,67 +607,6 @@ new Vue({
 				Authorization: `Bearer ${this.token}`,
 				// 'content-type': 'application/json',
 			};
-		},
-		// 鼠标悬浮时显示其下会议信息
-		query_meeting_info(event, row_index, col_index) {
-			if (!this.start_move) {
-				this.html.meeting_info_show = false;
-				// 先判断鼠标悬停处有没有会议 没有隐藏信息框 有则显示 过期的也不显示
-				let t2 = this.html.block_list[row_index][col_index];
-				if (t2 != 0 && t2 != 1) {
-					let t = Object.entries(this.place_list[row_index].meetingList)[0][1];
-					for (let i = 0; i < t.length; i++) {
-						let start = t[i].startTime.split(' ')[1].split(':');
-						let start_hour = +start[0];
-						let start_minute = +start[1];
-						let start_index = (start_hour - 6) * 2;
-						if (start_minute == 30) {
-							start_index++;
-						}
-						let end = t[i].endTime.split(' ')[1].split(':');
-						let end_hour = +end[0];
-						let end_minute = +end[1];
-						let end_index = (end_hour - 6) * 2 - 1;
-						if (end_minute == 30) {
-							end_index++;
-						}
-						if (col_index >= start_index && col_index <= end_index) {
-							let info = t[i];
-							this.meeting_info.name = info.theme;
-							this.meeting_info.start_time = info.startTime;
-							this.meeting_info.end_time = info.endTime;
-							switch (info.type) {
-								case 0:
-									this.meeting_info.type = '视频会议';
-									break;
-								case 1:
-									this.meeting_info.type = '综合会议';
-									break;
-								case 2:
-									this.meeting_info.type = '无纸化会议';
-									break;
-							}
-							this.html.meeting_info_show = true;
-							// 根据鼠标位置计算弹窗出现位置 当展示距离不够时 再相反位置出现
-							let dom = document.querySelector('.meeting_info_box');
-							let box_width = dom.offsetWidth;
-							let box_height = dom.offsetHeight;
-							if (event.clientX >= box_width) {
-								dom.style.left = event.clientX - box_width + 'px';
-							} else {
-								dom.style.left = event.clientX + 'px';
-							}
-							let page = document.querySelector('#index');
-							if (page.clientHeight - event.clientY >= box_height) {
-								dom.style.top = event.clientY + 'px';
-							} else {
-								dom.style.top = event.clientY - box_height + 'px';
-							}
-							break;
-						}
-					}
-				}
-			}
 		},
 		// 鼠标移出位置时关闭弹窗
 		close_meeting_info_box(event) {
@@ -680,6 +708,99 @@ new Vue({
 				overflow: 'hidden',
 				maxHeight: '86vh',
 			};
+		},
+		// 鼠标焦点样式显示
+		mouse_focus(event, top) {
+			if (this.html.block_list[this.mouse.row_index][this.mouse.col_index] == 0) {
+				this.mouse.focus = true;
+				this.mouse.focus_top = this.block_top - top + 'px';
+			} else {
+				this.mouse.focus = false;
+			}
+		},
+		// 鼠标焦点列样式
+		mouse_position() {
+			if (!this.mouse.enter || !this.time_box_array) {
+				return;
+			}
+			let left = this.time_box_array[this.mouse.col_index].offsetLeft;
+			return {
+				width: this.block_width + 'px',
+				height: this.mouse.height,
+				top: this.mouse.top,
+				left: left + 2 + 'px',
+			};
+		},
+		// 鼠标焦点样式显示
+		mouse_focus_show(event) {
+			if (!this.after_area_enter) {
+				return;
+			}
+			let top = document.querySelector('.time_line_box').getBoundingClientRect().bottom;
+			let dom = document.querySelector('.meeting_boxs').getBoundingClientRect();
+			let bottom = dom.bottom;
+			let right = dom.right;
+			if (event.clientX > this.first_block_position && event.clientX < right && event.clientY > top && event.clientY < bottom) {
+				this.mouse.enter = true;
+				// 在面板滑动时要计算行的值 列由时间块的mouseenter事件定位 mouseenter第一次定位行列肯定是准的
+				// 但是在指示条滑动鼠标时 行发生变化 要计算这个值需要之前定位到的行值 与当前鼠标位置
+				// this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
+				//#region
+				if (!this.block_top || this.mouse.row_index != this.mouse.row_index_old) {
+					// 当行没有变化就不计算block_top减轻计算量;
+					this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
+					this.mouse.row_index_old = this.mouse.row_index;
+				}
+				//#endregion
+				// 有两种情况 一种鼠标坐标小于block_top-10 行减少1
+				// 另一种鼠标坐标比block_top大100 行增加1
+				if (event.clientY <= this.block_top - 10) {
+					--this.mouse.row_index;
+				} else if (event.clientY - this.block_top >= 100) {
+					++this.mouse.row_index;
+				}
+				// 指示条始终显示 但是焦点块只有在鼠标没有按下的时候才能显示
+				if (!this.start_move) {
+					this.mouse_focus(event, top);
+					this.query_meeting_info(event, this.mouse.row_index, this.mouse.col_index);
+				} else {
+					this.mouse.focus = false;
+				}
+			} else {
+				this.mouse.enter = false;
+			}
+		},
+		// 鼠标指示条出现后 无法滚动因此要获取节点手动滚动
+		focus_wheel(e) {
+			let dom = document.querySelector('.meeting_boxs');
+			let max = dom.scrollHeight - dom.clientHeight;
+			if (e.wheelDelta < 0) {
+				if (dom.scrollTop === max) {
+					return;
+				}
+				this.mouse.focus = false;
+				if (dom.scrollTop + 100 > max) {
+					dom.scrollTop = max;
+				} else {
+					dom.scrollTop += 100;
+					this.mouse.row_index++;
+				}
+			} else {
+				if (dom.scrollTop === 0) {
+					return;
+				}
+				this.mouse.focus = false;
+				if (dom.scrollTop - 100 < 0) {
+					dom.scrollTop = 0;
+				} else {
+					dom.scrollTop -= 100;
+					this.mouse.row_index--;
+				}
+			}
+		},
+		// 浮动指示条上触发事件中转变量
+		mouse_down() {
+			this.area_start(this.mouse.row_index, this.mouse.col_index);
 		},
 	},
 	computed: {

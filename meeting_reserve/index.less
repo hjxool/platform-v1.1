@@ -18,13 +18,16 @@
 	.calendar_box {
 		margin: 0 20px;
 		position: relative;
+		display: flex;
+		align-items: center;
 		.text {
 			font-size: 20px;
 			font-weight: bold;
 			margin-right: 20px;
 		}
 		.icon {
-			font-size: 20px;
+			width: 30px;
+			height: 30px;
 		}
 		.el-date-editor {
 			// 将第三方样式隐藏
@@ -47,50 +50,57 @@
 }
 .table_type {
 	display: grid;
-	grid-template-columns: 200px auto;
-	background-color: rgba(248, 250, 255);
+	grid-template-columns: 240px 120px auto;
+	margin-bottom: 6px;
 	.meeting_name {
 		display: flex;
 		align-items: center;
 		padding-left: 20px;
 		font-size: 18px;
+		background: #e9f3f7;
+		border-radius: 10px;
 	}
-	.other {
+	.text {
+		margin-left: 5px;
+		background: #e9f3f7;
+		border-radius: 10px;
+		font-size: 18px;
 		display: flex;
 		align-items: center;
-		.text {
-			font-size: 18px;
-		}
-		.tips {
+		padding-left: 20px;
+	}
+	.tips {
+		display: flex;
+		align-items: center;
+		justify-self: end;
+		background: #e9f3f7;
+		border-radius: 10px;
+		padding: 0 10px;
+		.tip {
+			font-size: 16px;
 			display: flex;
-			margin: 0 20% 0 auto;
-			.tip {
-				font-size: 16px;
-				display: flex;
-				align-items: center;
-				margin: 0 10px;
-				&::before {
-					content: '';
-					display: inline-block;
-					width: 20px;
-					height: 20px;
-					margin-right: 5px;
-				}
-				&:nth-child(1)::before {
-					background-color: aliceblue;
-					border: 1px solid;
-				}
-				&:nth-child(2)::before {
-					background-image: url('./img/icon1.png');
-					background-position: center;
-					background-repeat: no-repeat;
-					background-size: 100% 100%;
-				}
-				&:nth-child(3)::before {
-					width: 20px;
-					height: 0;
-					border: 2px dashed red;
-				}
+			align-items: center;
+			margin: 0 10px;
+			&::before {
+				content: '';
+				display: inline-block;
+				width: 20px;
+				height: 20px;
+				margin-right: 5px;
+			}
+			&:nth-child(1)::before {
+				background-color: #fff;
+				border: 1px solid;
+			}
+			&:nth-child(2)::before {
+				background-color: #28bb70;
+			}
+			&:nth-child(3)::before {
+				width: 40px;
+				height: 8px;
+				background-color: #fde4df;
+				border: 1px dashed #f4a55f;
+				border-radius: 6px;
 			}
 		}
 	}
@@ -106,7 +116,7 @@
 		grid-template-columns: 240px repeat(17, 1fr);
 		grid-auto-flow: column;
 		grid-auto-columns: 60px;
-		background-color: #e9f3f7;
+		background-color: #dcf3fc;
 		.time_line {
 			font-size: 16px;
 			min-width: 60px;
@@ -145,13 +155,21 @@
 						max-width: 100%;
 						.name {
 							font-size: 18px;
-							color: #106fff;
 							margin-right: auto;
 						}
 					}
 					.type {
 						color: #868686;
 						font-size: 14px;
+					}
+					.box2 {
+						display: flex;
+						align-items: center;
+						.icon {
+							width: 20px;
+							height: 20px;
+							margin-right: 8px;
+						}
 					}
 				}
 				.icon2 {
@@ -174,17 +192,10 @@
 					border-bottom-right-radius: 20px;
 				}
 				.pass {
-					background-color: #e1f3fb;
-					// position: absolute;
-					width: 100%;
-					height: 100%;
-					.icon {
-						width: 24px;
-						height: 24px;
-					}
+					z-index: 0;
 				}
 				.over_time {
-					background-color: gray;
+					z-index: 0;
 				}
 				.area_box {
 					// border: 1px solid #106fff;
@@ -193,13 +204,33 @@
 					width: 100%;
 					height: 100%;
 				}
+				.focus {
+					width: 100%;
+					height: 100%;
+					background: #95d8fe;
+				}
 			}
 		}
 		.current_time {
-			width: 0;
-			border: 2px dashed red;
-			position: absolute;
-			z-index: 100;
+			width: 6px;
+			border: 1px dashed #f4a55f;
+			background-color: #fde4df;
+			border-radius: 6px;
+			// position: absolute;
+			z-index: 5;
+			position: fixed;
+		}
+		.mouse_position {
+			position: fixed;
+			background-color: #e1f3fb;
+			z-index: 4;
+			opacity: 0.5;
+			.focus {
+				width: 100%;
+				height: 90px;
+				background: #95d8fe;
+				position: relative;
+			}
 		}
 	}
 }
