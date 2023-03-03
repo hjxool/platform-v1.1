@@ -7,6 +7,9 @@
 	position: absolute;
 	display: flex;
 	flex-direction: column;
+	background: #fff;
+	padding: 12px;
+	border-radius: 8px;
 }
 .place_card {
 	z-index: 0;
@@ -34,9 +37,11 @@
 	top: 0;
 	display: flex;
 	flex-direction: column;
-	padding-left: 20px;
 	z-index: 10;
 	background: #fff;
+	padding: 12px;
+	border-radius: 8px;
+	padding-left: 20px;
 	.page1 {
 		display: flex;
 		flex-wrap: wrap;
@@ -144,8 +149,10 @@
 	background-color: rgba(0, 0, 0, 0.2);
 	display: grid;
 	justify-items: center;
-	align-items: start;
+	align-items: center;
 	z-index: 990;
+	left: 0;
+	top: 0;
 	.add_rule_form {
 		width: 31.25%;
 		min-width: 600px;
@@ -283,8 +290,8 @@
 	top: -10px;
 }
 .device_window {
-	width: 100%;
-	height: 100%;
+	width: calc(100% - 24px);
+	height: calc(100% - 24px);
 	background: rgb(36, 38, 50);
 	border-radius: 10px;
 	display: flex;

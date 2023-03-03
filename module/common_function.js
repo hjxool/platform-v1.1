@@ -42,6 +42,8 @@ const common_functions = {
 					if (typeof func === 'function') {
 						func(res);
 					}
+				} else if (res.data.head.code == 401) {
+					window.parent.postMessage({ type: 'log_out' });
 				} else {
 					this.$alert(res.data.head.message, '提示', {
 						confirmButtonText: '确定',

@@ -6,10 +6,10 @@
 	height: 100%;
 	position: absolute;
 	display: grid;
-	grid-template-columns: 75% auto;
-	// min-width: 1000px;
-	// min-height: 800px;
-	background: #f7faff;
+	grid-template-columns: calc(75% - 20px) 20px auto;
+	padding: 12px;
+	border-radius: 8px;
+	background: #fff;
 }
 .row_layout {
 	display: flex;
@@ -225,10 +225,12 @@
 }
 .left {
 	background: #fff;
-	margin-right: 20px;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+.gap {
+	background: #f7faff;
 }
 .right {
 	display: flex;

@@ -538,5 +538,12 @@ new Vue({
 				this.alert_detail(this.alert_device_id);
 			});
 		},
+		// 关闭告警弹窗后要刷新当前场所
+		close_alert_window() {
+			if (this.status.total_alert === 0) {
+				this.get_place_devices();
+			}
+			this.html.alert_detail_display = false;
+		},
 	},
 });

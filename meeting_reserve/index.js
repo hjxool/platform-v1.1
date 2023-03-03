@@ -4,6 +4,9 @@ let room_list = `${url}api-portal/room/search/date`;
 let meeting_reserve = `${url}api-portal/meeting`;
 let user_list = `${url}api-portal/users`;
 let upload_files = `${url}api-portal/meeting/upload/files`;
+let cur_user_url = `${url}api-auth/oauth/userinfo`;
+let stru_list_url = `${url}api-portal/department/getsubDeptAndCurrentDeptUser`;
+let remove_dup_url = `${url}api-portal/user/distinct`;
 
 Vue.config.productionTip = false;
 new Vue({
@@ -25,12 +28,14 @@ new Vue({
 			throttle_flag: false, //节流方法标识
 			loading: true, //页面初始加载
 			reserve_type: [], //预约方式选项
-			week_options: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'], // 自定义星期选择
+			week_options: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'], // 自定义星期选择
 			bool_options: ['否', '是'],
 			meeting_info_show: false, //会议信息显示
 			meeting_infos: ['会议主题', '开始时间', '结束时间', '类型'],
 			info_type: ['站内消息', '微信公众号', '微信小程序', '钉钉', '短信', '邮件', 'APP'], // 通知方式
 			boundary_display: false, //只有当天需要计算边界线
+			add_person_display: false, //添加人员弹窗
+			add_person_loading: false, //添加人员表单加载
 		},
 		place_list: [], // 会议室及会议列表
 		// 新建会议表单
@@ -50,7 +55,15 @@ new Vue({
 			// files: [], // 存多次上传文件回来的结果
 			meetingReminds: [], // 提醒时间 数组
 			guestList: [], //来宾列表
+			guest_show: false, //来宾列表显示
 			description: '', //会议备注
+			is_rebook: false, //当从其他页面跳转而来时 需要禁用预约方式
+			reminds: ['开始时', '开始前15分钟', '开始前30分钟', '开始前1小时', '开始前2小时', '开始前1天', '开始前2天', '自定义'],
+		},
+		// 当前用户信息
+		user: {
+			name: '',
+			id: '',
 		},
 		// 会议信息
 		meeting_info: {
@@ -63,7 +76,7 @@ new Vue({
 		col_index_end: null,
 		block_width: 0, //时间方块宽度
 		start_move: false, //按下鼠标 焦点方块消失
-		conferee_list: [], //参会人员列表
+		// conferee_list: [], //参会人员列表
 		file: {
 			url: upload_files, //上传地址
 			list: [], //文件列表
@@ -86,6 +99,19 @@ new Vue({
 			height: '', //指示条高度
 			focus_top: '0px', //焦点距离父容器高度
 		},
+		// 添加参会人表单
+		add_person_form: {
+			search: '', //从总列表检索
+			option_select: 0, //0显示选项元素 1显示全部人员列表 2显示按架构分的列表
+			total_list: [], //总人员列表
+			// stru_list: [], //组织结构列表
+			stru_path: [], //组织结构路径 存储名字和索引id
+			select_list: [], //勾选的组织及人员列表
+			total_person: 0, //人员总数
+			page_size: 20, //查询人员一页最大数量
+			cur_path_id: '', //当前路径
+			stru_index: 0, //记录部门数组长度 以此分隔人员和部门
+		},
 	},
 	mounted() {
 		if (!location.search) {
@@ -93,6 +119,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		this.get_user_info();
 		let time = new Date().toString().split(' ')[4];
 		let time_list = time.split(':');
 		let hour = +time_list[0];
@@ -116,9 +143,23 @@ new Vue({
 		setInterval(() => {
 			this.get_boundary();
 		}, 600000);
-		this.search_organiztion();
 	},
 	methods: {
+		// 获取当前操作用户信息
+		get_user_info() {
+			this.request('get', cur_user_url, this.token, (res) => {
+				if (res.data.head.code != 200) {
+					return;
+				}
+				let data = res.data.data;
+				this.user.name = data.nickname;
+				this.user.id = data.id;
+				if (sessionStorage.meeting_data) {
+					this.rebook_meeting(JSON.parse(sessionStorage.meeting_data));
+					sessionStorage.removeItem('meeting_data');
+				}
+			});
+		},
 		// 查询会议室及会议详情列表
 		req_room_list(meeting_name) {
 			let t2 = this.html.month < 10 ? '0' + this.html.month : this.html.month;
@@ -229,9 +270,11 @@ new Vue({
 				let dom = document.querySelector('.current_time');
 				dom.style.left = `${offset}px`;
 				let dom2 = document.querySelector('.meeting_boxs');
-				// dom.style.height = `${100 * this.place_list.length}px`; // 100是一行高度
-				this.mouse.top = dom.style.top = dom2.getBoundingClientRect().top + 'px';
-				this.mouse.height = dom.style.height = dom2.clientHeight + 'px';
+				dom.style.height = `${100 * this.place_list.length}px`; // 100是一行高度
+				// this.mouse.top = dom.style.top = dom2.getBoundingClientRect().top + 'px';
+				this.mouse.top = dom2.getBoundingClientRect().top + 'px';
+				// this.mouse.height = dom.style.height = dom2.clientHeight + 'px';
+				this.mouse.height = dom2.clientHeight + 'px';
 			}
 		},
 		// 获取选中时间
@@ -282,7 +325,7 @@ new Vue({
 		},
 		// 鼠标滑动时 将开始的end样式去除 给末尾的添加end样式
 		area_enter(row_index, col_index, event) {
-			this.after_area_enter = true; //触发enter事件后mouse.row_index才有的值
+			this.mouse.enter = true; //触发enter事件后mouse.row_index才有的值
 			// 鼠标悬浮的行列高亮显示
 			this.mouse.row_index = row_index; //记录下鼠标刚进入方块的旧值
 			// this.mouse.row_index_old = this.mouse.row_index = row_index; //记录下鼠标刚进入方块的旧值
@@ -393,14 +436,21 @@ new Vue({
 				this.new_meeting_form.cus_week = [];
 				this.new_meeting_form.reply = 0;
 				this.new_meeting_form.sendMessage = 1;
-				this.new_meeting_form.meetingReminds = [{ alert_time: '', type: 0 }];
+				// 第一条默认提醒时间是会议开始时间
+				let d = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1 < 10 ? '0' + (this.html.date.getMonth() + 1) : this.html.date.getMonth() + 1}-${
+					this.html.date.getDate() < 10 ? '0' + this.html.date.getDate() : this.html.date.getDate()
+				} ${this.new_meeting_form.time_start}`;
+				this.new_meeting_form.meetingReminds = [{ alert_time: d, index: 0, type: 0 }];
 				this.new_meeting_form.signIn = 1;
 				this.new_meeting_form.summary = 1;
-				this.new_meeting_form.search_person = [];
+				this.new_meeting_form.search_person = [this.user];
 				this.new_meeting_form.cycle_deadline = '';
 				this.new_meeting_form.files = [];
 				this.html.form_loading = false;
 				this.new_meeting_form.guestList = [];
+				this.new_meeting_form.guest_show = false;
+				this.new_meeting_form.is_rebook = false; //手动触发表单显示时不需要禁用预约方式
+				this.roomId = null; // 将外部跳转过来的数据置为空 不然会填入上一次的会议室id
 			}
 			this.start_move = false;
 		},
@@ -473,17 +523,20 @@ new Vue({
 					let data = {
 						appointmentMode: form.method,
 						reply: form.reply,
-						roomId: this.place_list[this.row_index].id,
+						roomId: this.roomId || this.place_list[this.row_index].id,
 						sendMessage: form.sendMessage,
 						signIn: form.signIn,
 						summary: form.summary,
 						theme: form.name,
-						userIds: form.search_person,
+						userIds: [],
 						meetingFiles: form.files,
 						meetingReminds: [],
 						guestList: this.new_meeting_form.guestList,
 						description: form.description,
 					};
+					for (let val of form.search_person) {
+						data.userIds.push(val.id);
+					}
 					if (form.method != 0) {
 						// 周期截止
 						let y = form.cycle_deadline.getFullYear();
@@ -503,40 +556,36 @@ new Vue({
 					data.startTime = `${form.date.getFullYear()}-${m}-${d} ${form.time_start}:00`;
 					// 提醒时间
 					for (let i = 0; i < form.meetingReminds.length; i++) {
-						let t2 = {};
-						let t3 = form.meetingReminds[i];
-						t2.remindTime = `${form.date.getFullYear()}-${m}-${d} ${t3.alert_time}:00`;
-						t2.remindType = t3.type;
+						let t2 = {
+							type: form.meetingReminds[i].type,
+							remindTime: form.meetingReminds[i].alert_time,
+						};
 						data.meetingReminds.push(t2);
 					}
 					this.html.form_loading = true;
 					this.request('post', meeting_reserve, this.token, data, (res) => {
+						this.html.form_loading = false;
+						if (res.data.head.code != 200) {
+							return;
+						}
 						this.close_new();
 						// this.col_index_start = this.col_index_end = null;
 						this.req_room_list();
 						// this.html.new_meeting = false;
-						this.html.form_loading = false;
 					});
 				}
 			});
 		},
 		close_new() {
 			this.html.new_meeting = false;
+			if (this.new_meeting_form.is_rebook) {
+				return;
+			}
 			let l = this.col_index_end - this.col_index_start;
 			for (let i = 0; i <= l; i++) {
 				this.html.block_list2[this.row_index].splice(this.col_index_start + i, 1, 0);
 			}
 			this.col_index_start = this.col_index_end = null;
-		},
-		// 获取组织架构
-		search_organiztion() {
-			this.request('post', user_list, this.token, { condition: {}, pageNum: 1, pageSize: 9999999 }, (res) => {
-				console.log('部门人员', res);
-				if (res.data.head.code != 200) {
-					return;
-				}
-				this.conferee_list = res.data.data.data;
-			});
 		},
 		// 周期截止日期 配置项
 		cycle_options() {
@@ -633,13 +682,72 @@ new Vue({
 		},
 		// 添加提醒时间、方式
 		add_alert_time() {
-			if (this.new_meeting_form.meetingReminds.length < 3) {
-				let t = {
-					alert_time: '',
-					type: 0,
-				};
-				this.new_meeting_form.meetingReminds.push(t);
+			let t;
+			let t3 = this.new_meeting_form.meetingReminds;
+			if (t3.length == 3) {
+				return;
 			}
+			switch (t3.length) {
+				case 0:
+					t = {
+						index: 0,
+						type: 0,
+						alert_time: '',
+					};
+					break;
+				default:
+					t = {
+						index: t3[t3.length - 1].index < 6 ? t3[t3.length - 1].index + 1 : 6, //自动添加的提醒每次会自动选后一个选项 已经是倒数第二个选项了就只会添加倒数第二个选项
+						type: 0,
+						alert_time: '',
+					};
+					break;
+			}
+			t3.push(t);
+			for (let val of t3) {
+				this.init_time(val);
+			}
+		},
+		// 切换提醒选项 初始化时间
+		init_time(obj) {
+			let t = this.new_meeting_form.date;
+			let t2 = new Date(`${t.getFullYear()}-${t.getMonth() + 1}-${t.getDate()} ${this.new_meeting_form.time_start}`);
+			let t3;
+			switch (obj.index) {
+				case 0:
+					t3 = t2;
+					break;
+				case 1:
+					t3 = new Date(t2.getTime() - 15 * 60 * 1000);
+					break;
+				case 2:
+					t3 = new Date(t2.getTime() - 30 * 60 * 1000);
+					break;
+				case 3:
+					t3 = new Date(t2.getTime() - 60 * 60 * 1000);
+					break;
+				case 4:
+					t3 = new Date(t2.getTime() - 2 * 60 * 60 * 1000);
+					break;
+				case 5:
+					t3 = new Date(t2.getTime() - 24 * 60 * 60 * 1000);
+					break;
+				case 6:
+					t3 = new Date(t2.getTime() - 2 * 24 * 60 * 60 * 1000);
+					break;
+				default:
+					return;
+			}
+			obj.alert_time = `${t3.getFullYear()}-${t3.getMonth() + 1 < 10 ? '0' + (t3.getMonth() + 1) : t3.getMonth() + 1}-${t3.getDate() < 10 ? '0' + t3.getDate() : t3.getDate()} ${
+				t3.toString().split(' ')[4]
+			}`;
+		},
+		// 自定义提醒时间
+		custom_alert_time(row_obj) {
+			row_obj.alert_time = `${row_obj.alert_time.getFullYear()}-${row_obj.alert_time.getMonth() + 1 < 10 ? '0' + (row_obj.alert_time.getMonth() + 1) : row_obj.alert_time.getMonth() + 1}-${
+				row_obj.alert_time.getDate() < 10 ? '0' + row_obj.alert_time.getDate() : row_obj.alert_time.getDate()
+			} ${row_obj.alert_time.toString().split(' ')[4]}`;
+			row_obj.index = row_obj.alert_time;
 		},
 		// 删除提醒
 		del_alert_time(index) {
@@ -671,7 +779,7 @@ new Vue({
 							for (let val of single_sheet) {
 								let t = Object.entries(val);
 								let visitor = {
-									guestName: t[0][1],
+									guestName: t[0][1], //传的数据是这个字段名 不要改
 									guestPhone: t[1][1],
 								};
 								this.new_meeting_form.guestList.push(visitor);
@@ -682,6 +790,24 @@ new Vue({
 					this.$message('只能上传Excel文件');
 				}
 			};
+		},
+		// 删除来宾列表中的某人
+		del_guest(index) {
+			this.new_meeting_form.guestList.splice(index, 1);
+		},
+		// 删除参会人员
+		del_person(index) {
+			this.new_meeting_form.search_person.splice(index, 1);
+		},
+		// 删除勾选的组织或人员
+		del_select(index) {
+			for (let val of this.add_person_form.total_list) {
+				if (val.id === this.add_person_form.select_list[index].id) {
+					val.check = false;
+					break;
+				}
+			}
+			this.add_person_form.select_list.splice(index, 1);
 		},
 		// 下载excel模板
 		download() {
@@ -724,34 +850,33 @@ new Vue({
 				return;
 			}
 			let left = this.time_box_array[this.mouse.col_index].offsetLeft;
+			let scroll_left = document.querySelector('.table_box').scrollLeft;
 			return {
 				width: this.block_width + 'px',
 				height: this.mouse.height,
 				top: this.mouse.top,
-				left: left + 2 + 'px',
+				left: left + 2 + 12 - scroll_left + 'px', //因为外边框加了padding 而这个是相对于视窗定位 要补上padding和边框宽度的偏差
 			};
 		},
 		// 鼠标焦点样式显示
 		mouse_focus_show(event) {
-			if (!this.after_area_enter) {
+			if (!this.mouse.enter) {
 				return;
 			}
 			let top = document.querySelector('.time_line_box').getBoundingClientRect().bottom;
 			let dom = document.querySelector('.meeting_boxs').getBoundingClientRect();
 			let bottom = dom.bottom;
 			let right = dom.right;
-			if (event.clientX > this.first_block_position && event.clientX < right && event.clientY > top && event.clientY < bottom) {
+			if (event.clientX > this.first_block_position && event.clientX < right && event.clientY > top + 10 && event.clientY < bottom) {
 				this.mouse.enter = true;
 				// 在面板滑动时要计算行的值 列由时间块的mouseenter事件定位 mouseenter第一次定位行列肯定是准的
 				// 但是在指示条滑动鼠标时 行发生变化 要计算这个值需要之前定位到的行值 与当前鼠标位置
 				// this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
-				//#region
 				if (!this.block_top || this.mouse.row_index != this.mouse.row_index_old) {
 					// 当行没有变化就不计算block_top减轻计算量;
 					this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
 					this.mouse.row_index_old = this.mouse.row_index;
 				}
-				//#endregion
 				// 有两种情况 一种鼠标坐标小于block_top-10 行减少1
 				// 另一种鼠标坐标比block_top大100 行增加1
 				if (event.clientY <= this.block_top - 10) {
@@ -802,23 +927,291 @@ new Vue({
 		mouse_down() {
 			this.area_start(this.mouse.row_index, this.mouse.col_index);
 		},
-	},
-	computed: {
-		// 由表单获取的来宾列表计算生成的文本
-		guestList() {
-			let text = '';
-			let count = 0;
-			for (let val of this.new_meeting_form.guestList) {
-				count++;
-				let t;
-				if (count == this.new_meeting_form.guestList.length) {
-					t = '';
-				} else {
-					t = '、';
-				}
-				text += `${val.guestName}(${val.guestPhone})${t}`;
+		// 获取列表 初始化 展示添加人员弹窗
+		add_person_display() {
+			this.html.add_person_display = true;
+			this.add_person_form.search = '';
+			this.add_person_form.option_select = 0;
+			this.add_person_form.total_list = [];
+			this.add_person_form.stru_path = [];
+			this.add_person_form.select_list = [];
+			for (let val of this.new_meeting_form.search_person) {
+				let t = {
+					id: val.id,
+					name: val.name,
+					type: 'person',
+				};
+				this.add_person_form.select_list.push(t);
 			}
-			return text;
+		},
+		// 获取人员或组织列表
+		get_person_data(index, page) {
+			this.html.add_person_loading = true;
+			if (index == 1) {
+				let p;
+				if (typeof page == 'number') {
+					p = page;
+				} else {
+					p = 1;
+				}
+				this.request('post', user_list, this.token, { condition: {}, pageNum: p, pageSize: this.add_person_form.page_size, keyword: this.add_person_form.search }, (res) => {
+					console.log('人员检索', res);
+					this.html.add_person_loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					this.add_person_form.option_select = index;
+					let data = res.data.data;
+					this.add_person_form.total_person = data.total;
+					this.add_person_form.total_list = [];
+					for (let val of data.data) {
+						let t = {
+							name: val.username,
+							id: val.id,
+							check: false,
+							type: 'person', //不同类型显示样式不同
+						};
+						this.add_person_form.total_list.push(t);
+					}
+					// 每次查询返回数据都要对比右侧勾选id 将check属性回显
+					for (let val of this.add_person_form.total_list) {
+						for (let val2 of this.add_person_form.select_list) {
+							if (val.id === val2.id) {
+								val.check = true;
+								break; //跳出检查后面的人员
+							}
+						}
+					}
+				});
+			} else {
+				let id;
+				if (typeof page == 'object') {
+					id = page.id;
+				} else {
+					id = 1;
+					this.add_person_form.stru_path = [{ name: '总公司', id: 1 }];
+				}
+				this.request('post', `${stru_list_url}/${id}`, this.token, (res) => {
+					console.log('架构检索', res);
+					this.html.add_person_loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					this.add_person_form.cur_path_id = id;
+					this.add_person_form.option_select = index;
+					let data = res.data.data;
+					this.add_person_form.total_list = [];
+					this.add_person_form.stru_index = data.sysDeptVOList.length - 1; //记录部门数组长度
+					for (let val of data.sysDeptVOList) {
+						let t = {
+							name: val.deptName,
+							id: val.deptId,
+							check: false,
+							type: 'stru',
+						};
+						this.add_person_form.total_list.push(t);
+					}
+					for (let val of data.sysUserVOList) {
+						let t = {
+							name: val.username,
+							id: val.id,
+							check: false,
+							type: 'person',
+						};
+						this.add_person_form.total_list.push(t);
+					}
+					for (let val of this.add_person_form.total_list) {
+						for (let val2 of this.add_person_form.select_list) {
+							if (val.id === val2.id) {
+								val.check = true;
+								break;
+							}
+						}
+					}
+					if (id !== 1) {
+						// 这个条件只能作用于点击下级和刚进入按组织查询
+						this.add_person_form.stru_path.push(page);
+					}
+				});
+			}
+		},
+		// 勾选或取消勾选人员和组织
+		select_person(obj) {
+			if (obj.id === this.user.id) {
+				return;
+			}
+			if (obj.check) {
+				for (let index = 0; index < this.add_person_form.select_list.length; index++) {
+					if (this.add_person_form.select_list[index].id === obj.id) {
+						this.add_person_form.select_list.splice(index, 1);
+					}
+				}
+			} else {
+				this.add_person_form.select_list.push(obj);
+			}
+			obj.check = !obj.check;
+		},
+		// 路径回退
+		path_back(obj) {
+			// 如果是当前展示的组织 则不能再查
+			if (this.add_person_form.cur_path_id !== obj.id) {
+				this.html.add_person_loading = true;
+				this.request('post', `${stru_list_url}/${obj.id}`, this.token, (res) => {
+					console.log('架构检索', res);
+					this.html.add_person_loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					for (let index = 0; index < this.add_person_form.stru_path.length; index++) {
+						if (this.add_person_form.stru_path[index].id === obj.id) {
+							// 找到索引后 删除后面所有路径
+							this.add_person_form.stru_path.splice(index + 1);
+						}
+					}
+					this.add_person_form.cur_path_id = obj.id;
+					let data = res.data.data;
+					this.add_person_form.total_list = [];
+					this.add_person_form.stru_index = data.sysDeptVOList.length - 1; //记录部门数组长度
+					for (let val of data.sysDeptVOList) {
+						let t = {
+							name: val.deptName,
+							id: val.deptId,
+							check: false,
+							type: 'stru',
+						};
+						this.add_person_form.total_list.push(t);
+					}
+					for (let val of data.sysUserVOList) {
+						let t = {
+							name: val.username,
+							id: val.id,
+							check: false,
+							type: 'person',
+						};
+						this.add_person_form.total_list.push(t);
+					}
+					for (let val of this.add_person_form.total_list) {
+						for (let val2 of this.add_person_form.select_list) {
+							if (val.id === val2.id) {
+								val.check = true;
+								break;
+							}
+						}
+					}
+				});
+			}
+		},
+		// 参会人员提交
+		add_person_sub() {
+			this.html.add_person_loading = true;
+			let dep = [];
+			let user = [];
+			for (let val of this.add_person_form.select_list) {
+				if (val.type === 'person') {
+					let t = {
+						id: val.id,
+						username: val.name,
+					};
+					user.push(t);
+				} else {
+					let t = {
+						deptId: val.id,
+						deptName: val.name,
+					};
+					dep.push(t);
+				}
+			}
+			this.request('post', remove_dup_url, this.token, { sysDeptVOList: dep, sysUserVOList: user }, (res) => {
+				console.log('去重结果', res);
+				this.html.add_person_loading = false;
+				if (res.data.head.code != 200) {
+					this.$message('去重失败');
+					return;
+				}
+				this.html.add_person_display = false;
+				this.new_meeting_form.search_person = [this.user];
+				for (let val of res.data.data) {
+					if (val.id !== this.user.id) {
+						// 已经把当前用户添加到第一位 后面只需要把其余的加进来
+						let t = {
+							id: val.id,
+							name: val.username,
+						};
+						this.new_meeting_form.search_person.push(t);
+					}
+				}
+			});
+		},
+		// 重新预约会议
+		rebook_meeting(data) {
+			this.html.new_meeting = true;
+			this.roomId = data.roomId;
+			this.new_meeting_form.name = data.name;
+			let d_s = new Date(data.start_time);
+			let d_e = new Date(data.end_time);
+			this.new_meeting_form.date = d_s;
+			this.new_meeting_form.time_start = d_s.toString().split(' ')[4].substring(0, 5);
+			this.new_meeting_form.time_end = d_e.toString().split(' ')[4].substring(0, 5);
+			this.new_meeting_form.method = 0;
+			this.change_reserve_type();
+			this.new_meeting_form.reply = data.reply;
+			this.new_meeting_form.sendMessage = data.sendMessage;
+			this.new_meeting_form.signIn = data.signIn;
+			this.new_meeting_form.summary = data.summary;
+			this.new_meeting_form.description = data.description;
+			this.new_meeting_form.is_rebook = true;
+			// 提醒时间列表回显
+			this.new_meeting_form.meetingReminds = [];
+			if (!data.meetingReminds || !data.meetingReminds.length) {
+				this.new_meeting_form.sendMessage = 0;
+			}
+			for (let val of data.meetingReminds) {
+				let t = {
+					alert_time: val.remindTime,
+					index: val.remindTime,
+					type: 0,
+				};
+				this.new_meeting_form.meetingReminds.push(t);
+			}
+			// 填入参会和来宾 注意要把当前用户放在数组第一位
+			this.new_meeting_form.search_person = [this.user];
+			for (let val of data.search_person) {
+				if (val.userId !== this.user.id) {
+					let t = {
+						id: val.userId,
+						name: val.username,
+					};
+					this.new_meeting_form.search_person.push(t);
+				}
+			}
+			this.new_meeting_form.guestList = [];
+			for (let val of data.guestList) {
+				let visitor = {
+					guestName: val.guestName, //传的数据是这个字段名 不要改
+					guestPhone: val.guestPhone,
+				};
+				this.new_meeting_form.guestList.push(visitor);
+			}
 		},
 	},
+	//#region
+	// computed: {
+	// 	// 由表单获取的来宾列表计算生成的文本
+	// 	guestList() {
+	// 		let text = '';
+	// 		let count = 0;
+	// 		for (let val of this.new_meeting_form.guestList) {
+	// 			count++;
+	// 			let t;
+	// 			if (count == this.new_meeting_form.guestList.length) {
+	// 				t = '';
+	// 			} else {
+	// 				t = '、';
+	// 			}
+	// 			text += `${val.guestName}(${val.guestPhone})${t}`;
+	// 		}
+	// 		return text;
+	// 	},
+	// },
+	//#endregion
 });

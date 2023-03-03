@@ -276,7 +276,10 @@ new Vue({
 					location.href = `${候工链接}?token=${this.token}&type=${type}&id=${meeting_id}&prePage=ConferenceRoomUsageStatistics`;
 					break;
 				default:
-					window.parent.postMessage(type);
+					window.parent.postMessage({
+						type: 'jump',
+						name: type,
+					});
 					break;
 			}
 		},

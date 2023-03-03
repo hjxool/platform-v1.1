@@ -7,6 +7,9 @@
 	position: absolute;
 	display: grid;
 	grid-template-rows: 70px 60px auto;
+	background: #fff;
+	padding: 12px;
+	border-radius: 8px;
 }
 .header {
 	display: flex;
@@ -216,9 +219,9 @@
 			border: 1px dashed #f4a55f;
 			background-color: #fde4df;
 			border-radius: 6px;
-			// position: absolute;
+			position: absolute;
 			z-index: 5;
-			position: fixed;
+			// position: fixed;
 		}
 		.mouse_position {
 			position: fixed;
@@ -250,21 +253,11 @@
 		.form_head {
 			display: flex;
 			align-items: center;
+			justify-content: space-between;
 			height: 40px;
 			.text {
 				font-weight: bold;
 				font-size: 18px;
-			}
-			.icon {
-				width: 26px;
-				height: 26px;
-				background-color: #fdeaea;
-				border-radius: 50%;
-				margin-left: auto;
-				.icon2 {
-					font-size: 16px;
-					color: #f02424;
-				}
 			}
 		}
 		.form_body {
@@ -274,12 +267,17 @@
 			margin: 20px 0;
 		}
 		.alert_box {
-			display: flex;
-			flex-direction: column;
+			// display: flex;
+			// flex-direction: column;
 			.box1 {
+				position: relative;
 				display: flex;
 				align-items: center;
-				flex-shrink: 0;
+				// flex-shrink: 0;
+				margin-bottom: 10px;
+				&:last-child {
+					margin-bottom: 0;
+				}
 				.text1 {
 					width: 150px;
 					height: 40px;
@@ -295,10 +293,232 @@
 				.icon {
 					font-size: 16px;
 				}
+				> .box3 {
+					width: 200px;
+					margin-right: 20px;
+				}
 			}
 		}
 		.margin {
 			margin-right: 10px;
+		}
+		.person_box {
+			flex-grow: 1;
+			border: 1px solid #eaebed;
+			border-radius: 6px;
+			&:hover {
+				border-color: #c0c4cc;
+			}
+			display: grid;
+			grid-template-columns: auto 40px;
+			> .box1 {
+				display: flex;
+				flex-wrap: wrap;
+				overflow-x: hidden;
+				> .person {
+					background-color: #f2f2f7;
+					padding: 6px 10px;
+					width: 100px;
+					margin: 6px 0 6px 8px;
+					display: flex;
+					align-items: center;
+					overflow: hidden;
+					border-radius: 6px;
+					> .icon1 {
+						font-weight: bold;
+						font-size: 12px;
+						margin-right: 6px;
+					}
+					> .name {
+						flex-grow: 1;
+						font-size: 14px;
+						margin-right: auto;
+						line-height: initial; //element的行高会影响内部未设置行高的字体元素
+					}
+				}
+				> .placeholder {
+					color: #c0c4cc;
+					margin-left: 10px;
+					align-self: center;
+				}
+			}
+			> .box2 {
+				padding-left: 8px;
+				padding-top: 10px;
+				color: #c0c4cc;
+				font-size: 14px;
+				line-height: initial;
+				align-self: start;
+				justify-self: start;
+			}
+		}
+		.add_button {
+			width: 26px;
+			height: 26px;
+			margin: 8px 10px 0 10px;
+			cursor: pointer;
+			&:hover {
+				background-color: #e7e9ea;
+			}
+		}
+	}
+	.add_person_window {
+		align-self: center;
+		width: 40%;
+		min-width: 600px;
+		height: 60vh;
+		overflow: hidden; //总容器限制溢出 子容器滚动
+		min-height: 500px;
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		background-color: #fff;
+		> .head {
+			padding: 10px 20px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		> .body {
+			flex-grow: 1;
+			overflow: hidden;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			> .left {
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+				padding: 10px;
+				border-right: 1px solid #e2e4e5;
+				> .options {
+					margin: 20px 10px;
+					display: flex;
+					> .box {
+						display: flex;
+						flex-direction: column;
+						align-items: center;
+						margin-right: 36px;
+						> .bg {
+							width: 40px;
+							height: 40px;
+							border-radius: 10px;
+							background-color: #eaebed;
+							margin-bottom: 12px;
+						}
+					}
+				}
+				> .list_box {
+					flex-grow: 1;
+					overflow: hidden;
+					display: flex;
+					flex-direction: column;
+					> .box1 {
+						display: flex;
+						align-items: center;
+						margin: 10px 0;
+						> .icon {
+							font-size: 14px;
+							font-weight: bold;
+						}
+						> .text {
+							margin: 0 auto;
+						}
+					}
+					> .box2 {
+						display: flex;
+						align-items: center;
+						flex-wrap: wrap;
+						align-content: start;
+						margin: 10px 0;
+						> .test2 {
+							display: flex;
+							align-items: center;
+							flex-wrap: wrap;
+							> .text {
+								margin: 0 10px;
+							}
+						}
+					}
+					> .scroll {
+						flex-grow: 1;
+						padding-right: 10px;
+						overflow: auto;
+						> .person {
+							padding: 6px 8px;
+							display: flex;
+							align-items: center;
+							// overflow: hidden;
+							cursor: pointer;
+							position: relative;
+							&:hover {
+								background-color: #eff0f1;
+							}
+							> .icon1 {
+								width: 20px;
+								height: 20px;
+								border: 1px solid;
+								border-radius: 6px;
+							}
+							> .icon2 {
+								width: 20px;
+								height: 20px;
+								background: #007fff;
+								border-radius: 6px;
+								> .icon3 {
+									font-size: 12px;
+									color: #fff;
+								}
+							}
+							> .name {
+								margin-left: 12px;
+								margin-right: auto;
+							}
+							> .line_between {
+								position: absolute;
+								top: 100%;
+								left: 0;
+								width: 100%;
+								height: 6px;
+								background-color: #eeeeee;
+								border-radius: 4px;
+							}
+						}
+					}
+				}
+			}
+			> .right {
+				padding: 10px;
+				overflow: hidden;
+				display: flex;
+				flex-direction: column;
+				> .scroll {
+					flex-grow: 1;
+					padding-right: 10px;
+					overflow: auto;
+					display: flex;
+					flex-wrap: wrap;
+					align-content: start;
+					> .person {
+						background-color: #f2f2f7;
+						padding: 6px 10px;
+						width: 100px;
+						margin: 6px 0 6px 8px;
+						display: flex;
+						align-items: center;
+						overflow: hidden;
+						border-radius: 6px;
+						> .name {
+							flex-grow: 1;
+							font-size: 14px;
+							margin-right: auto;
+						}
+					}
+				}
+				> .submit {
+					padding-top: 10px;
+					align-self: end;
+				}
+			}
 		}
 	}
 }
@@ -319,6 +539,10 @@
 			font-size: 16px;
 		}
 	}
+}
+.paging {
+	align-self: center;
+	padding: 20px 0;
 }
 
 ::-webkit-scrollbar {

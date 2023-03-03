@@ -121,9 +121,10 @@
           <el-table :data="statistic_window_list" :max-height="html.table_h">
             <el-table-column type="index" width="50"></el-table-column>
             <template v-if="html.statistic_title!=='场所数量'">
-              <el-table-column v-if="html.statistic_title==='离线设备'" prop="offlineTime" label="时间"
+              <el-table-column v-if="html.statistic_title==='离线设备'" prop="offlineTime" label="离线时间"
                 width="180"></el-table-column>
               <el-table-column prop="deviceName" label="设备名称"></el-table-column>
+              <el-table-column prop="placeName" label="场所"></el-table-column>
               <el-table-column v-if="html.statistic_title!=='在线设备'" label="操作" width="80">
                 <template slot-scope="scope">
                   <el-button @click="trun_to_other_page(scope.row)" type="text">详情</el-button>

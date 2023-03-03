@@ -21,6 +21,8 @@ new Vue({
 			page_loading: false, //页面加载
 			upgrade_display: false, //固件升级设备弹窗
 			tips: '设备之前可能有传输中断的升级文件，选是则会把文件从头开始传',
+			fail_c: 0, //上传失败次数
+			fail_t: 3, //最多进行3次尝试
 		},
 		product_list: [], //产品列表
 		firmware_list: [], //固件列表
@@ -162,21 +164,21 @@ new Vue({
 							}
 						});
 					} else {
-						let file = select_file.files[0];
-						let length = file.size;
-						let size = 1024 * 1024 * 5;
-						let slice_list = [];
-						let total = Math.ceil(length / size);
-						for (let i = 0; i < total; i++) {
-							let t = file.slice(size * i, size * (i + 1));
-							slice_list.push(t);
-						}
-						let index = 0;
+						// let file = select_file.files[0]; //如果以后要做并发上传 可以在这加生成MD5 然后作为闭包传入回调函数
+						// let length = file.size; //文件总大小
+						// let size = 1024 * 1024 * 5; //以5M大小切片
+						// let slice_list = []; //存储文件切片
+						// let total = Math.ceil(length / size); //总共多少片 用以停止发送请求
+						// for (let i = 0; i < total; i++) {
+						// 	let t = file.slice(size * i, size * (i + 1));
+						// 	slice_list.push(t);
+						// }
+						let index = 0; //slice_list索引
 						this.firmware_form.load_text = `开始上传`;
 						setTimeout(() => {
 							this.firmware_form.load_text = `上传进度：0%`;
 						}, 500);
-						this.slice_upload(index, total, slice_list, length);
+						this.slice_upload(index);
 						// let reader = new FileReader();
 						// reader.readAsArrayBuffer(file);
 						// reader.onload = (e) => {
@@ -205,16 +207,56 @@ new Vue({
 		select_file() {
 			select_file.click();
 		},
-		// 选完文件后填充表单
+		// 选完文件后填充表单 先生成MD5才能进行上传
 		file_selected() {
-			let file = select_file.files[0];
+			this.html.popover_loading = true;
+			this.firmware_form.load_text = `正在读取文件...`;
+			this.file = select_file.files[0];
 			let data_stream = new FileReader();
-			data_stream.readAsBinaryString(file);
-			data_stream.onload = (e) => {
-				// this.firmware_form.ver = md5(e.target.result);
-				this.firmware_form.ver = SparkMD5.hashBinary(e.target.result);
+			// 以50M为分隔 小于50M的直接读取 大于的则切片后再合并计算MD5
+			let max_size = 1024 * 1024 * 50;
+			this.file_size = this.file.size;
+			this.slice_list = [];
+			if (this.file_size <= max_size) {
+				this.slice_size = 1024 * 1024 * 5;
+				this.slice_total = Math.ceil(this.file_size / this.slice_size);
+				for (let i = 0; i < this.slice_total; i++) {
+					let t = this.file.slice(this.slice_size * i, this.slice_size * (i + 1));
+					this.slice_list.push(t);
+				}
+				data_stream.readAsBinaryString(this.file);
+				data_stream.onload = (e) => {
+					this.firmware_form.ver = SparkMD5.hashBinary(e.target.result);
+					this.html.popover_loading = false;
+				};
+			} else {
+				this.firmware_form.load_text = '上传文件过大，读取速度较慢，请耐心等待...';
+				this.slice_size = max_size;
+				this.slice_total = Math.ceil(this.file_size / this.slice_size);
+				for (let i = 0; i < this.slice_total; i++) {
+					let t = this.file.slice(this.slice_size * i, this.slice_size * (i + 1));
+					this.slice_list.push(t);
+				}
+				let spark = new SparkMD5.ArrayBuffer();
+				let index = 0;
+				this.large_file_md5(index, spark);
+			}
+			this.firmware_form.file_name = this.file.name;
+		},
+		// 大文件读取分段加入数组缓存 最后合并计算MD5
+		large_file_md5(index, spark) {
+			let r = new FileReader();
+			r.readAsArrayBuffer(this.slice_list[index]);
+			this.firmware_form.load_text = `读取进度：${++index}/${this.slice_total}`;
+			r.onload = (e) => {
+				spark.append(e.target.result);
+				if (index < this.slice_total) {
+					this.large_file_md5(index, spark);
+				} else {
+					this.firmware_form.ver = spark.end();
+					this.html.popover_loading = false;
+				}
 			};
-			this.firmware_form.file_name = file.name;
 		},
 		// 下来菜单点击事件
 		other_operate(command, row_obj) {
@@ -330,48 +372,65 @@ new Vue({
 			});
 		},
 		// 切片上传文件
-		slice_upload(index, total, slice_list, length) {
+		slice_upload(index) {
 			let form_obj = new FormData();
 			// form_obj.append('file_chunksize', slice_list[index].byteLength);
-			form_obj.append('file_chunksize', slice_list[index].size);
-			form_obj.append('file_data', slice_list[index]);
+			form_obj.append('file_chunksize', this.slice_list[index].size);
+			form_obj.append('file_data', this.slice_list[index]);
 			form_obj.append('file_index', index + 1);
 			form_obj.append('file_md5', this.firmware_form.ver);
 			form_obj.append('file_name', this.firmware_form.file_name);
-			form_obj.append('file_size', length);
+			form_obj.append('file_size', this.file_size);
 			let t = this.firmware_form.file_name.split('.');
 			form_obj.append('file_suffix', t[t.length - 1]);
-			form_obj.append('file_total', total);
-			this.request('post', upload_firmware_url, this.token, form_obj, (res) => {
-				let per = Math.floor(((index + 1) / total) * 100 * 10 + 0.5) / 10;
-				this.firmware_form.load_text = `上传进度：${per}%`;
-				index++;
-				if (index < total) {
-					this.slice_upload(index, total, slice_list, length);
-				} else if (index == total) {
-					this.firmware_form.load_text = `上传完成`;
-					setTimeout(() => {
-						this.firmware_form.load_text = `等待服务器返回结果`;
-					}, 500);
-					let data = {
-						firmwareByteLength: res.data.data.firmwareByteLength,
-						firmwareName: this.firmware_form.name,
-						firmwareVersion: res.data.data.firmwareVersion,
-						partCount: res.data.data.partCount,
-						productId: this.firmware_form.product,
-					};
-					this.request('post', edit_firmware_url, this.token, data, (res) => {
-						this.html.popover_loading = false;
-						if (res.data.head.code == 200) {
-							this.html.firmware_display = false;
-							this.html.search = '';
-							this.html.product_selected = '';
-							this.get_firmware_list();
+			form_obj.append('file_total', this.slice_total);
+			//每个切片的MD5
+			let r = new FileReader();
+			r.readAsBinaryString(this.slice_list[index]);
+			r.onload = (e) => {
+				// FileReader是异步 所以要等读取完才发送请求
+				form_obj.append('fileChunkMd5', SparkMD5.hashBinary(e.target.result));
+				this.request('post', upload_firmware_url, this.token, form_obj, (res) => {
+					if (res.data.head.code != 200) {
+						this.firmware_form.load_text = '上传失败，将重新上传，请耐心等待';
+						if (++this.html.fail_c == fail_t) {
+							this.firmware_form.load_text = '重试上传失败';
+							this.html.fail_c = 0;
+							return;
 						}
-					});
-				}
-			});
-			form_obj = null;
+						this.firm_sub('firmware_form');
+						return;
+					}
+					let per = Math.floor(((index + 1) / this.slice_total) * 100 * 10 + 0.5) / 10;
+					this.firmware_form.load_text = `上传进度：${per}%`;
+					if (++index < this.slice_total) {
+						this.slice_upload(index);
+					} else {
+						this.firmware_form.load_text = `上传完成`;
+						setTimeout(() => {
+							this.firmware_form.load_text = `等待服务器返回结果`;
+						}, 500);
+						// 先上传文件 传完后再更新固件信息
+						let data = {
+							firmwareByteLength: res.data.data.firmwareByteLength,
+							firmwareName: this.firmware_form.name,
+							firmwareVersion: res.data.data.firmwareVersion,
+							partCount: res.data.data.partCount,
+							productId: this.firmware_form.product,
+						};
+						this.request('post', edit_firmware_url, this.token, data, (res) => {
+							this.html.popover_loading = false;
+							if (res.data.head.code == 200) {
+								this.html.firmware_display = false;
+								this.html.search = '';
+								this.html.product_selected = '';
+								this.get_firmware_list();
+							}
+						});
+					}
+				});
+				form_obj = null;
+			};
 		},
 		// 获取同一产品下在线设备列表
 		get_product_device_list(params) {

@@ -82,6 +82,9 @@ new Vue({
 				case 'MyBooking':
 					path = 'todayMeeting';
 					break;
+				case 'public_material':
+					path = 'material';
+					break;
 				default:
 					location.href = `${this.path}${location.search}`;
 					return;

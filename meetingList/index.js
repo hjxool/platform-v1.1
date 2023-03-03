@@ -1,6 +1,7 @@
 let url = `${我是接口地址}/`;
 let search_meeting_url = `${url}api-portal/meeting/list`;
 let edit_meeting_url = `${url}api-portal/meeting`;
+let delay_meeting_url = `${url}api-portal/meeting/delay`;
 let user_url = `${url}api-auth/oauth/userinfo`; //获取当前登录用户信息
 let cancel_url = `${url}api-portal/meeting/cancel`;
 
@@ -53,11 +54,16 @@ new Vue({
 				{ value: 2, label: '审核通过' },
 			],
 			size: 20, //一页显示条数
-			cancel_display: true, //取消会议按钮显示
+			delay_set_show: false, // 延迟弹窗显示
 		},
 		total_size: 0, //总条数
 		tableData: [], //表格数据
 		current_user: '', //当前用户id
+		delay: {
+			text: 15, // 显示设置数值
+			min: 15, // 延后最小值
+			max: 120, // 延后最大值
+		},
 	},
 	mounted() {
 		if (!location.search) {
@@ -73,10 +79,9 @@ new Vue({
 		// 获取当前登录用户名
 		get_current_user() {
 			this.request('get', user_url, this.token, (res) => {
-				console.log('用户信息');
+				console.log('用户信息', res);
 				if (res.data.head.code != 200) {
 					this.$message('无法获取用户信息');
-					this.html.cancel_display = false;
 					return;
 				}
 				this.current_user = res.data.data.id;
@@ -130,7 +135,121 @@ new Vue({
 		},
 		// 取消会议
 		cancel_meeting(meeting_id) {
-			this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+			this.$confirm('取消会议后是否需要重新申请？', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				center: true,
+			})
+				.then(() => {
+					this.html.loading = true;
+					this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+						this.turn_to_rebook(meeting_id);
+					});
+				})
+				.catch(() => {
+					this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+						this.get_data();
+					});
+				});
+		},
+		// 查询会议详情获取生成数据 重新定向到会议预约界面
+		turn_to_rebook(meeting_id) {
+			this.html.loading = true;
+			this.request('get', `${edit_meeting_url}/${meeting_id}`, this.token, (res) => {
+				this.html.loading = false;
+				console.log('会议信息', res);
+				if (res.data.head.code != 200) {
+					this.$message.error('无法重新预定会议');
+					return;
+				}
+				let t = res.data.data;
+				// 表单数据存到对象里 再存到本地缓存
+				let data = {
+					roomId: t.roomId,
+					name: t.theme,
+					start_time: t.startTime.replace(/-/g, '/'),
+					end_time: t.endTime.replace(/-/g, '/'),
+					reply: t.reply,
+					sendMessage: t.sendMessage,
+					meetingReminds: t.meetingReminds,
+					description: t.description,
+					signIn: t.signIn,
+					summary: t.summary,
+					search_person: [],
+					guestList: [],
+				};
+				for (let val of t.users) {
+					if (val.isGuest) {
+						data.guestList.push(val);
+					} else {
+						data.search_person.push(val);
+					}
+				}
+				sessionStorage.meeting_data = JSON.stringify(data);
+				// 存好后跳转到会议预约页面 显示并回显表单数据
+				let message = {
+					type: 'jump',
+					name: '会议预约',
+				};
+				window.parent.postMessage(message);
+			});
+		},
+		// 按钮是否可用
+		meeting_button_ban(tag, meeting_obj) {
+			switch (tag) {
+				case '延迟':
+					if (meeting_obj.auditStatus == 2 && (meeting_obj.status === 0 || meeting_obj.status == 1)) {
+						return false;
+					} else {
+						return true;
+					}
+				case '撤回':
+					if (meeting_obj.auditStatus == 1 && meeting_obj.status === 0) {
+						return false;
+					} else {
+						return true;
+					}
+				case '取消会议':
+					if (this.current_user == meeting_obj.createUser && meeting_obj.auditStatus == 2 && meeting_obj.status === 0) {
+						return false;
+					} else {
+						return true;
+					}
+				case '重新预定':
+					if (this.current_user == meeting_obj.createUser && meeting_obj.status === -1 && (meeting_obj.auditStatus === 0 || meeting_obj.auditStatus == -1 || meeting_obj.auditStatus == 2)) {
+						return false;
+					} else {
+						return true;
+					}
+			}
+		},
+		// 设置延后
+		set_delay(row_obj) {
+			this.html.delay_set_show = true;
+			this.delay.text = 15;
+			this.cur_meeting_obj = row_obj;
+		},
+		// 会议延后提交
+		delay_meeting() {
+			// 延后的会议结束时间不能超过当天23点
+			let end_hour = parseFloat(this.cur_meeting_obj.endTime.split(' ')[1].split(':')[0]);
+			let delay_hour = Number(this.delay.text) / 60;
+			if (end_hour + delay_hour > 23) {
+				this.$message.error('会议延后结束时间不能超过23点');
+				return;
+			}
+			// let start = new Date(this.cur_meeting_obj.startTime.replace(/-/g, '/')); // 为了兼容safari浏览器
+			let end = new Date(this.cur_meeting_obj.endTime.replace(/-/g, '/'));
+			let delay_time = Number(this.delay.text) * 60 * 1000; // 延后分钟转换毫秒
+			// start = new Date(start.getTime() + delay_time);
+			end = new Date(end.getTime() + delay_time);
+			// start = `${this.cur_meeting_obj.startTime.split(' ')[0]} ${start.toString().split(' ')[4]}`;
+			end = `${this.cur_meeting_obj.endTime.split(' ')[0]} ${end.toString().split(' ')[4]}`;
+			this.request('put', delay_meeting_url, this.token, { id: this.cur_meeting_obj.id, startTime: this.cur_meeting_obj.startTime, endTime: end }, (res) => {
+				this.html.delay_set_show = false;
+				if (res.data.head.code == 200) {
+					this.$message.success(`延后 ${this.cur_meeting_obj.theme} 会议成功`);
+				}
 				this.get_data();
 			});
 		},
