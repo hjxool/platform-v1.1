@@ -111,31 +111,45 @@
 .table_box {
 	display: grid;
 	grid-template-rows: 40px auto;
-	overflow-x: auto;
-	overflow-y: hidden;
+	// overflow-x: auto;
+	// overflow-y: hidden;
+	overflow: hidden;
 	position: relative;
 	.time_line_box {
 		display: grid;
 		grid-template-columns: 240px repeat(17, 1fr);
 		grid-auto-flow: column;
-		grid-auto-columns: 60px;
+		grid-auto-columns: 120px;
 		background-color: #dcf3fc;
+		overflow: auto;
+		scrollbar-width: none; // firefox
+		&::-webkit-scrollbar {
+			// Chrome Safari
+			display: none;
+		}
+		> .icon {
+			position: sticky;
+			left: 0;
+			z-index: 20;
+			background: #dcf3fc;
+		}
 		.time_line {
 			font-size: 16px;
-			min-width: 60px;
+			min-width: 120px;
 		}
 	}
 	.meeting_boxs {
 		display: grid;
 		grid-auto-rows: 100px;
-		overflow-y: auto;
-		overflow-x: hidden;
+		// overflow-y: auto;
+		// overflow-x: hidden;
+		overflow: auto;
 		position: relative;
 		align-self: start;
 		max-height: 100%;
 		.place {
 			display: grid;
-			grid-template-columns: 240px repeat(34, 1fr);
+			grid-template-columns: 240px repeat(68, 1fr);
 			grid-auto-flow: column;
 			grid-auto-columns: 30px;
 			border: 1px solid #e6e6e6;
@@ -145,6 +159,10 @@
 			.place_name {
 				display: grid;
 				// grid-template-columns: auto 90px;
+				position: sticky;
+				left: 0;
+				background: #fff;
+				z-index: 20;
 				.info {
 					display: flex;
 					flex-direction: column;
@@ -430,12 +448,15 @@
 						flex-wrap: wrap;
 						align-content: start;
 						margin: 10px 0;
-						> .test2 {
+						> .text2 {
 							display: flex;
 							align-items: center;
-							flex-wrap: wrap;
 							> .text {
-								margin: 0 10px;
+								border-radius: 6px;
+								padding: 5px;
+								&:hover {
+									background: #f2f2f7;
+								}
 							}
 						}
 					}
@@ -548,7 +569,7 @@
 ::-webkit-scrollbar {
 	/*滚动条整体样式*/
 	width: 5px; /*高宽分别对应横竖滚动条的尺寸*/
-	height: 5px;
+	height: 10px;
 }
 ::-webkit-scrollbar-thumb {
 	/*滚动条里面小方块*/

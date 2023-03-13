@@ -36,6 +36,7 @@ new Vue({
 			boundary_display: false, //只有当天需要计算边界线
 			add_person_display: false, //添加人员弹窗
 			add_person_loading: false, //添加人员表单加载
+			time_num: 68, //一行时间间隔方块
 		},
 		place_list: [], // 会议室及会议列表
 		// 新建会议表单
@@ -125,10 +126,18 @@ new Vue({
 		let hour = +time_list[0];
 		let minute = +time_list[1];
 		// 首先找到当前时间所在方格
-		this.boundary = (hour - 6) * 2;
+		this.boundary = (hour - 6) * 4;
 		// 计算当前时间线所在的方格索引 小于这个索引的全部变灰
-		if (minute >= 30) {
-			this.boundary++;
+		switch (true) {
+			case minute >= 15 && minute < 30:
+				this.boundary = this.boundary + 1;
+				break;
+			case minute >= 30 && minute < 45:
+				this.boundary = this.boundary + 2;
+				break;
+			case minute >= 45:
+				this.boundary = this.boundary + 3;
+				break;
 		}
 		// 小于当天的格子全部灰掉
 		// 改变时间后 只有当天才能显示和计算边界值 格式化当天条件为 00点
@@ -143,6 +152,9 @@ new Vue({
 		setInterval(() => {
 			this.get_boundary();
 		}, 600000);
+		// 横向滚动条相关参数
+		this.meeting_boxs = document.querySelector('.meeting_boxs');
+		this.scroll = false;
 	},
 	methods: {
 		// 获取当前操作用户信息
@@ -197,17 +209,34 @@ new Vue({
 				let start = array[i].startTime.split(' ')[1].split(':');
 				let start_hour = +start[0];
 				let start_minute = +start[1];
-				let start_index = (start_hour - 6) * 2;
-				if (start_minute == 30) {
-					start_index++;
+				let start_index = (start_hour - 6) * 4;
+				// 时间分隔为15 30 45 00
+				switch (start_minute) {
+					case 15:
+						start_index = start_index + 1;
+						break;
+					case 30:
+						start_index = start_index + 2;
+						break;
+					case 45:
+						start_index = start_index + 3;
+						break;
 				}
 				let end = array[i].endTime.split(' ')[1].split(':');
 				let end_hour = +end[0];
 				let end_minute = +end[1];
 				// 结束时间是分隔线之前 开始时间从分隔线之后
-				let end_index = (end_hour - 6) * 2 - 1;
-				if (end_minute == 30) {
-					end_index++;
+				let end_index = (end_hour - 6) * 4 - 1;
+				switch (end_minute) {
+					case 15:
+						end_index = end_index + 1;
+						break;
+					case 30:
+						end_index = end_index + 2;
+						break;
+					case 45:
+						end_index = end_index + 3;
+						break;
 				}
 				if (time_index >= start_index && time_index <= end_index) {
 					// timeType 0表示已过期 1表示已预定 2表示空闲
@@ -238,7 +267,7 @@ new Vue({
 				} else {
 					t2 = [];
 				}
-				for (let j = 0; j < 34; j++) {
+				for (let j = 0; j < this.html.time_num; j++) {
 					t[j] = this.query_block_status(t2, j);
 					t3[j] = 0;
 				}
@@ -259,14 +288,14 @@ new Vue({
 				let hour = +time_list[0];
 				let minute = +time_list[1];
 				// 首先找到当前时间所在方格
-				let boundary = (hour - 6) * 2;
+				let boundary = (hour - 6) * 4;
 				// 计算分钟在一小时间隔中位置
 				let per = minute / 60;
 				// 只获取一次time_box数组 给鼠标焦点用
 				this.time_box_array = document.querySelectorAll('.time_box');
 				let block_position = this.time_box_array[boundary].offsetLeft;
-				this.block_width = document.querySelector('.time_box').offsetWidth;
-				let offset = per * (this.block_width * 2) + block_position;
+				this.block_width = document.querySelector('.time_box').clientWidth;
+				let offset = per * (this.block_width * 4) + block_position;
 				let dom = document.querySelector('.current_time');
 				dom.style.left = `${offset}px`;
 				let dom2 = document.querySelector('.meeting_boxs');
@@ -338,7 +367,7 @@ new Vue({
 					this.html.block_list2 = [];
 					for (let i = 0; i < this.place_list.length; i++) {
 						let t = [];
-						for (let k = 0; k < 34; k++) {
+						for (let k = 0; k < this.html.time_num; k++) {
 							t[k] = 0;
 						}
 						this.html.block_list2.push(t);
@@ -365,16 +394,32 @@ new Vue({
 						let start = t[i].startTime.split(' ')[1].split(':');
 						let start_hour = +start[0];
 						let start_minute = +start[1];
-						let start_index = (start_hour - 6) * 2;
-						if (start_minute == 30) {
-							start_index++;
+						let start_index = (start_hour - 6) * 4;
+						switch (start_minute) {
+							case 15:
+								start_index = start_index + 1;
+								break;
+							case 30:
+								start_index = start_index + 2;
+								break;
+							case 45:
+								start_index = start_index + 3;
+								break;
 						}
 						let end = t[i].endTime.split(' ')[1].split(':');
 						let end_hour = +end[0];
 						let end_minute = +end[1];
-						let end_index = (end_hour - 6) * 2 - 1;
-						if (end_minute == 30) {
-							end_index++;
+						let end_index = (end_hour - 6) * 4 - 1;
+						switch (end_minute) {
+							case 15:
+								end_index = end_index + 1;
+								break;
+							case 30:
+								end_index = end_index + 2;
+								break;
+							case 45:
+								end_index = end_index + 3;
+								break;
 						}
 						if (col_index >= start_index && col_index <= end_index) {
 							let info = t[i];
@@ -420,15 +465,31 @@ new Vue({
 				this.html.new_meeting = true;
 				this.new_meeting_form.date = this.html.date;
 				// 计算当前时间
-				let t = Math.floor(this.col_index_start / 2) + 6;
+				let t = Math.floor(this.col_index_start / 4) + 6;
 				this.new_meeting_form.time_start = `${t}:00`;
-				if (this.col_index_start % 2 != 0) {
-					this.new_meeting_form.time_start = `${t}:30`;
+				switch (this.col_index_start % 4) {
+					case 1:
+						this.new_meeting_form.time_start = `${t}:15`;
+						break;
+					case 2:
+						this.new_meeting_form.time_start = `${t}:30`;
+						break;
+					case 3:
+						this.new_meeting_form.time_start = `${t}:45`;
+						break;
 				}
-				let t2 = Math.floor((this.col_index_end + 1) / 2) + 6;
+				let t2 = Math.floor((this.col_index_end + 1) / 4) + 6;
 				this.new_meeting_form.time_end = `${t2}:00`;
-				if ((this.col_index_end + 1) % 2 != 0) {
-					this.new_meeting_form.time_end = `${t2}:30`;
+				switch ((this.col_index_end + 1) % 4) {
+					case 1:
+						this.new_meeting_form.time_end = `${t2}:15`;
+						break;
+					case 2:
+						this.new_meeting_form.time_end = `${t}:30`;
+						break;
+					case 3:
+						this.new_meeting_form.time_end = `${t}:45`;
+						break;
 				}
 				this.change_reserve_type();
 				this.new_meeting_form.name = '';
@@ -439,7 +500,7 @@ new Vue({
 				// 第一条默认提醒时间是会议开始时间
 				let d = `${this.html.date.getFullYear()}-${this.html.date.getMonth() + 1 < 10 ? '0' + (this.html.date.getMonth() + 1) : this.html.date.getMonth() + 1}-${
 					this.html.date.getDate() < 10 ? '0' + this.html.date.getDate() : this.html.date.getDate()
-				} ${this.new_meeting_form.time_start}`;
+				} ${this.new_meeting_form.time_start}:00`;
 				this.new_meeting_form.meetingReminds = [{ alert_time: d, index: 0, type: 0 }];
 				this.new_meeting_form.signIn = 1;
 				this.new_meeting_form.summary = 1;
@@ -672,9 +733,10 @@ new Vue({
 				this.html.meeting_info_show = false;
 				return;
 			}
-			let dom2 = document.querySelectorAll('.place');
-			let dom3 = dom2[dom2.length - 1];
-			let t2 = dom3.getBoundingClientRect().bottom;
+			// let dom2 = document.querySelectorAll('.place');
+			// let dom3 = dom2[dom2.length - 1];
+			let dom3 = document.querySelector('.meeting_boxs');
+			let t2 = dom3.getBoundingClientRect().bottom - 10; //减去10 是滚动条高度
 			if (event.clientY > t2) {
 				this.html.meeting_info_show = false;
 				return;
@@ -820,7 +882,7 @@ new Vue({
 				let a = document.createElement('a');
 				a.href = URL.createObjectURL(res.data);
 				a.target = '_blank';
-				a.download = '模板';
+				a.download = '模板.xlsx';
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);
@@ -850,7 +912,7 @@ new Vue({
 				return;
 			}
 			let left = this.time_box_array[this.mouse.col_index].offsetLeft;
-			let scroll_left = document.querySelector('.table_box').scrollLeft;
+			let scroll_left = document.querySelector('.meeting_boxs').scrollLeft;
 			return {
 				width: this.block_width + 'px',
 				height: this.mouse.height,
@@ -865,7 +927,7 @@ new Vue({
 			}
 			let top = document.querySelector('.time_line_box').getBoundingClientRect().bottom;
 			let dom = document.querySelector('.meeting_boxs').getBoundingClientRect();
-			let bottom = dom.bottom;
+			let bottom = dom.bottom - 10; //减去10 是滚动条高度
 			let right = dom.right;
 			if (event.clientX > this.first_block_position && event.clientX < right && event.clientY > top + 10 && event.clientY < bottom) {
 				this.mouse.enter = true;
@@ -874,7 +936,7 @@ new Vue({
 				// this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
 				if (!this.block_top || this.mouse.row_index != this.mouse.row_index_old) {
 					// 当行没有变化就不计算block_top减轻计算量;
-					this.block_top = this.time_box_array[this.mouse.row_index * 34 + this.mouse.col_index].getBoundingClientRect().top;
+					this.block_top = this.time_box_array[this.mouse.row_index * this.html.time_num + this.mouse.col_index].getBoundingClientRect().top;
 					this.mouse.row_index_old = this.mouse.row_index;
 				}
 				// 有两种情况 一种鼠标坐标小于block_top-10 行减少1
@@ -1052,7 +1114,7 @@ new Vue({
 			obj.check = !obj.check;
 		},
 		// 路径回退
-		path_back(obj) {
+		path_back(obj, index) {
 			// 如果是当前展示的组织 则不能再查
 			if (this.add_person_form.cur_path_id !== obj.id) {
 				this.html.add_person_loading = true;
@@ -1062,12 +1124,13 @@ new Vue({
 					if (res.data.head.code != 200) {
 						return;
 					}
-					for (let index = 0; index < this.add_person_form.stru_path.length; index++) {
-						if (this.add_person_form.stru_path[index].id === obj.id) {
-							// 找到索引后 删除后面所有路径
-							this.add_person_form.stru_path.splice(index + 1);
-						}
-					}
+					// for (let index = 0; index < this.add_person_form.stru_path.length; index++) {
+					// 	if (this.add_person_form.stru_path[index].id === obj.id) {
+					// 		// 找到索引后 删除后面所有路径
+					// 		this.add_person_form.stru_path.splice(index + 1);
+					// 	}
+					// }
+					this.add_person_form.stru_path.splice(index + 1);
 					this.add_person_form.cur_path_id = obj.id;
 					let data = res.data.data;
 					this.add_person_form.total_list = [];
@@ -1192,6 +1255,20 @@ new Vue({
 				};
 				this.new_meeting_form.guestList.push(visitor);
 			}
+		},
+		// 拖动下方横向滚动条 会连带上边的滚动条移动
+		link_scroll() {
+			let old_left = this.meeting_boxs.scrollLeft;
+			if (!this.scroll) {
+				setTimeout(() => {
+					let left = this.meeting_boxs.scrollLeft;
+					if (Math.abs(left - old_left)) {
+						document.querySelector('.time_line_box').scrollLeft = left;
+					}
+					this.scroll = false;
+				}, 30);
+			}
+			this.scroll = true;
 		},
 	},
 	//#region

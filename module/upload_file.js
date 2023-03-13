@@ -70,6 +70,9 @@
 		let t = file.name.split('.'); // 为了避免文件名中含多个.
 		form_obj.append(obj.file_suffix ? obj.file_suffix : 'file_suffix', t[t.length - 1]); // 文件后缀
 		form_obj.append(obj.file_total ? obj.file_total : 'file_total', slice_list.length); // 总片数
+
+		obj.uploadProgress(index + 1, slice_list.length, form_obj); // 配置 上传进程执行
+
 		let r = new FileReader();
 		r.readAsBinaryString(slice_list[index]); // 单片大小都不大可以用此方法读取
 		r.onload = (e) => {
@@ -98,7 +101,6 @@
 					}, 1000);
 					return;
 				}
-				obj.uploadProgress(index + 1, slice_list.length); // 配置 上传进程执行
 				if (++index < slice_list.length) {
 					// 当前索引小于总片数时继续传下一片
 					slice_upload(index, slice_list, md5, file, obj, fail_index);

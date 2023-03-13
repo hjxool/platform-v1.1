@@ -84,7 +84,7 @@ new Vue({
 				uploadSuccess: () => {
 					this.html.load_text = `上传成功`;
 					setTimeout(() => {
-						this.html.page_loading = false;
+						this.get_data(1);
 					}, 1000);
 				},
 				readStart: () => {
@@ -98,19 +98,39 @@ new Vue({
 		},
 		// 删除素材
 		del_material(row_obj) {
-			this.request('post', del_material_url, this.token, [row_obj.id], (res) => {
-				this.get_data(1);
+			this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning',
+				center: true,
+			}).then(() => {
+				this.request('post', del_material_url, this.token, [row_obj.id], (res) => {
+					this.get_data(1);
+				});
 			});
 		},
-		// 不是图片不能预览
-		is_img(url) {
-			let a = url.split('.');
-			let t = a[a.length - 1];
-			if (t === 'jpg' || t === 'png') {
-				return true;
-			} else {
-				return false;
-			}
+		// 下载素材
+		download_material(row_obj) {
+			axios({
+				method: 'get',
+				url: row_obj.fileUrl,
+				responseType: 'blob',
+				header: {
+					Authorization: `Bearer ${this.token}`,
+					'Content-Type': 'application/x-download',
+				},
+			}).then((res) => {
+				// let b = new Blob([res.data]);
+				let a = document.createElement('a');
+				let href = URL.createObjectURL(res.data);
+				a.download = row_obj.fileName;
+				a.href = href;
+				a.target = '_blank';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(href);
+			});
 		},
 	},
 });

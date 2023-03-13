@@ -85,6 +85,10 @@ new Vue({
 				case 'public_material':
 					path = 'material';
 					break;
+				case 'role_add_user':
+				case 'department_add_user':
+					path = 'add_person';
+					break;
 				default:
 					location.href = `${this.path}${location.search}`;
 					return;

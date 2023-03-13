@@ -135,20 +135,26 @@ new Vue({
 			}`;
 			let s = `${d} 00:00:00`;
 			let e = `${d} 23:59:59`;
-			this.request('post', search_meeting_url, this.token, { condition: { startTime: s, endTime: e, meetingStatus: this.body.cur_op }, pageNum: current, pageSize: this.body.size }, (res) => {
-				console.log('会议列表', res);
-				this.html.loading = false;
-				if (res.data.head.code != 200) {
-					return;
+			this.request(
+				'post',
+				search_meeting_url,
+				this.token,
+				{ condition: { startTime: s, endTime: e, meetingStatus: this.body.cur_op, auditStatus: 2 }, pageNum: current, pageSize: this.body.size },
+				(res) => {
+					console.log('会议列表', res);
+					this.html.loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					let data = res.data.data;
+					this.total_size = data.total;
+					for (let val of data.data) {
+						val.start_time = val.startTime.split(' ')[1];
+						val.end_time = val.endTime.split(' ')[1];
+					}
+					this.body.list = data.data;
 				}
-				let data = res.data.data;
-				this.total_size = data.total;
-				for (let val of data.data) {
-					val.start_time = val.startTime.split(' ')[1];
-					val.end_time = val.endTime.split(' ')[1];
-				}
-				this.body.list = data.data;
-			});
+			);
 		},
 		// 选择当月月中某天
 		select_day(day) {

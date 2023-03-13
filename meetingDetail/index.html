@@ -14,7 +14,10 @@
 
 <body>
   <div id="index" v-cloak>
-    <el-page-header class="header" @back="goBack" content="详情页面"></el-page-header>
+    <div class="row_layout header">
+      <el-page-header @back="goBack" content="详情页面"></el-page-header>
+      <el-button v-show="html.end_display" type="primary" size="small" round>结束会议</el-button>
+    </div>
     <div class="body" v-loading="html.loading">
       <div class="left">
         <!-- 会议信息 -->
@@ -29,14 +32,22 @@
         </el-card>
         <!-- 会议附件 -->
         <el-card class="box1" style="margin-left: 10px;" shadow="never">
-          <div slot="header" class="row_layout">
-            <i class="el-icon-folder-opened title_icon" style="color: #0770FF;"></i>
-            <span class="title">会议附件</span>
+          <div slot="header" class="row_layout" style="justify-content:space-between;">
+            <div>
+              <i class="el-icon-folder-opened title_icon" style="color: #0770FF;"></i>
+              <span class="title">会议附件</span>
+            </div>
+            <el-button @click="click_add" round>添加</el-button>
+            <input id="add_file" @change="add_file" type="file" style="display: none;">
           </div>
           <div class="text2" v-if="!meeting_detail.files.length">无</div>
-          <div class="text2 row_layout" v-for="item in meeting_detail.files">
-            <span :title="item.fileName" class="text_ellipsis">文件名：{{item.fileName}}</span>
-            <el-button @click="download_files(item)" style="margin-left: auto;" size="small" type="text">下载</el-button>
+          <div style="overflow-x: hidden;">
+            <div class="text2 row_layout" v-for="item in meeting_detail.files">
+              <span :title="item.fileName" class="text_ellipsis">文件名：{{item.fileName}}</span>
+              <el-button @click="download_files(item)" class="flex_shrink" style="margin-left: auto;" size="small"
+                type="text">下载</el-button>
+              <i @click="del_file(item)" class="el-icon-close button" style="margin-left:20px;"></i>
+            </div>
           </div>
         </el-card>
         <!-- 参会人 -->

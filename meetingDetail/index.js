@@ -2,6 +2,9 @@ let url = `${我是接口地址}/`;
 let meeting_url = `${url}api-portal/meeting`;
 let download_summary_url = `${url}api-portal/meeting/summary/download`;
 let save_summary_url = `${url}api-portal/meeting/summary`;
+let add_file_url = `${url}api-portal/meeting/upload/files`;
+let edit_file_url = `${url}api-portal/meeting/update/files`;
+let user_url = `${url}api-auth/oauth/userinfo`; //获取当前登录用户信息
 
 new Vue({
 	el: '#index',
@@ -10,6 +13,7 @@ new Vue({
 		html: {
 			loading: false, //页面加载
 			user_type: 0, //参会人栏筛选条件
+			end_display: false, // 结束会议按钮显示
 		},
 		meeting_detail: {
 			time: '', //时间
@@ -30,7 +34,7 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		this.get_data();
+		this.get_current_user();
 		let dom = document.querySelectorAll('.echart1');
 		this.e1 = echarts.init(dom[0]);
 		this.e2 = echarts.init(dom[1]);
@@ -39,6 +43,18 @@ new Vue({
 		window.addEventListener('resize', this.resize);
 	},
 	methods: {
+		// 获取当前登录用户名
+		get_current_user() {
+			this.request('get', user_url, this.token, (res) => {
+				console.log('用户信息', res);
+				if (res.data.head.code != 200) {
+					this.$message('无法获取用户信息');
+					return;
+				}
+				this.current_user = res.data.data.id;
+				this.get_data();
+			});
+		},
 		// 返回上一级
 		goBack() {
 			location.href = `${候工链接}?type=${this.prePage}&token=${this.token}`;
@@ -152,10 +168,14 @@ new Vue({
 				option.series[0].data = data3;
 				option.color = ['#FFA500', '#48D1CC'];
 				this.e3.setOption(option);
+				this.end_meeting_show();
 				this.$nextTick(() => {
 					// 编辑器
 					if (this.meeting_detail.save) {
-						this.init_editor();
+						if (!this.already_create) {
+							this.init_editor();
+							this.already_create = true;
+						}
 						this.editor.setHtml(this.meeting_obj.content || '');
 					}
 				});
@@ -163,13 +183,22 @@ new Vue({
 		},
 		// 下载会议附件
 		download_files(file) {
-			let a = document.createElement('a');
-			a.download = file.fileName;
-			a.href = file.fileUrl;
-			a.target = '_blank';
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
+			axios({
+				method: 'get',
+				url: file.fileUrl,
+				responseType: 'blob',
+				headers: { Authorization: `Bearer ${this.token}` },
+			}).then((res) => {
+				let a = document.createElement('a');
+				let href = URL.createObjectURL(res.data);
+				a.href = href;
+				a.target = '_blank';
+				a.download = file.fileName;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(href);
+			});
 		},
 		// 下载会议纪要
 		download_summary() {
@@ -179,9 +208,8 @@ new Vue({
 				responseType: 'blob',
 				headers: { Authorization: `Bearer ${this.token}` },
 			}).then((res) => {
-				let b = new Blob([res.data]);
 				let a = document.createElement('a');
-				let href = URL.createObjectURL(b);
+				let href = URL.createObjectURL(res.data);
 				a.href = href;
 				a.target = '_blank';
 				let filename;
@@ -266,6 +294,68 @@ new Vue({
 		resize() {
 			this.e1.resize();
 			this.e2.resize();
+		},
+		// 触发选择文件
+		click_add() {
+			add_file.click();
+		},
+		// 添加附件
+		add_file() {
+			let file = add_file.files[0];
+			let f = new FormData();
+			f.append('file', file);
+			this.html.loading = true;
+			axios({
+				method: 'post',
+				url: add_file_url,
+				data: f,
+				headers: {
+					Authorization: `Bearer ${this.token}`,
+					'content-type': 'multipart/form-data',
+				},
+			}).then((res) => {
+				if (res.data.head.code != 200) {
+					return;
+				}
+				let f = [];
+				for (let val of this.meeting_detail.files) {
+					f.push(val);
+				}
+				res.data.data.meetingId = this.id;
+				f.push(res.data.data);
+				this.request('post', edit_file_url, this.token, { id: this.id, meetingFiles: f }, (res) => {
+					this.html.loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					this.get_data();
+				});
+				// this.get_data();
+			});
+		},
+		// 删除附件
+		del_file(obj) {
+			let f = [];
+			for (let val of this.meeting_detail.files) {
+				if (val.fileId !== obj.fileId) {
+					f.push(val);
+				}
+			}
+			this.html.loading = true;
+			this.request('post', edit_file_url, this.token, { id: this.id, meetingFiles: f }, (res) => {
+				this.html.loading = false;
+				if (res.data.head.code != 200) {
+					return;
+				}
+				this.get_data();
+			});
+		},
+		// 结束会议是否显示
+		end_meeting_show() {
+			if (this.current_user == this.meeting_obj.createUser && this.meeting_obj.status === 1) {
+				// 进行中且是当前用户才显示
+				this.html.end_display = true;
+			}
 		},
 	},
 });

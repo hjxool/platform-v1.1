@@ -135,22 +135,26 @@ new Vue({
 		},
 		// 取消会议
 		cancel_meeting(meeting_id) {
-			this.$confirm('取消会议后是否需要重新申请？', '提示', {
-				confirmButtonText: '确定',
-				cancelButtonText: '取消',
-				center: true,
-			})
-				.then(() => {
-					this.html.loading = true;
-					this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
-						this.turn_to_rebook(meeting_id);
-					});
-				})
-				.catch(() => {
-					this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
-						this.get_data();
-					});
-				});
+			// this.$confirm('取消会议后是否需要重新申请？', '提示', {
+			// 	confirmButtonText: '确定',
+			// 	cancelButtonText: '取消',
+			// 	center: true,
+			// })
+			// 	.then(() => {
+			// 		this.html.loading = true;
+			// 		this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+			// 			this.turn_to_rebook(meeting_id);
+			// 		});
+			// 	})
+			// 	.catch(() => {
+			// 		this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+			// 			this.get_data();
+			// 		});
+			// 	});
+			this.html.loading = true;
+			this.request('put', `${cancel_url}/${meeting_id}`, this.token, (res) => {
+				this.get_data();
+			});
 		},
 		// 查询会议详情获取生成数据 重新定向到会议预约界面
 		turn_to_rebook(meeting_id) {
@@ -245,8 +249,8 @@ new Vue({
 			end = new Date(end.getTime() + delay_time);
 			// start = `${this.cur_meeting_obj.startTime.split(' ')[0]} ${start.toString().split(' ')[4]}`;
 			end = `${this.cur_meeting_obj.endTime.split(' ')[0]} ${end.toString().split(' ')[4]}`;
-			this.request('put', delay_meeting_url, this.token, { id: this.cur_meeting_obj.id, startTime: this.cur_meeting_obj.startTime, endTime: end }, (res) => {
-				this.html.delay_set_show = false;
+			this.html.delay_set_show = false;
+			this.request('put', delay_meeting_url, this.token, { id: this.cur_meeting_obj.id, startTime: `${this.cur_meeting_obj.startTime}:00`, endTime: end }, (res) => {
 				if (res.data.head.code == 200) {
 					this.$message.success(`延后 ${this.cur_meeting_obj.theme} 会议成功`);
 				}

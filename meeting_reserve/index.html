@@ -41,11 +41,11 @@
       <!-- 时间轴 -->
       <div class="time_line_box">
         <!-- 占位 -->
-        <div></div>
+        <div class="icon"></div>
         <div v-for="i in 17" class="time_line center">{{6+i-1}}:30</div>
       </div>
       <!-- 会议室列表 -->
-      <div class="meeting_boxs" @mousemove="mouse_focus_show($event)">
+      <div class="meeting_boxs" @mousemove="mouse_focus_show($event)" @scroll="link_scroll">
         <div class="current_time" v-show="html.boundary_display"></div>
         <!-- fixed浮在时间块上 无法冒泡触发mouse事件 -->
         <div class="mouse_position" v-show="mouse.enter" :style="mouse_position()" @mousedown="mouse_down"
@@ -73,7 +73,7 @@
             </div> -->
           </div>
           <!-- @mousedown="area_start(index,index2)" @mouseover="area_enter(index,index2)" @mouseenter="query_meeting_info($event,index,index2)" -->
-          <div v-for="i,index2 in 34" class="time_box" @mouseenter="area_enter(index,index2,$event)">
+          <div v-for="i,index2 in html.time_num" class="time_box" @mouseenter="area_enter(index,index2,$event)">
             <!-- 有会议的样式 -->
             <img v-if="html.block_list[index][index2] == 2" src="./img/icon5.png" class="bg_img pass" draggable="false">
             <!-- 过期的样式 -->
@@ -113,7 +113,7 @@
                 <el-form-item prop="time_start" class="margin" style="width: 100px;">
                   <el-time-select v-model="new_meeting_form.time_start" @change="change_reserve_type"
                     style="width: 100px;"
-                    :picker-options="{start: '06:00',step: '00:30',end: '23:00',maxTime:new_meeting_form.time_end}"
+                    :picker-options="{start: '06:00',step: '00:15',end: '23:00',maxTime:new_meeting_form.time_end}"
                     placeholder="选择起始时间">
                   </el-time-select>
                 </el-form-item>
@@ -121,7 +121,7 @@
                 <el-form-item prop="time_end" class="margin" style="width: 100px;">
                   <el-time-select v-model="new_meeting_form.time_end" @change="change_reserve_type"
                     style="width: 100px;"
-                    :picker-options="{start: '06:00',step: '00:30',end: '23:00',minTime: new_meeting_form.time_start}"
+                    :picker-options="{start: '06:00',step: '00:15',end: '23:00',minTime: new_meeting_form.time_start}"
                     placeholder="选择结束时间">
                   </el-time-select>
                 </el-form-item>
@@ -310,27 +310,27 @@
               </div>
             </div>
             <div class="list_box" v-show="add_person_form.option_select!==0">
-              <div class="box1 flex_shrink">
+              <div v-show="add_person_form.stru_path.length==1" class="box1 flex_shrink">
                 <i class="el-icon-arrow-left icon button" @click="add_person_form.option_select=0"></i>
                 <span class="icon text">{{add_person_form.option_select==1?'按人员选':'按架构选'}}</span>
               </div>
               <div class="box2 flex_shrink" v-if="add_person_form.option_select==2">
                 <div class="text2" v-for="item,index in add_person_form.stru_path">
-                  <span @click="path_back(item)" class="text button">{{item.name}}</span>
+                  <span @click="path_back(item,index)" class="text button">{{item.name}}</span>
                   <i v-show="index!=add_person_form.stru_path.length-1" class="el-icon-arrow-right"></i>
                 </div>
               </div>
               <div class="scroll">
-                <div class="person" v-for="item,index in add_person_form.total_list" @click="select_person(item)"
+                <div class="person" v-for="item,index in add_person_form.total_list"
                   :style="{cursor:item.id==user.id?'not-allowed':'',marginTop:add_person_form.stru_index+1==index?'6px':''}">
-                  <div v-show="!item.check" class="icon1 flex_shrink"></div>
-                  <div v-show="item.check" class="icon2 flex_shrink center"
+                  <div v-show="!item.check" class="icon1 flex_shrink" @click="select_person(item)"></div>
+                  <div v-show="item.check" class="icon2 flex_shrink center" @click="select_person(item)"
                     :style="{background:item.id==user.id?'#ECEDEE':''}">
                     <i class="el-icon-check icon3"></i>
                   </div>
-                  <div class="name text_ellipsis" :title="item.name">{{item.name}}</div>
-                  <el-button v-show="item.type=='stru'" @click.stop="get_person_data(2,item)" class="button"
-                    style="margin:0 10px;" type="text">下级</el-button>
+                  <div class="name text_ellipsis" @click="select_person(item)" :title="item.name">{{item.name}}</div>
+                  <el-button v-show="item.type=='stru'" :disabled="item.check" @click.stop="get_person_data(2,item)"
+                    class="button" style="margin:0 10px;" type="text">下级</el-button>
                   <div
                     v-if="item.type=='stru'&&add_person_form.stru_index==index&&index+1<add_person_form.total_list.length"
                     class="line_between"></div>
