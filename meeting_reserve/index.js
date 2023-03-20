@@ -120,6 +120,18 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		// if (localStorage.hushanwebuserid) {
+		//   this.user = {
+		//     id: localStorage.hushanwebuserid,
+		//     name,
+		//   };
+		//   if (sessionStorage.meeting_data) {
+		//     this.rebook_meeting(JSON.parse(sessionStorage.meeting_data));
+		//     sessionStorage.removeItem('meeting_data');
+		//   }
+		// } else {
+		//   this.get_user_info();
+		// }
 		this.get_user_info();
 		let time = new Date().toString().split(' ')[4];
 		let time_list = time.split(':');
@@ -1106,6 +1118,7 @@ new Vue({
 				for (let index = 0; index < this.add_person_form.select_list.length; index++) {
 					if (this.add_person_form.select_list[index].id === obj.id) {
 						this.add_person_form.select_list.splice(index, 1);
+						break;
 					}
 				}
 			} else {

@@ -5,6 +5,7 @@ let save_summary_url = `${url}api-portal/meeting/summary`;
 let add_file_url = `${url}api-portal/meeting/upload/files`;
 let edit_file_url = `${url}api-portal/meeting/update/files`;
 let user_url = `${url}api-auth/oauth/userinfo`; //获取当前登录用户信息
+let end_meeting_url = `${url}api-portal/meeting/stop`; //结束会议
 
 new Vue({
 	el: '#index',
@@ -356,6 +357,24 @@ new Vue({
 				// 进行中且是当前用户才显示
 				this.html.end_display = true;
 			}
+		},
+		// 结束会议
+		end_meeting() {
+			this.$confirm('确认结束会议？', '提示', {
+				confirmButtonText: '确定',
+				cancelButtonText: '取消',
+				type: 'warning',
+				center: true,
+			}).then(() => {
+				this.html.loading = true;
+				this.request('put', `${end_meeting_url}/${this.id}`, this.token, (res) => {
+					this.html.loading = false;
+					if (res.data.head.code != 200) {
+						return;
+					}
+					this.get_data();
+				});
+			});
 		},
 	},
 });

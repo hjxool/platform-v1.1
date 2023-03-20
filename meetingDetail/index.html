@@ -16,7 +16,7 @@
   <div id="index" v-cloak>
     <div class="row_layout header">
       <el-page-header @back="goBack" content="详情页面"></el-page-header>
-      <el-button v-show="html.end_display" type="primary" size="small" round>结束会议</el-button>
+      <el-button v-show="html.end_display" @click="end_meeting" type="primary" size="small" round>结束会议</el-button>
     </div>
     <div class="body" v-loading="html.loading">
       <div class="left">
