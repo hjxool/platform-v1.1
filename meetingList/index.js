@@ -71,8 +71,13 @@ new Vue({
 		} else {
 			this.get_token();
 		}
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.current_user = obj.id;
+		} else {
+			this.get_current_user();
+		}
 		window.addEventListener('resize', this.table_height);
-		this.get_current_user();
 		this.get_data();
 	},
 	methods: {

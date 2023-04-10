@@ -37,7 +37,12 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		this.get_current_user();
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.current_user = obj.id;
+		} else {
+			this.get_current_user();
+		}
 		if (sessionStorage.startTime) {
 			// 获取其他页面跳转过来的参数
 			this.get_day_list(new Date(sessionStorage.startTime));

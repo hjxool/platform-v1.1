@@ -92,7 +92,18 @@ new Vue({
 					// component_list原本为空，组件尚未初始化，赋值后立即发送消息，组件收不到
 					this.$bus.$emit('common_params', this.token, this.device_id);
 					this.get_data(); // 组件初始化结束再去查值 触发事件
-					this.get_user_info(); // 组件初始化后 建立连接 触发事件
+					if (localStorage.hushanwebuserinfo) {
+						let obj = JSON.parse(localStorage.hushanwebuserinfo);
+						let ws_name = obj.mqUser;
+						let ws_password = obj.mqPassword;
+						this.user_id = obj.id;
+						this.ws_link = new WebSocket(`${我是websocket地址}`);
+						this.stomp_link = Stomp.over(this.ws_link);
+						this.stomp_link.debug = null;
+						this.stomp_link.connect(ws_name, ws_password, this.on_message, this.on_error, '/');
+					} else {
+						this.get_user_info(); // 组件初始化后 建立连接 触发事件
+					}
 				});
 			});
 		},

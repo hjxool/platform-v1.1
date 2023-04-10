@@ -120,18 +120,19 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		// if (localStorage.hushanwebuserid) {
-		//   this.user = {
-		//     id: localStorage.hushanwebuserid,
-		//     name,
-		//   };
-		//   if (sessionStorage.meeting_data) {
-		//     this.rebook_meeting(JSON.parse(sessionStorage.meeting_data));
-		//     sessionStorage.removeItem('meeting_data');
-		//   }
-		// } else {
-		//   this.get_user_info();
-		// }
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.user = {
+				id: obj.id,
+				name: obj.nickname,
+			};
+			if (sessionStorage.meeting_data) {
+				this.rebook_meeting(JSON.parse(sessionStorage.meeting_data));
+				sessionStorage.removeItem('meeting_data');
+			}
+		} else {
+			this.get_user_info();
+		}
 		this.get_user_info();
 		let time = new Date().toString().split(' ')[4];
 		let time_list = time.split(':');

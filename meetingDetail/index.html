@@ -16,7 +16,8 @@
   <div id="index" v-cloak>
     <div class="row_layout header">
       <el-page-header @back="goBack" content="详情页面"></el-page-header>
-      <el-button v-show="html.end_display" @click="end_meeting" type="primary" size="small" round>结束会议</el-button>
+      <el-button v-show="html.end_display" @click="end_meeting" style="margin-right:20px;" type="primary" size="small"
+        round>结束会议</el-button>
     </div>
     <div class="body" v-loading="html.loading">
       <div class="left">
@@ -37,7 +38,7 @@
               <i class="el-icon-folder-opened title_icon" style="color: #0770FF;"></i>
               <span class="title">会议附件</span>
             </div>
-            <el-button @click="click_add" round>添加</el-button>
+            <el-button @click="click_add" type="primary" round size="mini">添加</el-button>
             <input id="add_file" @change="add_file" type="file" style="display: none;">
           </div>
           <div class="text2" v-if="!meeting_detail.files.length">无</div>

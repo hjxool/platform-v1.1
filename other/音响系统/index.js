@@ -65,7 +65,14 @@ new Vue({
 			this.device_name = decodeURIComponent(this.device_name);
 		}
 		document.title = '智慧音频终端';
-		this.get_user_info();
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.ws_name = obj.mqUser;
+			this.ws_password = obj.mqPassword;
+			this.user_id = obj.id;
+		} else {
+			this.get_user_info();
+		}
 		for (let i = 1; i <= 2; i++) {
 			// 两个通道同步请求 需要两个标识符
 			this[`first_load${i}`] = true;

@@ -35,7 +35,13 @@ new Vue({
 		} else {
 			this.get_token();
 		}
-		this.get_current_user();
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.current_user = obj.id;
+			this.get_data();
+		} else {
+			this.get_current_user();
+		}
 		let dom = document.querySelectorAll('.echart1');
 		this.e1 = echarts.init(dom[0]);
 		this.e2 = echarts.init(dom[1]);
@@ -356,6 +362,8 @@ new Vue({
 			if (this.current_user == this.meeting_obj.createUser && this.meeting_obj.status === 1) {
 				// 进行中且是当前用户才显示
 				this.html.end_display = true;
+			} else {
+				this.html.end_display = false;
 			}
 		},
 		// 结束会议

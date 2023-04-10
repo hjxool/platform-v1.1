@@ -33,8 +33,19 @@ new Vue({
 			this.get_token();
 			this.device_name = decodeURIComponent(this.device_name);
 		}
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.ws_name = obj.mqUser;
+			this.ws_password = obj.mqPassword;
+			this.user_id = obj.id;
+			this.ws_link = new WebSocket(`${我是websocket地址}`);
+			this.stomp_link = Stomp.over(this.ws_link);
+			this.stomp_link.debug = null;
+			this.stomp_link.connect(this.ws_name, this.ws_password, this.on_message, this.on_error, '/');
+		} else {
+			this.get_user_info();
+		}
 		this.switch_page(this.html.page);
-		this.get_user_info();
 		this.resize();
 		window.onresize = this.resize;
 	},

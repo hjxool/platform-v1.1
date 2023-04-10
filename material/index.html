@@ -41,9 +41,10 @@
 
         <el-table-column prop="fileName" label="素材名称"></el-table-column>
         <el-table-column prop="fileTypeString" label="素材类型"></el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="250">
           <template slot-scope="scope">
             <el-button @click="download_material(scope.row)" size="mini" type="primary">下载</el-button>
+            <el-button @click="publish_show(scope.row)" size="mini" type="success">发布</el-button>
             <el-button @click="del_material(scope.row)" size="mini" type="danger">删除</el-button>
           </template>
         </el-table-column>
@@ -52,7 +53,47 @@
 
     <div class="footer flex_shrink">
       <el-pagination background layout="total, prev, pager, next" :total="table.total" :page-size="table.page_size"
-        @current-change="get_data"></el-pagination>
+        @current-change="get_data" :current-page="table.cur_page"></el-pagination>
+    </div>
+
+    <!-- 弹窗 -->
+    <div class="popover" v-if="form.show">
+      <div class="form_layout" v-loading="form.loading">
+        <div class="head row_layout flex_shrink">
+          <span class="title">发布计划</span>
+          <el-button @click="form.show=false" size="mini" type="danger" circle icon="el-icon-close"></el-button>
+        </div>
+
+        <div class="body">
+          <el-form ref="form" :rules="form.rules" :model="form" label-width="auto">
+            <el-form-item label="计划名称" prop="name">
+              <el-input v-model="form.name" size="mini" style="width:50%;"></el-input>
+            </el-form-item>
+
+            <el-form-item label="直播开始时间">
+              <div class="row_layout">
+                <el-date-picker v-model="form.start_time" style="width:40%;" size="mini" type="datetime"
+                  :picker-options="date_options()" placeholder="请选择开始日期时间"></el-date-picker>
+                <el-tag style="margin-left:1rem;" size="mini">不填默认立即开始</el-tag>
+              </div>
+            </el-form-item>
+
+            <el-form-item label="直播结束时间" prop="end_time">
+              <el-date-picker v-model="form.end_time" style="width:40%;" size="mini" type="datetime"
+                :picker-options="date_options()" placeholder="请选择结束日期时间" default-time="23:59:59"></el-date-picker>
+            </el-form-item>
+
+            <el-form-item label="发布设备" prop="device">
+              <el-cascader v-model="form.device" :options="form.device_list" :props="form.props"
+                :show-all-levels="false" clearable size="mini" style="width:100%;"></el-cascader>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <div class="footer">
+          <el-button @click="publish_submit(form)" type="primary" size="mini">发布</el-button>
+        </div>
+      </div>
     </div>
   </div>
 

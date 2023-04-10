@@ -39,7 +39,15 @@ new Vue({
 			this.device_name = decodeURIComponent(this.device_name);
 		}
 		document.title = '智慧运算中心';
-		this.get_user_info();
+		if (localStorage.hushanwebuserinfo) {
+			let obj = JSON.parse(localStorage.hushanwebuserinfo);
+			this.ws_name = obj.mqUser;
+			this.ws_password = obj.mqPassword;
+			this.user_id = obj.id;
+			this.link_websocket();
+		} else {
+			this.get_user_info();
+		}
 		this.data_ready = false; // 数据结构是否完成了
 		window.onresize = () => {
 			this.button_h = document.querySelector('.slider_button').offsetHeight;

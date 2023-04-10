@@ -10,6 +10,9 @@
 	border-radius: 8px;
 	display: flex;
 	flex-direction: column;
+	overflow: hidden;
+	min-width: 1000px;
+	min-height: 800px;
 }
 .row_layout {
 	display: flex;
@@ -46,4 +49,29 @@
 .footer {
 	padding: 1rem 0;
 	align-self: center;
+}
+.form_layout {
+	overflow: hidden;
+	width: 35rem;
+	min-width: 500px;
+	background-color: #fff;
+	border-radius: 14px;
+	display: flex;
+	flex-direction: column;
+	> .head {
+		padding: 10px;
+		> .title {
+			font-size: 1.2rem;
+			font-weight: bold;
+			margin: 0 auto;
+		}
+	}
+	> .body {
+		padding: 1rem 1rem 0 1rem;
+		overflow: auto;
+	}
+	> .footer {
+		align-self: end;
+		padding-right: 1rem;
+	}
 }

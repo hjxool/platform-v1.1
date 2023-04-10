@@ -2,6 +2,8 @@ let url = `${我是接口地址}/`;
 let material_search_url = `${url}api-file/doc/catalogue/shareMaterial/search`;
 let upload_file_url = `${url}api-file/doc/file/chunk/create`;
 let del_material_url = `${url}api-file/doc/file/delete`;
+let device_list_url = `${url}api-portal/video/search/liveDevice`;
+let publish_url = `${url}api-portal/video/rule/saveOrUpdate`;
 
 new Vue({
 	el: '#index',
@@ -17,6 +19,27 @@ new Vue({
 			data: [], //表格数据
 			total: 0, // 数据总数
 			page_size: 10, //单页显示数量
+			cur_page: 1, //当前页
+		},
+		form: {
+			show: false, //发布表单显示
+			loading: false, //表单加载
+			name: '', // 计划名
+			start_time: '', //直播开始时间
+			end_time: '', //直播结束时间
+			device: [], //选中的设备
+			device_list: [], //设备列表
+			rules: {
+				name: [{ required: true, message: '请输入计划名称', trigger: 'blur' }],
+				end_time: [{ type: 'date', required: true, message: '请选择时间', trigger: 'change' }],
+				device: [{ required: true, message: '请选择设备', trigger: 'change' }],
+			},
+			props: {
+				value: 'id',
+				label: 'nodeName',
+				children: 'children',
+				multiple: true,
+			},
 		},
 	},
 	mounted() {
@@ -54,6 +77,7 @@ new Vue({
 				let data = res.data.data;
 				this.table.total = data.total;
 				this.table.data = data.data;
+				this.table.cur_page = page;
 			});
 		},
 		select_file() {
@@ -131,6 +155,72 @@ new Vue({
 				document.body.removeChild(a);
 				URL.revokeObjectURL(href);
 			});
+		},
+		// 发布素材
+		publish_show(row_obj) {
+			this.material_id = row_obj.id;
+			this.form.show = true;
+			this.form.loading = true;
+			this.form.name = '';
+			this.form.start_time = '';
+			this.form.end_time = '';
+			this.form.device = '';
+			this.request('get', device_list_url, this.token, (res) => {
+				console.log('设备列表', res);
+				this.form.loading = false;
+				if (res.data.head.code != 200) {
+					this.$message('设备获取失败');
+					return;
+				}
+				this.form.device_list = res.data.data;
+			});
+		},
+		publish_submit(form) {
+			this.$refs.form.validate((result) => {
+				if (result) {
+					let data = {
+						planName: form.name,
+						pullDeviceIds: [],
+						sourceType: 2, //2表示公共素材
+						sourceId: this.material_id,
+					};
+					for (let val of form.device) {
+						data.pullDeviceIds.push(val[val.length - 1]);
+					}
+					if (form.start_time === '') {
+						data.pushStartExecuteTime = '';
+					} else {
+						let t = form.start_time;
+						data.pushStartExecuteTime = `${t.getFullYear()}-${t.getMonth() + 1 < 10 ? '0' + (t.getMonth() + 1) : t.getMonth + 1}-${t.getDate() < 10 ? '0' + t.getDate() : t.getDate()} ${t
+							.toString()
+							.split(' ')[4]
+							.substring(0, 5)}`;
+					}
+					let t2 = form.end_time;
+					data.pushEndExecuteTime = `${t2.getFullYear()}-${t2.getMonth() + 1 < 10 ? '0' + (t2.getMonth() + 1) : t2.getMonth + 1}-${t2.getDate() < 10 ? '0' + t2.getDate() : t2.getDate()} ${t2
+						.toString()
+						.split(' ')[4]
+						.substring(0, 5)}`;
+					this.form.loading = true;
+					this.request('post', publish_url, this.token, data, (res) => {
+						this.form.loading = false;
+						if (res.data.head.code != 200) {
+							this.$message.error('发布失败');
+							return;
+						}
+						this.form.show = false;
+						this.get_data(1);
+					});
+				}
+			});
+		},
+		// 预约日期不能是当天之前的
+		date_options() {
+			return {
+				disabledDate(curr_time) {
+					return curr_time.getTime() < Date.now() - 86400000;
+				},
+			};
 		},
 	},
 });
